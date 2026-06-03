@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String  @id @default(cuid())
+  firstName String?
+  lastName  String?
+  email     String  @unique
+  avatarUrl String?
+
+  googleId String? @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships   Membership[]
+  templates     CertificateTemplate[]
+  credentials   Credential[]
+  uploadedFiles File[]
+}
+
+model Organization {
+  id String @id @default(cuid())
+
+  name String
+  slug String @unique
+
+  logoUrl String?
+
+  credentialLimit Int @default(1000)
+  credentialsUsed Int @default(0)
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaces  Workspace[]
+  memberships Membership[]
+  credentials Credential[]
+}
+
+model Workspace {
+  id String @id @default(cuid())
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name String
+  slug String?
+
+  brandingSettings Json?
+
+  customDomain String?
+
+  smtpEnabled  Boolean @default(false)
+  smtpSettings Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  templates   CertificateTemplate[]
+  credentials Credential[]
+  jobs        Job[]
+  files       File[]
+  memberships Membership[]
+}
+
+model Membership {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  role String
+
+  joinedAt DateTime @default(now())
+
+  @@unique([userId, workspaceId])
+}
+
+model CertificateTemplate {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  name String
+
+  description String?
+
+  backgroundImageUrl String?
+
+  htmlTemplate String?
+  cssStyles    String?
+
+  schemaDefinition Json
+
+  orientation String @default("landscape")
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  credentials Credential[]
+}
+
+model Credential {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  templateId String
+  template   CertificateTemplate @relation(fields: [templateId], references: [id])
+
+  recipientName  String
+  recipientEmail String?
+
+  credentialData Json
+
+  verificationCode String @unique
+
+  pdfUrl   String?
+  imageUrl String?
+
+  status String @default("draft")
+
+  issuedAt  DateTime?
+  expiresAt DateTime?
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events    CredentialEvent[]
+  emailLogs EmailLog[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([recipientEmail])
+}
+
+model CredentialEvent {
+  id String @id @default(cuid())
+
+  credentialId String
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  eventType String
+
+  ipAddress String?
+  userAgent String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+}
+
+model EmailLog {
+  id String @id @default(cuid())
+
+  credentialId String
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+
+  recipientEmail String
+
+  providerMessageId String?
+
+  status String
+
+  bounceReason String?
+
+  openedAt  DateTime?
+  clickedAt DateTime?
+
+  createdAt DateTime @default(now())
+}
+
+model Job {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  type String
+
+  status String
+
+  progress Int @default(0)
+
+  payload Json?
+  result  Json?
+
+  errorMessage String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status])
+}
+
+model File {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  uploadedById String
+  uploadedBy   User   @relation(fields: [uploadedById], references: [id])
+
+  fileName String
+
+  mimeType String
+
+  fileSize BigInt
+
+  storageKey String
+
+  publicUrl String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+}
