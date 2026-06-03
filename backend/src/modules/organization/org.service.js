@@ -1,5 +1,5 @@
-import prisma from "../../lib/prisma";
-import { slugify } from "../../utils/slugify";
+import {prisma} from "../../lib/prisma.js";
+import { slugify } from "../../utils/slugify.js";
 
 export const createOrganization = async (name, userId) => {
   const slug = slugify(name, userId);

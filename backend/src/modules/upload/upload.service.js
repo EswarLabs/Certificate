@@ -1,4 +1,4 @@
-import cloudinary from '../../lib/cloudinary';
+import cloudinary from '../../lib/cloudinary.js';
 
 export const uploadImage = async (file) => {
   const result = await cloudinary.v2.uploader.upload(file.path, { folder: 'certificate-app/images' });

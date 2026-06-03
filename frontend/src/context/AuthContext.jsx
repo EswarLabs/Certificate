@@ -44,14 +44,17 @@ export const AuthProvider = ({children}) => {
 
     useEffect(() => {
         const fetchCurrentUser = async () => {
-            setLoading(true);
             try {
                 const res = await getCurrentUser();
-                if (res.success) {
+                if (res && res.success && res.user) {
+                    setUser(res.user);
+                } else if (res && res.user) {
+                    // Handle case where API returns user but not success flag
                     setUser(res.user);
                 }
             } catch (err) {
                 console.error("Error fetching current user:", err);
+                // Silently fail - user will see login page
             } finally {
                 setLoading(false);
             }
