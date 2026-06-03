@@ -4,7 +4,11 @@ import {loginWithGoogle, logout, getCurrentUser} from "../services/authService";
 export const AuthContext = createContext();
 
 export const AuthProvider = ({children}) => {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => {
+        // Initialize from localStorage
+        const savedUser = localStorage.getItem("user");
+        return savedUser ? JSON.parse(savedUser) : null;
+    });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     
@@ -15,6 +19,8 @@ export const AuthProvider = ({children}) => {
             const res = await loginWithGoogle(credential);
             if (res.success) {
                 setUser(res.user);
+                localStorage.setItem("user", JSON.stringify(res.user));
+                localStorage.setItem("accessToken", res.accessToken);
             } else {
                 setError(res.message || "Login failed");
             }
@@ -32,6 +38,8 @@ export const AuthProvider = ({children}) => {
             const res = await logout();
             if (res.success) {
                 setUser(null);
+                localStorage.removeItem("user");
+                localStorage.removeItem("accessToken");
             } else {
                 setError(res.message || "Logout failed");
             }
@@ -48,13 +56,18 @@ export const AuthProvider = ({children}) => {
                 const res = await getCurrentUser();
                 if (res && res.success && res.user) {
                     setUser(res.user);
+                    localStorage.setItem("user", JSON.stringify(res.user));
                 } else if (res && res.user) {
                     // Handle case where API returns user but not success flag
                     setUser(res.user);
+                    localStorage.setItem("user", JSON.stringify(res.user));
                 }
             } catch (err) {
                 console.error("Error fetching current user:", err);
-                // Silently fail - user will see login page
+                // Clear user if token is invalid
+                setUser(null);
+                localStorage.removeItem("user");
+                localStorage.removeItem("accessToken");
             } finally {
                 setLoading(false);
             }
