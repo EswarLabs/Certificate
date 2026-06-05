@@ -6,7 +6,10 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./modules/auth/auth.routes.js";
 import orgRoutes from "./modules/organization/org.routes.js";
 import uploadRoutes from "./modules/upload/upload.routes.js";
+import workspaceRoutes from "./modules/workspaces/workspace.routes.js";
+import membershipRoutes from "./modules/memberships/membership.routes.js";
 import { swaggerUi, specs } from "./swagger.js";
+import userRoutes from "./modules/users/user.routes.js";
 
 dotenv.config();
 
@@ -36,6 +39,8 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/organizations", orgRoutes);
+app.use("/api/organizations/:organizationId/members", membershipRoutes);
+app.use("/api/organizations/:organizationId/workspaces", workspaceRoutes);
 app.use("/api/upload", uploadRoutes);
-
+app.use("/api/users", userRoutes);
 export default app;

@@ -21,11 +21,11 @@ const imageFilter = (req, file, cb) => {
 }
 
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/html', 'text/css'];
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/html', 'text/css', 'image/jpeg', 'image/png', 'image/gif'];
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Only PDF, Word, HTML, and CSS files are allowed!'), false);
+        cb(new Error('Only PDF, Word, HTML, CSS, and image files are allowed!'), false);
     }   
 }
 

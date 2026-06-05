@@ -2,284 +2,83 @@
 
 ## Table of Contents
 1. [System Architecture](#system-architecture)
-2. [Data Flow](#data-flow)
-3. [Authentication Routes](#authentication-routes)
-4. [User Routes](#user-routes)
-5. [Organization Routes](#organization-routes)
-6. [Workspace Routes](#workspace-routes)
-7. [Certificate Template Routes](#certificate-template-routes)
-8. [Credential Routes](#credential-routes)
-9. [Verification Routes](#verification-routes)
-10. [Email Routes](#email-routes)
-11. [Job Routes](#job-routes)
-12. [File Routes](#file-routes)
+2. [API Endpoints Overview](#api-endpoints-overview)
+3. [Authentication Routes](#authentication-routes) ✅
+4. [User Routes](#user-routes) 🟠
+5. [Organization Routes](#organization-routes) ✅
+6. [Member Routes](#member-routes) ✅
+7. [Workspace Routes](#workspace-routes) ✅
+8. [Certificate Template Routes](#certificate-template-routes) 🔴
+9. [Credential Routes](#credential-routes) 🔴
+10. [Verification Routes](#verification-routes) 🔴
+11. [Email Routes](#email-routes) 🔴
+12. [Job Routes](#job-routes) 🔴
+13. [File Routes](#file-routes) 🔴
+
+**Legend:** ✅ Implemented | 🟠 Partial | 🔴 Not Started
 
 ---
 
 ## System Architecture
 
-### Overview
+### Core Resource Hierarchy
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Frontend (React + Vite)                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │   Login      │  │  Dashboard   │  │   Profile    │           │
-│  └──────────────┘  └──────────────┘  └──────────────┘           │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             │ HTTP/REST API (Axios)
-             │
-┌────────────▼────────────────────────────────────────────────────┐
-│                    Backend API Server (Node.js)                 │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────┐        │
-│  │              Middleware Layer                       │        │
-│  │  ├─ Auth Middleware                                │        │
-│  │  ├─ CORS Middleware                                │        │
-│  │  └─ Error Handling                                 │        │
-│  └─────────────────────────────────────────────────────┘        │
-│                          │                                      │
-│  ┌───────┬──────────┬────┼────┬──────────┬──────────┬──────┐   │
-│  │       │          │    │    │          │          │      │   │
-│  ▼       ▼          ▼    ▼    ▼          ▼          ▼      ▼   │
-│ Auth   User      Org  Space Template  Credential  Email   File │
-│Routes  Routes   Routes Routes Routes   Routes     Routes Routes│
-│                                                                 │
-└────────────┬────────────────────────────────────────────────────┘
-             │
-             │ Prisma ORM
-             │
-┌────────────▼────────────────────────────────────────────────────┐
-│                    PostgreSQL Database                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────┐  ┌──────────────┐  ┌─────────────┐  ┌────────┐   │
-│  │  Users   │  │Organizations │  │ Workspaces  │  │Cred...│   │
-│  │          │  │              │  │             │  │       │   │
-│  └──────────┘  └──────────────┘  └─────────────┘  └────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+User
+  ├── Credential (created by user)
+  ├── Memberships (in organizations/workspaces)
+  └── Templates (created by user)
+
+Organization (User -> Membership -> Organization)
+  ├── Workspaces
+  │   ├── Members (via memberships)
+  │   ├── Templates
+  │   ├── Credentials
+  │   ├── Files
+  │   └── Jobs
+  ├── Credentials
+  ├── Members (via memberships)
+  └── Metadata
+
+Workspace (Organization -> Workspaces)
+  ├── Members (Memberships)
+  ├── Templates
+  ├── Credentials
+  ├── Files
+  └── Jobs
 ```
 
-### Core Modules Architecture
-
+### API Route Structure (Nested)
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Auth Module                         │
-│  ├─ Login (Google OAuth)                               │
-│  ├─ Register                                            │
-│  └─ Token Management (JWT)                             │
-└──────────────────┬──────────────────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────────────────┐
-│                   User Module                           │
-│  ├─ Get Profile                                        │
-│  ├─ Update Profile                                     │
-│  └─ Upload Avatar                                      │
-└──────────────────┬──────────────────────────────────────┘
-                   │
-        ┌──────────┼──────────┐
-        │          │          │
-        ▼          ▼          ▼
-    ┌────────┐ ┌────────┐ ┌────────┐
-    │  Org   │ │Workspace│ │Member  │
-    │ Module │ │ Module  │ │ Module │
-    └────────┘ └────────┘ └────────┘
-        │          │          │
-        └──────────┼──────────┘
-                   │
-        ┌──────────┼──────────┐
-        │          │          │
-        ▼          ▼          ▼
-    ┌──────────┐ ┌──────────┐ ┌──────────┐
-    │Template  │ │Credential│ │ Verif    │
-    │ Module   │ │ Module   │ │ Module   │
-    └──────────┘ └──────────┘ └──────────┘
-        │          │
-        └──────┬───┘
-               │
-        ┌──────┴────────┐
-        │               │
-        ▼               ▼
-    ┌────────┐      ┌─────────┐
-    │  Email │      │   Job   │
-    │ Module │      │ Module  │
-    └────────┘      └─────────┘
-        │               │
-        └───────┬───────┘
-                │
-                ▼
-            ┌────────┐
-            │ File   │
-            │ Module │
-            └────────┘
+/api/auth                                     - Authentication ✅
+/api/users                                    - User management 🟠
+/api/organizations                            - Organization management ✅
+  ├── /{orgId}/members                       - Organization members ✅
+  ├── /{orgId}/workspaces                    - Workspaces in org ✅
+  │   ├── /{wsId}/members                    - Workspace members (separate, TODO)
+  │   ├── /{wsId}/templates                  - Templates in workspace 🔴
+  │   ├── /{wsId}/credentials                - Credentials in workspace 🔴
+  │   ├── /{wsId}/files                      - Files in workspace 🔴
+  │   └── /{wsId}/jobs                       - Jobs in workspace 🔴
+  └── /{orgId}/credentials                   - Org-level credentials 🔴
+/api/verify/{code}                            - Credential verification 🔴
+/api/email                                    - Email operations 🔴
+/api/webhooks                                 - Webhook handlers 🔴
 ```
 
 ---
 
-## Data Flow
+## Authentication Routes ✅
 
-### 1. User Registration & Authentication Flow
-```
-User Signs Up / Logs In
-         │
-         ▼
-Google OAuth / Email Auth
-         │
-         ▼
-POST /auth/login
-         │
-         ▼
-Create/Update User in DB
-         │
-         ▼
-Generate JWT Token
-         │
-         ▼
-Return Token to Frontend
-         │
-         ▼
-Frontend stores JWT
-         │
-         ▼
-Subsequent requests include JWT in headers
-```
-
-### 2. Organization & Workspace Setup Flow
-```
-User Creates Organization
-         │
-         ▼
-POST /organizations
-         │
-         ▼
-Organization Created + User becomes Owner
-         │
-         ▼
-User Creates Workspace within Org
-         │
-         ▼
-POST /workspaces
-         │
-         ▼
-Workspace Created + User membership set up
-         │
-         ▼
-User can now create templates & issue credentials
-```
-
-### 3. Certificate Issuance Flow
-```
-User Creates Certificate Template
-         │
-         ▼
-POST /templates
-         │
-         ▼
-Template stored with HTML/CSS
-         │
-         ▼
-User Creates Credentials (Single or Batch)
-         │
-         ▼
-POST /credentials
-         │
-         ▼
-Credential created with status: "draft"
-         │
-         ▼
-Generate PDF from Template + Data
-         │
-         ▼
-Upload PDF to Storage
-         │
-         ▼
-Issue Credential (change status to "issued")
-         │
-         ▼
-PATCH /credentials/{id}/issue
-         │
-         ▼
-Send Verification Email with Link
-         │
-         ▼
-POST /email/send
-         │
-         ▼
-Email stored in EmailLog
-         │
-         ▼
-User clicks email link
-         │
-         ▼
-GET /verify/{verificationCode}
-         │
-         ▼
-Redirect to credential display page
-         │
-         ▼
-Track event (view, download, etc.)
-         │
-         ▼
-POST /credentials/{id}/events
-```
-
-### 4. Batch Credential Generation Flow
-```
-User uploads CSV file
-         │
-         ▼
-POST /files/upload
-         │
-         ▼
-File stored with metadata
-         │
-         ▼
-User initiates batch credential creation
-         │
-         ▼
-POST /credentials/batch
-         │
-         ▼
-Create Job with status: "pending"
-         │
-         ▼
-POST /jobs
-         │
-         ▼
-Background Job Processor Starts
-         │
-         ├─ Parse CSV
-         │
-         ├─ For each row:
-         │  ├─ Create Credential
-         │  ├─ Generate PDF
-         │  └─ Create EmailLog
-         │
-         └─ Update Job status: "completed"
-```
-
----
-
-## Authentication Routes
-
-### 1. Login / Register
+### 1. Google OAuth Login
 **Method:** `POST`  
-**Endpoint:** `/auth/login`  
-**Description:** Authenticate user via Google OAuth or email
+**Endpoint:** `/api/auth/google`  
+**Auth:** None (Public)  
+**Status:** ✅ Implemented
 
 **Request:**
 ```json
 {
-  "email": "user@example.com",
-  "googleId": "google_oauth_id_123",
-  "firstName": "John",
-  "lastName": "Doe",
-  "avatarUrl": "https://example.com/avatar.jpg"
+  "credential": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
@@ -292,26 +91,45 @@ Background Job Processor Starts
     "email": "user@example.com",
     "firstName": "John",
     "lastName": "Doe",
-    "avatarUrl": "https://example.com/avatar.jpg"
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "googleId": "google_123",
+    "createdAt": "2026-01-15T10:30:00Z"
   },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 86400
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expiresIn": 604800
 }
 ```
 
 ---
 
-### 2. Logout
-**Method:** `POST`  
-**Endpoint:** `/auth/logout`  
-**Description:** Logout user (invalidate token)
+### 2. Get Current User
+**Method:** `GET`  
+**Endpoint:** `/api/auth/me`  
+**Auth:** Required (Bearer Token)  
+**Status:** ✅ Implemented
 
-**Request:**
+**Response:**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "success": true,
+  "user": {
+    "id": "user_123",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "avatarUrl": "https://example.com/avatar.jpg",
+    "createdAt": "2026-01-15T10:30:00Z"
+  }
 }
 ```
+
+---
+
+### 3. Logout
+**Method:** `POST`  
+**Endpoint:** `/api/auth/logout`  
+**Auth:** None  
+**Status:** ✅ Implemented
 
 **Response:**
 ```json
@@ -323,28 +141,704 @@ Background Job Processor Starts
 
 ---
 
-### 3. Verify Token
-**Method:** `GET`  
-**Endpoint:** `/auth/verify`  
-**Description:** Verify if token is valid
+## User Routes 🟠
 
-**Headers:**
+### 1. Get User Profile
+**Method:** `GET`  
+**Endpoint:** `/api/users/me`  
+**Auth:** Required  
+**Status:** 🟠 TODO
+
+**Response:**
+```json
+{
+  "id": "user_123",
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "user@example.com",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "createdAt": "2026-01-15T10:30:00Z",
+  "updatedAt": "2026-01-20T14:45:00Z"
+}
 ```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+---
+
+### 2. Update User Profile
+**Method:** `PATCH`  
+**Endpoint:** `/api/users/me`  
+**Auth:** Required  
+**Status:** 🟠 TODO
+
+**Request:**
+```json
+{
+  "firstName": "Johnny",
+  "lastName": "Smith",
+  "avatarUrl": "https://example.com/new-avatar.jpg"
+}
 ```
 
 **Response:**
 ```json
 {
-  "valid": true,
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com"
+  "id": "user_123",
+  "firstName": "Johnny",
+  "lastName": "Smith",
+  "email": "user@example.com",
+  "avatarUrl": "https://example.com/new-avatar.jpg",
+  "updatedAt": "2026-02-01T10:15:00Z"
+}
+```
+
+---
+
+## Organization Routes ✅
+
+### 1. Create Organization
+**Method:** `POST`  
+**Endpoint:** `/api/organizations`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "name": "Acme Corporation"
+}
+```
+
+**Response:**
+```json
+{
+  "organization": {
+    "id": "org_123",
+    "name": "Acme Corporation",
+    "slug": "acme-corporation-user_123",
+    "createdAt": "2026-01-15T10:30:00Z"
+  },
+  "workspace": {
+    "id": "ws_123",
+    "name": "Acme Corporation Workspace",
+    "organizationId": "org_123"
+  },
+  "membership": {
+    "id": "mem_123",
+    "role": "OWNER",
+    "joinedAt": "2026-01-15T10:30:00Z"
   }
 }
 ```
 
 ---
+
+### 2. List Organizations
+**Method:** `GET`  
+**Endpoint:** `/api/organizations`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+[
+  {
+    "id": "org_123",
+    "name": "Acme Corporation",
+    "slug": "acme-corporation-user_123",
+    "createdAt": "2026-01-15T10:30:00Z"
+  }
+]
+```
+
+---
+
+### 3. Get Organization by ID
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "id": "org_123",
+  "name": "Acme Corporation",
+  "slug": "acme-corporation-user_123",
+  "createdAt": "2026-01-15T10:30:00Z",
+  "updatedAt": "2026-02-01T10:15:00Z"
+}
+```
+
+---
+
+### 4. Update Organization
+**Method:** `PUT`  
+**Endpoint:** `/api/organizations/{orgId}`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "name": "Acme Corp Inc"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "org_123",
+  "name": "Acme Corp Inc",
+  "updatedAt": "2026-02-01T10:15:00Z"
+}
+```
+
+---
+
+### 5. Delete Organization
+**Method:** `DELETE`  
+**Endpoint:** `/api/organizations/{orgId}`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Organization deleted"
+}
+```
+
+---
+
+## Member Routes ✅
+
+### 1. Add Member to Organization
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/members`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "newUserId": "user_456",
+  "workspaceId": "ws_123",
+  "role": "ADMIN"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Member added successfully",
+  "membership": {
+    "id": "mem_456",
+    "userId": "user_456",
+    "role": "ADMIN",
+    "joinedAt": "2026-02-01T10:30:00Z",
+    "user": {
+      "id": "user_456",
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "email": "jane@example.com"
+    }
+  }
+}
+```
+
+---
+
+### 2. List Organization Members
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/members`  
+**Auth:** Required (member of org)  
+**Status:** ✅ Implemented
+
+**Query Parameters:**
+- `page` (integer, default: 1)
+- `limit` (integer, default: 10)
+
+**Response:**
+```json
+{
+  "success": true,
+  "total": 5,
+  "page": 1,
+  "limit": 10,
+  "members": [...]
+}
+```
+
+---
+
+### 3. Get Member Details
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "success": true,
+  "membership": {...}
+}
+```
+
+---
+
+### 4. Update Member Role
+**Method:** `PATCH`  
+**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "role": "MEMBER"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Member role updated successfully"
+}
+```
+
+---
+
+### 5. Remove Member
+**Method:** `DELETE`  
+**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Member removed successfully"
+}
+```
+
+---
+
+## Workspace Routes ✅
+
+### 1. Create Workspace
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "name": "Development Workspace"
+}
+```
+
+**Response:**
+```json
+{
+  "workspace": {
+    "id": "ws_456",
+    "organizationId": "org_123",
+    "name": "Development Workspace",
+    "createdAt": "2026-02-01T10:30:00Z"
+  },
+  "membership": {
+    "id": "mem_789",
+    "role": "OWNER",
+    "joinedAt": "2026-02-01T10:30:00Z"
+  }
+}
+```
+
+---
+
+### 2. List Workspaces
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Query Parameters:**
+- `page` (integer, default: 1)
+- `limit` (integer, default: 10)
+
+**Response:**
+```json
+[
+  {
+    "id": "ws_123",
+    "organizationId": "org_123",
+    "name": "Production Workspace",
+    "createdAt": "2026-01-15T10:30:00Z"
+  }
+]
+```
+
+---
+
+### 3. Get Workspace Details
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "id": "ws_123",
+  "organizationId": "org_123",
+  "name": "Production Workspace",
+  "brandingSettings": null,
+  "customDomain": null,
+  "smtpEnabled": false,
+  "createdAt": "2026-01-15T10:30:00Z"
+}
+```
+
+---
+
+### 4. Update Workspace
+**Method:** `PUT`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
+**Auth:** Required  
+**Status:** ✅ Implemented
+
+**Request:**
+```json
+{
+  "name": "Updated Workspace",
+  "brandingSettings": {"primaryColor": "#FF0000"}
+}
+```
+
+**Response:**
+```json
+{
+  "id": "ws_123",
+  "name": "Updated Workspace",
+  "updatedAt": "2026-02-01T10:15:00Z"
+}
+```
+
+---
+
+### 5. Delete Workspace
+**Method:** `DELETE`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
+**Auth:** Required (OWNER only)  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Workspace deleted"
+}
+```
+
+---
+
+### 6. Upload File to Workspace
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/upload`  
+**Auth:** Required  
+**Content-Type:** `multipart/form-data`  
+**Status:** ✅ Implemented
+
+**Response:**
+```json
+{
+  "id": "file_123",
+  "workspaceId": "ws_123",
+  "fileName": "certificate_batch.csv",
+  "mimeType": "text/csv",
+  "fileSize": 2048,
+  "publicUrl": "https://cdn.example.com/files/cert_batch_abc123.csv",
+  "createdAt": "2026-02-01T10:30:00Z"
+}
+```
+
+---
+
+## Certificate Template Routes 🔴
+
+### 1. Create Template
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Request:**
+```json
+{
+  "name": "Achievement Certificate",
+  "description": "Certificate for course completion",
+  "htmlTemplate": "<div class='certificate'><h1>{{courseTitle}}</h1></div>",
+  "cssStyles": ".certificate { text-align: center; }",
+  "orientation": "landscape",
+  "schemaDefinition": {
+    "courseTitle": {"type": "string", "label": "Course Title", "required": true}
+  }
+}
+```
+
+---
+
+### 2. List Templates
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Query Parameters:**
+- `page` (integer, default: 1)
+- `limit` (integer, default: 10)
+
+---
+
+### 3. Get Template Details
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 4. Update Template
+**Method:** `PUT`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 5. Delete Template
+**Method:** `DELETE`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+## Credential Routes 🔴
+
+### 1. Create Single Credential
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Request:**
+```json
+{
+  "templateId": "tmpl_123",
+  "recipientName": "John Doe",
+  "recipientEmail": "john@example.com",
+  "credentialData": {
+    "courseTitle": "Advanced JavaScript",
+    "issueDate": "2026-02-01"
+  }
+}
+```
+
+---
+
+### 2. Create Batch Credentials
+**Method:** `POST`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/batch`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Request:**
+```json
+{
+  "templateId": "tmpl_123",
+  "fileId": "file_123",
+  "recipientNameColumn": "name",
+  "recipientEmailColumn": "email",
+  "dataMapping": {"courseTitle": "course", "issueDate": "date"}
+}
+```
+
+---
+
+### 3. List Credentials
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Query Parameters:**
+- `page` (integer, default: 1)
+- `limit` (integer, default: 10)
+- `status` (pending, issued, revoked, expired)
+
+---
+
+### 4. Get Credential Details
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 5. Issue Credential
+**Method:** `PATCH`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}/issue`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 6. Revoke Credential
+**Method:** `PATCH`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}/revoke`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+## Verification Routes 🔴
+
+### 1. Verify Credential
+**Method:** `GET`  
+**Endpoint:** `/api/verify/{verificationCode}`  
+**Auth:** None (Public)  
+**Status:** 🔴 TODO
+
+---
+
+### 2. Track Credential Event
+**Method:** `POST`  
+**Endpoint:** `/api/credentials/{credId}/events`  
+**Auth:** None (Public)  
+**Status:** 🔴 TODO
+
+**Request:**
+```json
+{
+  "eventType": "view|download|email_open|email_click",
+  "ipAddress": "192.168.1.1",
+  "userAgent": "Mozilla/5.0..."
+}
+```
+
+---
+
+## Email Routes 🔴
+
+### 1. Send Verification Email
+**Method:** `POST`  
+**Endpoint:** `/api/email/send-verification`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 2. Get Email Logs
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/emails`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+## Job Routes 🔴
+
+### 1. Get Job Status
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/jobs/{jobId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 2. List Jobs
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/jobs`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+**Query Parameters:**
+- `status` (pending, in_progress, completed, failed)
+- `type` (batch_credentials, generate_pdf, send_emails)
+- `page` (integer, default: 1)
+
+---
+
+## File Routes 🔴
+
+### 1. List Workspace Files
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 2. Get File Details
+**Method:** `GET`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files/{fileId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+### 3. Delete File
+**Method:** `DELETE`  
+**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files/{fileId}`  
+**Auth:** Required  
+**Status:** 🔴 TODO
+
+---
+
+## Implementation Priority Checklist
+
+### Phase 1 - Foundation ✅
+- [x] Auth Module (Google OAuth, JWT)
+- [x] Organization Module (CRUD)
+- [x] Workspace Module (Nested under Org, CRUD)
+- [x] Membership Module (Nested under Org, Role Management)
+- [x] Upload Module (Cloudinary integration)
+
+### Phase 2 - User & Helpers 🟠
+- [ ] User Module (GET/PATCH profile)
+
+### Phase 3 - Content & Credentials 🔴
+- [ ] Certificate Template Module (CRUD, Schema validation)
+- [ ] Credential Module (Single, Batch, PDF generation)
+- [ ] Verification Module (Code verification, Public page)
+
+### Phase 4 - Communication & Background 🔴
+- [ ] Email Module (Send, Track opens/clicks, Webhook handling)
+- [ ] Job Module (Background processing, Progress tracking)
+- [ ] File Module (Management, CSV parsing)
+
+---
+
+## Key Implementation Notes
+
+1. **Route Nesting**: All workspace routes are now nested under organizations
+2. **Access Control**: All operations validate user membership in organization/workspace
+3. **Transactions**: Org/Workspace creation uses transactions to prevent partial state
+4. **Pagination**: All list endpoints support `page` and `limit` parameters
+5. **Roles**: OWNER | ADMIN | MEMBER | VIEWER (membership.role)
+6. **Status**: Credentials can be draft → issued → revoked
+7. **Verification**: Unique verification codes for public credential viewing
+8. **Background Jobs**: Batch operations create jobs (pending → in_progress → completed)
+9. **Email Tracking**: EmailLog records opens, clicks, bounces
+10. **Timestamps**: All models have createdAt and updatedAt (except Job which has completedAt)
 
 ## User Routes
 

@@ -2,7 +2,10 @@ import { googleLogin } from "./auth.service.js";
 
 export const googleAuthController = async (req, res) => {
   try {
-    const { credential } = req.body;
+    const credential = req.body.credential || req.body.token || req.body.idToken;
+    if (!credential) {
+      return res.status(400).json({ success: false, message: 'Missing token' });
+    }
     const { user, accessToken } = await googleLogin(credential);
     
 
@@ -36,6 +39,7 @@ export const logoutController = (req, res) => {
 };
 
 export const getCurrentUserController = (req, res) => {
+  console.log("Current user:", req.user);
   return res.status(200).json({
     success: true,
     user: req.user,

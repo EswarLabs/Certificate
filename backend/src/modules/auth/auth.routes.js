@@ -22,11 +22,11 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - token
+ *               - credential
  *             properties:
- *               token:
+ *               credential:
  *                 type: string
- *                 description: Google OAuth token
+ *                 description: Google OAuth ID token (accepts `credential` or `token` fields)
  *     responses:
  *       200:
  *         description: Authentication successful
