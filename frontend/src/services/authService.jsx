@@ -13,7 +13,18 @@ export const loginWithGoogle = async (credential) => {
             "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify({credential})
+        body: JSON.stringify({ credential })
+    })
+    return res.json();
+}
+
+export const loginWithEmail = async (email, password) => {
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password })
     })
     return res.json();
 }
@@ -33,6 +44,17 @@ export const getCurrentUser = async () => {
         headers: {
             ...getAuthHeader(),
         },
+    });
+    return res.json();
+}
+
+export const registerWithEmail = async (firstName, lastName, email, password) => {
+    const res = await fetch(`${API_URL}/api/auth/register`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ firstName, lastName, email, password })
     });
     return res.json();
 }

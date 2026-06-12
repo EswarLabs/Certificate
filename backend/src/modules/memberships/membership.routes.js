@@ -25,6 +25,7 @@ const router = express.Router({ mergeParams: true });
  *         required: true
  *         schema:
  *           type: string
+ *         description: Organization ID
  *     requestBody:
  *       required: true
  *       content:
@@ -48,10 +49,51 @@ const router = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Member added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 membership:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     userId:
+ *                       type: string
+ *                     organizationId:
+ *                       type: string
+ *                     workspaceId:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     joinedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         avatarUrl:
+ *                           type: string
+ *                           nullable: true
  *       400:
  *         description: Invalid input
  *       403:
  *         description: Forbidden - only owners can add members
+ *       404:
+ *         description: Workspace not found
  */
 router.post("/", authMiddleware, addMemberController);
 
@@ -70,16 +112,19 @@ router.post("/", authMiddleware, addMemberController);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Organization ID
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
+ *         description: Page number
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
+ *         description: Number of members per page
  *     responses:
  *       200:
  *         description: List of members
@@ -92,8 +137,42 @@ router.post("/", authMiddleware, addMemberController);
  *                   type: boolean
  *                 total:
  *                   type: integer
+ *                 page:
+ *                   type: integer
+ *                 limit:
+ *                   type: integer
  *                 members:
  *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       userId:
+ *                         type: string
+ *                       organizationId:
+ *                         type: string
+ *                       workspaceId:
+ *                         type: string
+ *                       role:
+ *                         type: string
+ *                       joinedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       user:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           firstName:
+ *                             type: string
+ *                           lastName:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           avatarUrl:
+ *                             type: string
+ *                             nullable: true
  *       401:
  *         description: Unauthorized
  *       403:
@@ -116,14 +195,53 @@ router.get("/", authMiddleware, listMembersController);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Organization ID
  *       - in: path
  *         name: memberId
  *         required: true
  *         schema:
  *           type: string
+ *         description: Membership ID
  *     responses:
  *       200:
  *         description: Member details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 membership:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     userId:
+ *                       type: string
+ *                     organizationId:
+ *                       type: string
+ *                     workspaceId:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     joinedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         avatarUrl:
+ *                           type: string
+ *                           nullable: true
  *       401:
  *         description: Unauthorized
  *       404:
@@ -146,11 +264,13 @@ router.get("/:memberId", authMiddleware, getMemberController);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Organization ID
  *       - in: path
  *         name: memberId
  *         required: true
  *         schema:
  *           type: string
+ *         description: Membership ID
  *     requestBody:
  *       required: true
  *       content:
@@ -166,10 +286,48 @@ router.get("/:memberId", authMiddleware, getMemberController);
  *     responses:
  *       200:
  *         description: Role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 membership:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     userId:
+ *                       type: string
+ *                     organizationId:
+ *                       type: string
+ *                     workspaceId:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *                     joinedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     user:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         firstName:
+ *                           type: string
+ *                         lastName:
+ *                           type: string
+ *                         email:
+ *                           type: string
  *       400:
  *         description: Invalid input
  *       403:
  *         description: Forbidden - only owners can update roles
+ *       404:
+ *         description: Member not found
  */
 router.patch("/:memberId", authMiddleware, updateMemberRoleController);
 
@@ -188,14 +346,25 @@ router.patch("/:memberId", authMiddleware, updateMemberRoleController);
  *         required: true
  *         schema:
  *           type: string
+ *         description: Organization ID
  *       - in: path
  *         name: memberId
  *         required: true
  *         schema:
  *           type: string
+ *         description: Membership ID
  *     responses:
  *       200:
  *         description: Member removed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  *       403:
  *         description: Forbidden - only owners can remove members
  *       404:

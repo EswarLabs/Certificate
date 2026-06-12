@@ -1,2279 +1,1352 @@
 # Certificate Management System - Backend API Documentation
 
+All API routes are prefixed with `/api`. Authenticated endpoints require a JWT bearer token passed in the `Authorization` header or through cookies.
+
 ## Table of Contents
-1. [System Architecture](#system-architecture)
-2. [API Endpoints Overview](#api-endpoints-overview)
-3. [Authentication Routes](#authentication-routes) ✅
-4. [User Routes](#user-routes) 🟠
-5. [Organization Routes](#organization-routes) ✅
-6. [Member Routes](#member-routes) ✅
-7. [Workspace Routes](#workspace-routes) ✅
-8. [Certificate Template Routes](#certificate-template-routes) 🔴
-9. [Credential Routes](#credential-routes) 🔴
-10. [Verification Routes](#verification-routes) 🔴
-11. [Email Routes](#email-routes) 🔴
-12. [Job Routes](#job-routes) 🔴
-13. [File Routes](#file-routes) 🔴
-
-**Legend:** ✅ Implemented | 🟠 Partial | 🔴 Not Started
+1. [Authentication Routes](#1-authentication-routes)
+2. [User Routes](#2-user-routes)
+3. [Organization Routes](#3-organization-routes)
+4. [Membership Routes](#4-membership-routes)
+5. [Workspace Routes](#5-workspace-routes)
+6. [Upload Routes](#6-upload-routes)
+7. [Certificate Template Routes](#7-certificate-template-routes)
+8. [Credential Routes](#8-credential-routes)
+9. [Verification Routes](#9-verification-routes)
+10. [Email Routes](#10-email-routes)
+11. [Background Job Routes](#11-background-job-routes)
+12. [File Routes](#12-file-routes)
+13. [Error Handling](#13-error-handling)
 
 ---
 
-## System Architecture
+## 1. Authentication Routes
 
-### Core Resource Hierarchy
-```
-User
-  ├── Credential (created by user)
-  ├── Memberships (in organizations/workspaces)
-  └── Templates (created by user)
-
-Organization (User -> Membership -> Organization)
-  ├── Workspaces
-  │   ├── Members (via memberships)
-  │   ├── Templates
-  │   ├── Credentials
-  │   ├── Files
-  │   └── Jobs
-  ├── Credentials
-  ├── Members (via memberships)
-  └── Metadata
-
-Workspace (Organization -> Workspaces)
-  ├── Members (Memberships)
-  ├── Templates
-  ├── Credentials
-  ├── Files
-  └── Jobs
-```
-
-### API Route Structure (Nested)
-```
-/api/auth                                     - Authentication ✅
-/api/users                                    - User management 🟠
-/api/organizations                            - Organization management ✅
-  ├── /{orgId}/members                       - Organization members ✅
-  ├── /{orgId}/workspaces                    - Workspaces in org ✅
-  │   ├── /{wsId}/members                    - Workspace members (separate, TODO)
-  │   ├── /{wsId}/templates                  - Templates in workspace 🔴
-  │   ├── /{wsId}/credentials                - Credentials in workspace 🔴
-  │   ├── /{wsId}/files                      - Files in workspace 🔴
-  │   └── /{wsId}/jobs                       - Jobs in workspace 🔴
-  └── /{orgId}/credentials                   - Org-level credentials 🔴
-/api/verify/{code}                            - Credential verification 🔴
-/api/email                                    - Email operations 🔴
-/api/webhooks                                 - Webhook handlers 🔴
-```
-
----
-
-## Authentication Routes ✅
-
-### 1. Google OAuth Login
-**Method:** `POST`  
-**Endpoint:** `/api/auth/google`  
-**Auth:** None (Public)  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "credential": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "avatarUrl": "https://example.com/avatar.jpg",
-    "googleId": "google_123",
-    "createdAt": "2026-01-15T10:30:00Z"
-  },
-  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expiresIn": 604800
-}
-```
-
----
-
-### 2. Get Current User
-**Method:** `GET`  
-**Endpoint:** `/api/auth/me`  
-**Auth:** Required (Bearer Token)  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "user": {
-    "id": "user_123",
-    "email": "user@example.com",
-    "firstName": "John",
-    "lastName": "Doe",
-    "avatarUrl": "https://example.com/avatar.jpg",
-    "createdAt": "2026-01-15T10:30:00Z"
-  }
-}
-```
-
----
-
-### 3. Logout
-**Method:** `POST`  
-**Endpoint:** `/api/auth/logout`  
-**Auth:** None  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Logged out successfully"
-}
-```
-
----
-
-## User Routes 🟠
-
-### 1. Get User Profile
-**Method:** `GET`  
-**Endpoint:** `/api/users/me`  
-**Auth:** Required  
-**Status:** 🟠 TODO
-
-**Response:**
-```json
-{
-  "id": "user_123",
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "user@example.com",
-  "avatarUrl": "https://example.com/avatar.jpg",
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-20T14:45:00Z"
-}
-```
-
----
-
-### 2. Update User Profile
-**Method:** `PATCH`  
-**Endpoint:** `/api/users/me`  
-**Auth:** Required  
-**Status:** 🟠 TODO
-
-**Request:**
-```json
-{
-  "firstName": "Johnny",
-  "lastName": "Smith",
-  "avatarUrl": "https://example.com/new-avatar.jpg"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "user_123",
-  "firstName": "Johnny",
-  "lastName": "Smith",
-  "email": "user@example.com",
-  "avatarUrl": "https://example.com/new-avatar.jpg",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-## Organization Routes ✅
-
-### 1. Create Organization
-**Method:** `POST`  
-**Endpoint:** `/api/organizations`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "name": "Acme Corporation"
-}
-```
-
-**Response:**
-```json
-{
-  "organization": {
-    "id": "org_123",
-    "name": "Acme Corporation",
-    "slug": "acme-corporation-user_123",
-    "createdAt": "2026-01-15T10:30:00Z"
-  },
-  "workspace": {
-    "id": "ws_123",
-    "name": "Acme Corporation Workspace",
-    "organizationId": "org_123"
-  },
-  "membership": {
-    "id": "mem_123",
-    "role": "OWNER",
-    "joinedAt": "2026-01-15T10:30:00Z"
-  }
-}
-```
-
----
-
-### 2. List Organizations
-**Method:** `GET`  
-**Endpoint:** `/api/organizations`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-[
+### Register User
+* **Endpoint:** `POST /api/auth/register`
+* **Auth:** Public
+* **Request Body:**
+  ```json
   {
-    "id": "org_123",
-    "name": "Acme Corporation",
-    "slug": "acme-corporation-user_123",
-    "createdAt": "2026-01-15T10:30:00Z"
+    "email": "user@example.com",
+    "password": "secretpassword",
+    "firstName": "John",
+    "lastName": "Doe"
   }
-]
-```
-
----
-
-### 3. Get Organization by ID
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "id": "org_123",
-  "name": "Acme Corporation",
-  "slug": "acme-corporation-user_123",
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 4. Update Organization
-**Method:** `PUT`  
-**Endpoint:** `/api/organizations/{orgId}`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "name": "Acme Corp Inc"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "org_123",
-  "name": "Acme Corp Inc",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 5. Delete Organization
-**Method:** `DELETE`  
-**Endpoint:** `/api/organizations/{orgId}`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Organization deleted"
-}
-```
-
----
-
-## Member Routes ✅
-
-### 1. Add Member to Organization
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/members`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "newUserId": "user_456",
-  "workspaceId": "ws_123",
-  "role": "ADMIN"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Member added successfully",
-  "membership": {
-    "id": "mem_456",
-    "userId": "user_456",
-    "role": "ADMIN",
-    "joinedAt": "2026-02-01T10:30:00Z",
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "success": true,
     "user": {
-      "id": "user_456",
-      "firstName": "Jane",
-      "lastName": "Smith",
-      "email": "jane@example.com"
-    }
+      "id": "usr_982bca81",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "avatarUrl": ""
+    },
+    "accessToken": "eyJhbGciOiJIUzI1Ni...",
+    "message": "Registration successful"
   }
-}
-```
+  ```
 
----
-
-### 2. List Organization Members
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/members`  
-**Auth:** Required (member of org)  
-**Status:** ✅ Implemented
-
-**Query Parameters:**
-- `page` (integer, default: 1)
-- `limit` (integer, default: 10)
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 5,
-  "page": 1,
-  "limit": 10,
-  "members": [...]
-}
-```
-
----
-
-### 3. Get Member Details
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "membership": {...}
-}
-```
-
----
-
-### 4. Update Member Role
-**Method:** `PATCH`  
-**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "role": "MEMBER"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Member role updated successfully"
-}
-```
-
----
-
-### 5. Remove Member
-**Method:** `DELETE`  
-**Endpoint:** `/api/organizations/{orgId}/members/{memberId}`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Member removed successfully"
-}
-```
-
----
-
-## Workspace Routes ✅
-
-### 1. Create Workspace
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "name": "Development Workspace"
-}
-```
-
-**Response:**
-```json
-{
-  "workspace": {
-    "id": "ws_456",
-    "organizationId": "org_123",
-    "name": "Development Workspace",
-    "createdAt": "2026-02-01T10:30:00Z"
-  },
-  "membership": {
-    "id": "mem_789",
-    "role": "OWNER",
-    "joinedAt": "2026-02-01T10:30:00Z"
-  }
-}
-```
-
----
-
-### 2. List Workspaces
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Query Parameters:**
-- `page` (integer, default: 1)
-- `limit` (integer, default: 10)
-
-**Response:**
-```json
-[
+### Login User
+* **Endpoint:** `POST /api/auth/login`
+* **Auth:** Public
+* **Request Body:**
+  ```json
   {
-    "id": "ws_123",
-    "organizationId": "org_123",
-    "name": "Production Workspace",
-    "createdAt": "2026-01-15T10:30:00Z"
+    "email": "user@example.com",
+    "password": "secretpassword"
   }
-]
-```
-
----
-
-### 3. Get Workspace Details
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "id": "ws_123",
-  "organizationId": "org_123",
-  "name": "Production Workspace",
-  "brandingSettings": null,
-  "customDomain": null,
-  "smtpEnabled": false,
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 4. Update Workspace
-**Method:** `PUT`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
-**Auth:** Required  
-**Status:** ✅ Implemented
-
-**Request:**
-```json
-{
-  "name": "Updated Workspace",
-  "brandingSettings": {"primaryColor": "#FF0000"}
-}
-```
-
-**Response:**
-```json
-{
-  "id": "ws_123",
-  "name": "Updated Workspace",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 5. Delete Workspace
-**Method:** `DELETE`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}`  
-**Auth:** Required (OWNER only)  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Workspace deleted"
-}
-```
-
----
-
-### 6. Upload File to Workspace
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/upload`  
-**Auth:** Required  
-**Content-Type:** `multipart/form-data`  
-**Status:** ✅ Implemented
-
-**Response:**
-```json
-{
-  "id": "file_123",
-  "workspaceId": "ws_123",
-  "fileName": "certificate_batch.csv",
-  "mimeType": "text/csv",
-  "fileSize": 2048,
-  "publicUrl": "https://cdn.example.com/files/cert_batch_abc123.csv",
-  "createdAt": "2026-02-01T10:30:00Z"
-}
-```
-
----
-
-## Certificate Template Routes 🔴
-
-### 1. Create Template
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Request:**
-```json
-{
-  "name": "Achievement Certificate",
-  "description": "Certificate for course completion",
-  "htmlTemplate": "<div class='certificate'><h1>{{courseTitle}}</h1></div>",
-  "cssStyles": ".certificate { text-align: center; }",
-  "orientation": "landscape",
-  "schemaDefinition": {
-    "courseTitle": {"type": "string", "label": "Course Title", "required": true}
-  }
-}
-```
-
----
-
-### 2. List Templates
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Query Parameters:**
-- `page` (integer, default: 1)
-- `limit` (integer, default: 10)
-
----
-
-### 3. Get Template Details
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 4. Update Template
-**Method:** `PUT`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 5. Delete Template
-**Method:** `DELETE`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/templates/{tmplId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-## Credential Routes 🔴
-
-### 1. Create Single Credential
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Request:**
-```json
-{
-  "templateId": "tmpl_123",
-  "recipientName": "John Doe",
-  "recipientEmail": "john@example.com",
-  "credentialData": {
-    "courseTitle": "Advanced JavaScript",
-    "issueDate": "2026-02-01"
-  }
-}
-```
-
----
-
-### 2. Create Batch Credentials
-**Method:** `POST`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/batch`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Request:**
-```json
-{
-  "templateId": "tmpl_123",
-  "fileId": "file_123",
-  "recipientNameColumn": "name",
-  "recipientEmailColumn": "email",
-  "dataMapping": {"courseTitle": "course", "issueDate": "date"}
-}
-```
-
----
-
-### 3. List Credentials
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Query Parameters:**
-- `page` (integer, default: 1)
-- `limit` (integer, default: 10)
-- `status` (pending, issued, revoked, expired)
-
----
-
-### 4. Get Credential Details
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 5. Issue Credential
-**Method:** `PATCH`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}/issue`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 6. Revoke Credential
-**Method:** `PATCH`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/credentials/{credId}/revoke`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-## Verification Routes 🔴
-
-### 1. Verify Credential
-**Method:** `GET`  
-**Endpoint:** `/api/verify/{verificationCode}`  
-**Auth:** None (Public)  
-**Status:** 🔴 TODO
-
----
-
-### 2. Track Credential Event
-**Method:** `POST`  
-**Endpoint:** `/api/credentials/{credId}/events`  
-**Auth:** None (Public)  
-**Status:** 🔴 TODO
-
-**Request:**
-```json
-{
-  "eventType": "view|download|email_open|email_click",
-  "ipAddress": "192.168.1.1",
-  "userAgent": "Mozilla/5.0..."
-}
-```
-
----
-
-## Email Routes 🔴
-
-### 1. Send Verification Email
-**Method:** `POST`  
-**Endpoint:** `/api/email/send-verification`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 2. Get Email Logs
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/emails`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-## Job Routes 🔴
-
-### 1. Get Job Status
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/jobs/{jobId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 2. List Jobs
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/jobs`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
-**Query Parameters:**
-- `status` (pending, in_progress, completed, failed)
-- `type` (batch_credentials, generate_pdf, send_emails)
-- `page` (integer, default: 1)
-
----
-
-## File Routes 🔴
-
-### 1. List Workspace Files
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 2. Get File Details
-**Method:** `GET`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files/{fileId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-### 3. Delete File
-**Method:** `DELETE`  
-**Endpoint:** `/api/organizations/{orgId}/workspaces/{wsId}/files/{fileId}`  
-**Auth:** Required  
-**Status:** 🔴 TODO
-
----
-
-## Implementation Priority Checklist
-
-### Phase 1 - Foundation ✅
-- [x] Auth Module (Google OAuth, JWT)
-- [x] Organization Module (CRUD)
-- [x] Workspace Module (Nested under Org, CRUD)
-- [x] Membership Module (Nested under Org, Role Management)
-- [x] Upload Module (Cloudinary integration)
-
-### Phase 2 - User & Helpers 🟠
-- [ ] User Module (GET/PATCH profile)
-
-### Phase 3 - Content & Credentials 🔴
-- [ ] Certificate Template Module (CRUD, Schema validation)
-- [ ] Credential Module (Single, Batch, PDF generation)
-- [ ] Verification Module (Code verification, Public page)
-
-### Phase 4 - Communication & Background 🔴
-- [ ] Email Module (Send, Track opens/clicks, Webhook handling)
-- [ ] Job Module (Background processing, Progress tracking)
-- [ ] File Module (Management, CSV parsing)
-
----
-
-## Key Implementation Notes
-
-1. **Route Nesting**: All workspace routes are now nested under organizations
-2. **Access Control**: All operations validate user membership in organization/workspace
-3. **Transactions**: Org/Workspace creation uses transactions to prevent partial state
-4. **Pagination**: All list endpoints support `page` and `limit` parameters
-5. **Roles**: OWNER | ADMIN | MEMBER | VIEWER (membership.role)
-6. **Status**: Credentials can be draft → issued → revoked
-7. **Verification**: Unique verification codes for public credential viewing
-8. **Background Jobs**: Batch operations create jobs (pending → in_progress → completed)
-9. **Email Tracking**: EmailLog records opens, clicks, bounces
-10. **Timestamps**: All models have createdAt and updatedAt (except Job which has completedAt)
-
-## User Routes
-
-### 1. Get User Profile
-**Method:** `GET`  
-**Endpoint:** `/users/me`  
-**Description:** Get current authenticated user's profile
-
-**Headers:**
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Response:**
-```json
-{
-  "id": "user_123",
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "user@example.com",
-  "avatarUrl": "https://example.com/avatar.jpg",
-  "googleId": "google_123",
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-20T14:45:00Z"
-}
-```
-
----
-
-### 2. Update User Profile
-**Method:** `PATCH`  
-**Endpoint:** `/users/me`  
-**Description:** Update user profile information
-
-**Request:**
-```json
-{
-  "firstName": "Johnny",
-  "lastName": "Smith",
-  "avatarUrl": "https://example.com/new-avatar.jpg"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "user_123",
-  "firstName": "Johnny",
-  "lastName": "Smith",
-  "email": "user@example.com",
-  "avatarUrl": "https://example.com/new-avatar.jpg",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 3. Get User by ID
-**Method:** `GET`  
-**Endpoint:** `/users/{userId}`  
-**Description:** Get specific user details
-
-**Response:**
-```json
-{
-  "id": "user_123",
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "user@example.com",
-  "avatarUrl": "https://example.com/avatar.jpg",
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-## Organization Routes
-
-### 1. Create Organization
-**Method:** `POST`  
-**Endpoint:** `/organizations`  
-**Description:** Create a new organization
-
-**Request:**
-```json
-{
-  "name": "Acme Corporation",
-  "slug": "acme-corp",
-  "logoUrl": "https://example.com/logo.png",
-  "credentialLimit": 5000,
-  "metadata": {
-    "industry": "Technology",
-    "employees": 250
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "id": "org_123",
-  "name": "Acme Corporation",
-  "slug": "acme-corp",
-  "logoUrl": "https://example.com/logo.png",
-  "credentialLimit": 5000,
-  "credentialsUsed": 0,
-  "metadata": {
-    "industry": "Technology",
-    "employees": 250
-  },
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 2. Get Organization
-**Method:** `GET`  
-**Endpoint:** `/organizations/{orgId}`  
-**Description:** Get organization details
-
-**Response:**
-```json
-{
-  "id": "org_123",
-  "name": "Acme Corporation",
-  "slug": "acme-corp",
-  "logoUrl": "https://example.com/logo.png",
-  "credentialLimit": 5000,
-  "credentialsUsed": 150,
-  "metadata": {
-    "industry": "Technology",
-    "employees": 250
-  },
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-20T14:45:00Z"
-}
-```
-
----
-
-### 3. List User's Organizations
-**Method:** `GET`  
-**Endpoint:** `/organizations`  
-**Description:** List all organizations user belongs to
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 2,
-  "organizations": [
-    {
-      "id": "org_123",
-      "name": "Acme Corporation",
-      "slug": "acme-corp",
-      "credentialsUsed": 150,
-      "credentialLimit": 5000
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "user": {
+      "id": "usr_982bca81",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "avatarUrl": ""
     },
-    {
-      "id": "org_456",
-      "name": "Tech Startup Inc",
-      "slug": "tech-startup",
-      "credentialsUsed": 25,
-      "credentialLimit": 1000
-    }
-  ]
-}
-```
-
----
-
-### 4. Update Organization
-**Method:** `PATCH`  
-**Endpoint:** `/organizations/{orgId}`  
-**Description:** Update organization details
-
-**Request:**
-```json
-{
-  "name": "Acme Corporation International",
-  "logoUrl": "https://example.com/new-logo.png",
-  "credentialLimit": 10000
-}
-```
-
-**Response:**
-```json
-{
-  "id": "org_123",
-  "name": "Acme Corporation International",
-  "slug": "acme-corp",
-  "credentialLimit": 10000,
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 5. Delete Organization
-**Method:** `DELETE`  
-**Endpoint:** `/organizations/{orgId}`  
-**Description:** Delete organization (cascade deletes related data)
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Organization deleted successfully"
-}
-```
-
----
-
-## Workspace Routes
-
-### 1. Create Workspace
-**Method:** `POST`  
-**Endpoint:** `/workspaces`  
-**Description:** Create workspace within an organization
-
-**Request:**
-```json
-{
-  "organizationId": "org_123",
-  "name": "Production Workspace",
-  "slug": "prod-workspace",
-  "customDomain": "certs.acme-corp.com",
-  "smtpEnabled": true,
-  "smtpSettings": {
-    "host": "smtp.example.com",
-    "port": 587,
-    "username": "admin@acme-corp.com",
-    "password": "secure_password"
-  },
-  "brandingSettings": {
-    "primaryColor": "#007bff",
-    "accentColor": "#28a745",
-    "fontFamily": "Arial"
+    "accessToken": "eyJhbGciOiJIUzI1Ni...",
+    "message": "Login successful"
   }
-}
-```
+  ```
 
-**Response:**
-```json
-{
-  "id": "ws_123",
-  "organizationId": "org_123",
-  "name": "Production Workspace",
-  "slug": "prod-workspace",
-  "customDomain": "certs.acme-corp.com",
-  "smtpEnabled": true,
-  "brandingSettings": {
-    "primaryColor": "#007bff",
-    "accentColor": "#28a745",
-    "fontFamily": "Arial"
-  },
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 2. Get Workspace
-**Method:** `GET`  
-**Endpoint:** `/workspaces/{workspaceId}`  
-**Description:** Get workspace details
-
-**Response:**
-```json
-{
-  "id": "ws_123",
-  "organizationId": "org_123",
-  "name": "Production Workspace",
-  "slug": "prod-workspace",
-  "customDomain": "certs.acme-corp.com",
-  "smtpEnabled": true,
-  "brandingSettings": {
-    "primaryColor": "#007bff",
-    "accentColor": "#28a745"
-  },
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 3. List Workspace
-**Method:** `GET`  
-**Endpoint:** `/organizations/{orgId}/workspaces`  
-**Description:** List all workspaces in an organization
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 2,
-  "workspaces": [
-    {
-      "id": "ws_123",
-      "name": "Production Workspace",
-      "slug": "prod-workspace",
-      "customDomain": "certs.acme-corp.com"
-    },
-    {
-      "id": "ws_456",
-      "name": "Staging Workspace",
-      "slug": "staging-workspace"
-    }
-  ]
-}
-```
-
----
-
-### 4. Update Workspace
-**Method:** `PATCH`  
-**Endpoint:** `/workspaces/{workspaceId}`  
-**Description:** Update workspace settings
-
-**Request:**
-```json
-{
-  "name": "Production - Main",
-  "smtpSettings": {
-    "host": "smtp.newserver.com",
-    "port": 587
-  },
-  "brandingSettings": {
-    "primaryColor": "#ff0000"
+### Google OAuth Login
+* **Endpoint:** `POST /api/auth/google`
+* **Auth:** Public
+* **Request Body:**
+  ```json
+  {
+    "credential": "google-oauth-id-token"
   }
-}
-```
-
-**Response:**
-```json
-{
-  "id": "ws_123",
-  "name": "Production - Main",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 5. Delete Workspace
-**Method:** `DELETE`  
-**Endpoint:** `/workspaces/{workspaceId}`  
-**Description:** Delete workspace and all related data
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Workspace deleted successfully"
-}
-```
-
----
-
-## Certificate Template Routes
-
-### 1. Create Certificate Template
-**Method:** `POST`  
-**Endpoint:** `/templates`  
-**Description:** Create a new certificate template
-
-**Request:**
-```json
-{
-  "workspaceId": "ws_123",
-  "name": "Achievement Certificate",
-  "description": "Certificate for course completion",
-  "backgroundImageUrl": "https://example.com/template-bg.jpg",
-  "htmlTemplate": "<div class='certificate'><h1>Certificate of Achievement</h1><p>This certifies that {{recipientName}} has successfully completed the course.</p><p>Date: {{issuedAt}}</p><p>Code: {{verificationCode}}</p></div>",
-  "cssStyles": ".certificate { text-align: center; font-family: Arial; padding: 40px; }",
-  "orientation": "landscape",
-  "schemaDefinition": {
-    "recipientName": {
-      "type": "string",
-      "label": "Student Name",
-      "required": true
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "user": {
+      "id": "usr_7ea84bc1",
+      "email": "googleuser@example.com",
+      "firstName": "GoogleFirst",
+      "lastName": "GoogleLast",
+      "avatarUrl": "https://lh3.googleusercontent.com/..."
     },
-    "courseTitle": {
-      "type": "string",
-      "label": "Course Title",
-      "required": true
-    },
-    "issueDate": {
-      "type": "date",
-      "label": "Issue Date",
-      "required": true
+    "accessToken": "eyJhbGciOiJIUzI1Ni..."
+  }
+  ```
+
+### Get Current User Profile (Fresh Data)
+* **Endpoint:** `GET /api/auth/me`
+* **Auth:** Required (Bearer Token)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "User fetched successfully",
+    "user": {
+      "id": "usr_982bca81",
+      "email": "user@example.com",
+      "firstName": "John",
+      "lastName": "Doe",
+      "avatarUrl": "",
+      "createdAt": "2026-06-10T02:00:00.000Z",
+      "updatedAt": "2026-06-10T02:00:00.000Z"
     }
   }
-}
-```
+  ```
 
-**Response:**
-```json
-{
-  "id": "tmpl_123",
-  "workspaceId": "ws_123",
-  "name": "Achievement Certificate",
-  "description": "Certificate for course completion",
-  "backgroundImageUrl": "https://example.com/template-bg.jpg",
-  "htmlTemplate": "<div class='certificate'>...",
-  "cssStyles": ".certificate { ... }",
-  "orientation": "landscape",
-  "createdById": "user_123",
-  "createdAt": "2026-01-15T10:30:00Z",
-  "updatedAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 2. Get Template
-**Method:** `GET`  
-**Endpoint:** `/templates/{templateId}`  
-**Description:** Get template details
-
-**Response:**
-```json
-{
-  "id": "tmpl_123",
-  "workspaceId": "ws_123",
-  "name": "Achievement Certificate",
-  "description": "Certificate for course completion",
-  "orientation": "landscape",
-  "schemaDefinition": {
-    "recipientName": {
-      "type": "string",
-      "label": "Student Name",
-      "required": true
-    }
-  },
-  "createdById": "user_123",
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 3. List Templates
-**Method:** `GET`  
-**Endpoint:** `/workspaces/{workspaceId}/templates`  
-**Description:** List all templates in workspace
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 3,
-  "templates": [
-    {
-      "id": "tmpl_123",
-      "name": "Achievement Certificate",
-      "description": "Certificate for course completion",
-      "orientation": "landscape"
-    },
-    {
-      "id": "tmpl_456",
-      "name": "Completion Badge",
-      "description": "Digital badge for completion",
-      "orientation": "portrait"
-    }
-  ]
-}
-```
-
----
-
-### 4. Update Template
-**Method:** `PATCH`  
-**Endpoint:** `/templates/{templateId}`  
-**Description:** Update template
-
-**Request:**
-```json
-{
-  "name": "Achievement Certificate - Updated",
-  "htmlTemplate": "<div>Updated HTML...</div>",
-  "cssStyles": ".certificate { color: blue; }"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "tmpl_123",
-  "name": "Achievement Certificate - Updated",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 5. Delete Template
-**Method:** `DELETE`  
-**Endpoint:** `/templates/{templateId}`  
-**Description:** Delete template
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Template deleted successfully"
-}
-```
-
----
-
-### 6. Preview Template
-**Method:** `POST`  
-**Endpoint:** `/templates/{templateId}/preview`  
-**Description:** Generate HTML preview of template with sample data
-
-**Request:**
-```json
-{
-  "recipientName": "John Doe",
-  "courseTitle": "Advanced JavaScript",
-  "issueDate": "2026-02-01"
-}
-```
-
-**Response:**
-```json
-{
-  "html": "<div class='certificate'><h1>Certificate of Achievement</h1><p>This certifies that John Doe has successfully completed Advanced JavaScript.</p><p>Date: 2026-02-01</p></div>",
-  "success": true
-}
-```
-
----
-
-## Credential Routes
-
-### 1. Create Single Credential
-**Method:** `POST`  
-**Endpoint:** `/credentials`  
-**Description:** Create a single credential
-
-**Request:**
-```json
-{
-  "workspaceId": "ws_123",
-  "organizationId": "org_123",
-  "templateId": "tmpl_123",
-  "recipientName": "John Doe",
-  "recipientEmail": "john@example.com",
-  "credentialData": {
-    "courseTitle": "Advanced JavaScript",
-    "issueDate": "2026-02-01",
-    "score": "95%"
-  },
-  "status": "draft"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "cred_123",
-  "workspaceId": "ws_123",
-  "organizationId": "org_123",
-  "templateId": "tmpl_123",
-  "recipientName": "John Doe",
-  "recipientEmail": "john@example.com",
-  "credentialData": {
-    "courseTitle": "Advanced JavaScript",
-    "issueDate": "2026-02-01",
-    "score": "95%"
-  },
-  "verificationCode": "VERIFY-ABC123XYZ789",
-  "status": "draft",
-  "createdById": "user_123",
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 2. Create Batch Credentials
-**Method:** `POST`  
-**Endpoint:** `/credentials/batch`  
-**Description:** Create multiple credentials from CSV file
-
-**Request:**
-```json
-{
-  "workspaceId": "ws_123",
-  "organizationId": "org_123",
-  "templateId": "tmpl_123",
-  "fileId": "file_123",
-  "recipientNameColumn": "name",
-  "recipientEmailColumn": "email",
-  "dataMapping": {
-    "courseTitle": "course",
-    "issueDate": "date",
-    "score": "score"
+### Logout User
+* **Endpoint:** `POST /api/auth/logout`
+* **Auth:** Public
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Logged out successfully"
   }
-}
-```
-
-**Response:**
-```json
-{
-  "jobId": "job_123",
-  "status": "pending",
-  "message": "Batch credential creation started",
-  "estimatedCount": 150,
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
+  ```
 
 ---
 
-### 3. Get Credential
-**Method:** `GET`  
-**Endpoint:** `/credentials/{credentialId}`  
-**Description:** Get credential details
+## 2. User Routes
 
-**Response:**
-```json
-{
-  "id": "cred_123",
-  "workspaceId": "ws_123",
-  "organizationId": "org_123",
-  "templateId": "tmpl_123",
-  "recipientName": "John Doe",
-  "recipientEmail": "john@example.com",
-  "credentialData": {
-    "courseTitle": "Advanced JavaScript",
-    "issueDate": "2026-02-01",
-    "score": "95%"
-  },
-  "verificationCode": "VERIFY-ABC123XYZ789",
-  "pdfUrl": "https://storage.example.com/cred_123.pdf",
-  "imageUrl": "https://storage.example.com/cred_123.png",
-  "status": "issued",
-  "issuedAt": "2026-01-15T10:30:00Z",
-  "expiresAt": "2027-01-15T10:30:00Z",
-  "createdBy": {
-    "id": "user_123",
-    "firstName": "Admin",
-    "lastName": "User"
-  },
-  "createdAt": "2026-01-15T10:30:00Z"
-}
-```
-
----
-
-### 4. List Credentials
-**Method:** `GET`  
-**Endpoint:** `/workspaces/{workspaceId}/credentials`  
-**Query Parameters:**
-- `templateId` - Filter by template
-- `status` - Filter by status (draft, issued, revoked)
-- `recipientEmail` - Search by email
-- `page` - Page number
-- `limit` - Items per page
-
-**Description:** List credentials with filtering and pagination
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 250,
-  "page": 1,
-  "limit": 20,
-  "credentials": [
-    {
-      "id": "cred_123",
-      "recipientName": "John Doe",
-      "recipientEmail": "john@example.com",
-      "status": "issued",
-      "verificationCode": "VERIFY-ABC123XYZ789",
-      "issuedAt": "2026-01-15T10:30:00Z"
-    }
-  ]
-}
-```
-
----
-
-### 5. Issue Credential
-**Method:** `PATCH`  
-**Endpoint:** `/credentials/{credentialId}/issue`  
-**Description:** Change credential status from draft to issued
-
-**Request:**
-```json
-{
-  "issuedAt": "2026-02-01T00:00:00Z",
-  "expiresAt": "2027-02-01T00:00:00Z"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "cred_123",
-  "status": "issued",
-  "issuedAt": "2026-02-01T00:00:00Z",
-  "expiresAt": "2027-02-01T00:00:00Z",
-  "pdfUrl": "https://storage.example.com/cred_123.pdf",
-  "success": true,
-  "message": "Credential issued successfully"
-}
-```
-
----
-
-### 6. Revoke Credential
-**Method:** `PATCH`  
-**Endpoint:** `/credentials/{credentialId}/revoke`  
-**Description:** Revoke issued credential
-
-**Request:**
-```json
-{
-  "reason": "Duplicate entry"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "cred_123",
-  "status": "revoked",
-  "success": true,
-  "message": "Credential revoked successfully"
-}
-```
-
----
-
-### 7. Regenerate Verification Code
-**Method:** `POST`  
-**Endpoint:** `/credentials/{credentialId}/regenerate-code`  
-**Description:** Generate new verification code
-
-**Response:**
-```json
-{
-  "id": "cred_123",
-  "verificationCode": "VERIFY-XYZ987ABC456",
-  "success": true,
-  "message": "Verification code regenerated"
-}
-```
-
----
-
-### 8. Download Credential
-**Method:** `GET`  
-**Endpoint:** `/credentials/{credentialId}/download`  
-**Query Parameters:**
-- `format` - Format type (pdf, png, json)
-
-**Description:** Download credential in specified format
-
-**Response:** File download (PDF/PNG/JSON)
-
----
-
-## Verification Routes
-
-### 1. Verify Credential
-**Method:** `GET`  
-**Endpoint:** `/verify/{verificationCode}`  
-**Description:** Verify credential authenticity
-
-**Response:**
-```json
-{
-  "valid": true,
-  "credential": {
-    "id": "cred_123",
-    "recipientName": "John Doe",
-    "recipientEmail": "john@example.com",
-    "status": "issued",
-    "issuedAt": "2026-01-15T10:30:00Z",
-    "expiresAt": "2027-01-15T10:30:00Z",
-    "credentialData": {
-      "courseTitle": "Advanced JavaScript",
-      "score": "95%"
-    },
-    "template": {
-      "name": "Achievement Certificate",
-      "organization": {
-        "name": "Acme Corporation",
-        "logoUrl": "https://example.com/logo.png"
-      }
-    }
-  },
-  "verifiedAt": "2026-02-01T12:30:00Z"
-}
-```
-
----
-
-### 2. Get Credential Public Page
-**Method:** `GET`  
-**Endpoint:** `/public/credentials/{verificationCode}`  
-**Description:** Get public credential display page
-
-**Response:**
-```json
-{
-  "success": true,
-  "credential": {
-    "id": "cred_123",
-    "recipientName": "John Doe",
-    "template": {
-      "htmlTemplate": "<div>...",
-      "cssStyles": ".certificate {...}"
-    },
-    "credentialData": {...},
-    "organizationLogoUrl": "https://example.com/logo.png",
-    "isValid": true
-  }
-}
-```
-
----
-
-## Email Routes
-
-### 1. Send Credential Email
-**Method:** `POST`  
-**Endpoint:** `/credentials/{credentialId}/send-email`  
-**Description:** Send credential to recipient via email
-
-**Request:**
-```json
-{
-  "recipientEmail": "john@example.com",
-  "subject": "Your Achievement Certificate",
-  "customMessage": "Congratulations on completing the course!"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "emailLogId": "email_123",
-  "status": "sent",
-  "message": "Email sent successfully",
-  "sentAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 2. Get Email Logs
-**Method:** `GET`  
-**Endpoint:** `/credentials/{credentialId}/email-logs`  
-**Description:** Get email send history for credential
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 2,
-  "emailLogs": [
-    {
-      "id": "email_123",
-      "recipientEmail": "john@example.com",
-      "status": "sent",
-      "providerMessageId": "sendgrid_msg_123",
-      "openedAt": "2026-02-01T11:30:00Z",
-      "clickedAt": "2026-02-01T12:00:00Z",
-      "createdAt": "2026-02-01T10:15:00Z"
-    },
-    {
-      "id": "email_456",
-      "recipientEmail": "john@example.com",
-      "status": "bounced",
-      "bounceReason": "Invalid email address",
-      "createdAt": "2026-02-02T09:00:00Z"
-    }
-  ]
-}
-```
-
----
-
-### 3. Resend Email
-**Method:** `POST`  
-**Endpoint:** `/credentials/{credentialId}/resend-email`  
-**Description:** Resend credential email
-
-**Response:**
-```json
-{
-  "success": true,
-  "emailLogId": "email_789",
-  "status": "sent",
-  "message": "Email resent successfully"
-}
-```
-
----
-
-### 4. Update Email Status
-**Method:** `POST`  
-**Endpoint:** `/email/webhook/status`  
-**Description:** Update email status from email provider (webhook)
-
-**Request:**
-```json
-{
-  "messageId": "sendgrid_msg_123",
-  "event": "open",
-  "timestamp": 1612137600,
-  "useragent": "Mozilla/5.0..."
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Email status updated"
-}
-```
-
----
-
-## Job Routes
-
-### 1. Create Job
-**Method:** `POST`  
-**Endpoint:** `/jobs`  
-**Description:** Create background job for batch operations
-
-**Request:**
-```json
-{
-  "workspaceId": "ws_123",
-  "type": "batch_credential_generation",
-  "payload": {
-    "fileId": "file_123",
-    "templateId": "tmpl_123",
-    "credentialCount": 150
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "id": "job_123",
-  "workspaceId": "ws_123",
-  "type": "batch_credential_generation",
-  "status": "pending",
-  "progress": 0,
-  "createdAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 2. Get Job Status
-**Method:** `GET`  
-**Endpoint:** `/jobs/{jobId}`  
-**Description:** Get job details and progress
-
-**Response:**
-```json
-{
-  "id": "job_123",
-  "workspaceId": "ws_123",
-  "type": "batch_credential_generation",
-  "status": "in_progress",
-  "progress": 65,
-  "payload": {
-    "fileId": "file_123",
-    "templateId": "tmpl_123",
-    "credentialCount": 150
-  },
-  "result": {
-    "processedCount": 97,
-    "failedCount": 2,
-    "errors": [
+### Get All Users
+* **Endpoint:** `GET /api/users`
+* **Auth:** Required
+* **Query Parameters:**
+  * `email` (string, optional) - Filter users by email (partial match)
+  * `name` (string, optional) - Filter users by name (partial match)
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "users": [
       {
-        "row": 45,
-        "reason": "Invalid email format"
-      }
-    ]
-  },
-  "startedAt": "2026-02-01T10:15:00Z",
-  "updatedAt": "2026-02-01T10:45:00Z"
-}
-```
-
----
-
-### 3. List Jobs
-**Method:** `GET`  
-**Endpoint:** `/workspaces/{workspaceId}/jobs`  
-**Query Parameters:**
-- `status` - Filter by status (pending, in_progress, completed, failed)
-- `type` - Filter by type
-- `page` - Page number
-- `limit` - Items per page
-
-**Description:** List jobs with filtering
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 25,
-  "jobs": [
-    {
-      "id": "job_123",
-      "type": "batch_credential_generation",
-      "status": "completed",
-      "progress": 100,
-      "createdAt": "2026-02-01T10:15:00Z",
-      "completedAt": "2026-02-01T11:30:00Z"
-    }
-  ]
-}
-```
-
----
-
-### 4. Cancel Job
-**Method:** `POST`  
-**Endpoint:** `/jobs/{jobId}/cancel`  
-**Description:** Cancel pending or in-progress job
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Job cancelled successfully",
-  "id": "job_123"
-}
-```
-
----
-
-## File Routes
-
-### 1. Upload File
-**Method:** `POST`  
-**Endpoint:** `/files/upload`  
-**Description:** Upload file (CSV, image, etc.)
-
-**Request:** Form Data
-```
-Content-Type: multipart/form-data
-
-{
-  "file": <File Object>,
-  "workspaceId": "ws_123"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "file": {
-    "id": "file_123",
-    "fileName": "recipients.csv",
-    "mimeType": "text/csv",
-    "fileSize": 45678,
-    "storageKey": "s3://bucket/recipients.csv",
-    "publicUrl": "https://storage.example.com/recipients.csv",
-    "metadata": {
-      "rows": 150,
-      "columns": ["name", "email", "score"]
-    },
-    "createdAt": "2026-02-01T10:15:00Z"
-  }
-}
-```
-
----
-
-### 2. Get File
-**Method:** `GET`  
-**Endpoint:** `/files/{fileId}`  
-**Description:** Get file metadata and details
-
-**Response:**
-```json
-{
-  "id": "file_123",
-  "workspaceId": "ws_123",
-  "fileName": "recipients.csv",
-  "mimeType": "text/csv",
-  "fileSize": 45678,
-  "storageKey": "s3://bucket/recipients.csv",
-  "publicUrl": "https://storage.example.com/recipients.csv",
-  "metadata": {
-    "rows": 150,
-    "columns": ["name", "email", "score"]
-  },
-  "uploadedBy": {
-    "id": "user_123",
-    "firstName": "Admin"
-  },
-  "createdAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 3. List Files
-**Method:** `GET`  
-**Endpoint:** `/workspaces/{workspaceId}/files`  
-**Query Parameters:**
-- `page` - Page number
-- `limit` - Items per page
-
-**Description:** List uploaded files in workspace
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 10,
-  "files": [
-    {
-      "id": "file_123",
-      "fileName": "recipients.csv",
-      "fileSize": 45678,
-      "mimeType": "text/csv",
-      "createdAt": "2026-02-01T10:15:00Z"
-    }
-  ]
-}
-```
-
----
-
-### 4. Delete File
-**Method:** `DELETE`  
-**Endpoint:** `/files/{fileId}`  
-**Description:** Delete uploaded file
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "File deleted successfully"
-}
-```
-
----
-
-### 5. Parse CSV
-**Method:** `POST`  
-**Endpoint:** `/files/{fileId}/parse`  
-**Description:** Parse CSV file and return preview
-
-**Response:**
-```json
-{
-  "success": true,
-  "fileName": "recipients.csv",
-  "totalRows": 150,
-  "headers": ["name", "email", "score", "date"],
-  "preview": [
-    {
-      "name": "John Doe",
-      "email": "john@example.com",
-      "score": "95",
-      "date": "2026-02-01"
-    },
-    {
-      "name": "Jane Smith",
-      "email": "jane@example.com",
-      "score": "87",
-      "date": "2026-02-01"
-    }
-  ]
-}
-```
-
----
-
-## Membership Routes
-
-### 1. Add Member to Organization
-**Method:** `POST`  
-**Endpoint:** `/organizations/{orgId}/members`  
-**Description:** Add user to organization
-
-**Request:**
-```json
-{
-  "userId": "user_456",
-  "role": "admin",
-  "workspaceId": "ws_123"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "membership_123",
-  "userId": "user_456",
-  "organizationId": "org_123",
-  "workspaceId": "ws_123",
-  "role": "admin",
-  "joinedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 2. List Organization Members
-**Method:** `GET`  
-**Endpoint:** `/organizations/{orgId}/members`  
-**Description:** List all members of organization
-
-**Response:**
-```json
-{
-  "success": true,
-  "total": 5,
-  "members": [
-    {
-      "id": "membership_123",
-      "user": {
-        "id": "user_123",
+        "id": "usr_982bca81",
+        "email": "user@example.com",
         "firstName": "John",
         "lastName": "Doe",
-        "email": "john@example.com"
+        "avatarUrl": ""
+      }
+    ]
+  }
+  ```
+
+### Get User by ID
+* **Endpoint:** `GET /api/users/{id}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "usr_982bca81",
+    "email": "user@example.com",
+    "firstName": "John",
+    "lastName": "Doe",
+    "avatarUrl": "",
+    "googleId": null,
+    "createdAt": "2026-06-10T02:00:00.000Z",
+    "updatedAt": "2026-06-10T02:00:00.000Z"
+  }
+  ```
+
+### Update User Profile
+* **Endpoint:** `PUT /api/users/{id}` (Note: Users can only update their own profile)
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "firstName": "Johnny",
+    "lastName": "Smith",
+    "avatarUrl": "https://newurl.com/avatar.jpg"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "usr_982bca81",
+    "email": "user@example.com",
+    "firstName": "Johnny",
+    "lastName": "Smith",
+    "avatarUrl": "https://newurl.com/avatar.jpg"
+  }
+  ```
+
+---
+
+## 3. Organization Routes
+
+### Create Organization
+* **Endpoint:** `POST /api/organizations`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "name": "Acme Corp"
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "success": true,
+    "organization": {
+      "organization": {
+        "id": "org_a7e4bca2",
+        "name": "Acme Corp",
+        "slug": "acme-corp-usr_982bca81",
+        "logoUrl": null,
+        "credentialLimit": 100,
+        "credentialsUsed": 0,
+        "createdAt": "2026-06-10T02:00:00.000Z",
+        "updatedAt": "2026-06-10T02:00:00.000Z"
       },
-      "role": "owner",
-      "joinedAt": "2026-01-15T10:30:00Z"
-    }
-  ]
-}
-```
+      "workspace": {
+        "id": "ws_b9e28dc1",
+        "organizationId": "org_a7e4bca2",
+        "name": "Acme Corp Workspace",
+        "slug": "workspace-org_a7e4bca2",
+        "brandingSettings": null,
+        "customDomain": null,
+        "smtpEnabled": false,
+        "smtpSettings": null,
+        "createdAt": "2026-06-10T02:00:00.000Z",
+        "updatedAt": "2026-06-10T02:00:00.000Z"
+      },
+      "membership": {
+        "id": "mem_d8b92ef1",
+        "userId": "usr_982bca81",
+        "organizationId": "org_a7e4bca2",
+        "workspaceId": "ws_b9e28dc1",
+        "role": "OWNER",
+        "joinedAt": "2026-06-10T02:00:00.000Z"
+      }
+    },
+    "message": "Organization created successfully"
+  }
+  ```
 
----
-
-### 3. Update Member Role
-**Method:** `PATCH`  
-**Endpoint:** `/organizations/{orgId}/members/{memberId}`  
-**Description:** Update member role
-
-**Request:**
-```json
-{
-  "role": "member"
-}
-```
-
-**Response:**
-```json
-{
-  "id": "membership_123",
-  "role": "member",
-  "updatedAt": "2026-02-01T10:15:00Z"
-}
-```
-
----
-
-### 4. Remove Member
-**Method:** `DELETE`  
-**Endpoint:** `/organizations/{orgId}/members/{memberId}`  
-**Description:** Remove member from organization
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Member removed successfully"
-}
-```
-
----
-
-## Error Responses
-
-All errors follow this standard format:
-
-### 400 Bad Request
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_REQUEST",
-    "message": "Invalid request data",
-    "details": {
-      "field": "email",
-      "issue": "Invalid email format"
+### List Organizations
+* **Endpoint:** `GET /api/organizations`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Organizations fetched successfully",
+    "organizations": {
+      "success": true,
+      "page": 1,
+      "limit": 10,
+      "total": 1,
+      "organizations": [
+        {
+          "id": "org_a7e4bca2",
+          "name": "Acme Corp",
+          "slug": "acme-corp-usr_982bca81",
+          "logoUrl": null,
+          "credentialLimit": 100,
+          "credentialsUsed": 0,
+          "createdAt": "2026-06-10T02:00:00.000Z",
+          "updatedAt": "2026-06-10T02:00:00.000Z"
+        }
+      ]
     }
   }
-}
-```
+  ```
 
-### 401 Unauthorized
-```json
-{
-  "success": false,
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Authentication required",
-    "details": null
-  }
-}
-```
-
-### 403 Forbidden
-```json
-{
-  "success": false,
-  "error": {
-    "code": "FORBIDDEN",
-    "message": "Insufficient permissions",
-    "details": null
-  }
-}
-```
-
-### 404 Not Found
-```json
-{
-  "success": false,
-  "error": {
-    "code": "NOT_FOUND",
-    "message": "Resource not found",
-    "details": {
-      "resource": "Credential",
-      "id": "cred_123"
+### Get Organization by ID
+* **Endpoint:** `GET /api/organizations/{id}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Organization fetched successfully",
+    "organization": {
+      "id": "org_a7e4bca2",
+      "name": "Acme Corp",
+      "slug": "acme-corp-usr_982bca81",
+      "logoUrl": null,
+      "credentialLimit": 100,
+      "credentialsUsed": 0,
+      "createdAt": "2026-06-10T02:00:00.000Z",
+      "updatedAt": "2026-06-10T02:00:00.000Z"
     }
   }
-}
-```
+  ```
 
-### 500 Internal Server Error
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INTERNAL_ERROR",
-    "message": "Internal server error",
-    "details": null
+### Update Organization
+* **Endpoint:** `PUT /api/organizations/{id}` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "name": "Acme Corporation",
+    "logoUrl": "https://acme.com/logo.png"
   }
-}
-```
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Organization updated successfully",
+    "organization": {
+      "id": "org_a7e4bca2",
+      "name": "Acme Corporation",
+      "slug": "acme-corporation-usr_982bca81",
+      "logoUrl": "https://acme.com/logo.png",
+      "credentialLimit": 100,
+      "credentialsUsed": 0,
+      "createdAt": "2026-06-10T02:00:00.000Z",
+      "updatedAt": "2026-06-10T02:05:00.000Z"
+    }
+  }
+  ```
+
+### Delete Organization
+* **Endpoint:** `DELETE /api/organizations/{id}` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Organization deleted successfully"
+  }
+  ```
 
 ---
 
-## Authentication & Security
+## 4. Membership Routes
 
-### Header Requirements
-All authenticated endpoints require:
-```
-Authorization: Bearer <JWT_TOKEN>
-Content-Type: application/json
-X-API-Version: v1
-```
+### Add Member to Organization & Workspace
+* **Endpoint:** `POST /api/organizations/{organizationId}/members` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "newUserId": "usr_12345678",
+    "workspaceId": "ws_b9e28dc1",
+    "role": "MEMBER"
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "success": true,
+    "message": "Member added successfully",
+    "membership": {
+      "id": "mem_f0e8d7c6",
+      "userId": "usr_12345678",
+      "organizationId": "org_a7e4bca2",
+      "workspaceId": "ws_b9e28dc1",
+      "role": "MEMBER",
+      "joinedAt": "2026-06-10T02:10:00.000Z",
+      "user": {
+        "id": "usr_12345678",
+        "firstName": "Jane",
+        "lastName": "Smith",
+        "email": "jane.smith@example.com",
+        "avatarUrl": null
+      }
+    }
+  }
+  ```
 
-### Rate Limiting
-- 1000 requests per hour per API key
-- 100 requests per minute per IP
+### List Organization Members
+* **Endpoint:** `GET /api/organizations/{organizationId}/members`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "total": 2,
+    "page": 1,
+    "limit": 10,
+    "members": [
+      {
+        "id": "mem_d8b92ef1",
+        "userId": "usr_982bca81",
+        "organizationId": "org_a7e4bca2",
+        "workspaceId": "ws_b9e28dc1",
+        "role": "OWNER",
+        "joinedAt": "2026-06-10T02:00:00.000Z",
+        "user": {
+          "id": "usr_982bca81",
+          "firstName": "John",
+          "lastName": "Doe",
+          "email": "user@example.com",
+          "avatarUrl": ""
+        }
+      }
+    ]
+  }
+  ```
 
-### CORS
-- Allowed origins: Configured in `.env` file
-- Methods: GET, POST, PATCH, DELETE
-- Headers: Authorization, Content-Type
+### Get Member Details
+* **Endpoint:** `GET /api/organizations/{organizationId}/members/{memberId}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "membership": {
+      "id": "mem_d8b92ef1",
+      "userId": "usr_982bca81",
+      "organizationId": "org_a7e4bca2",
+      "workspaceId": "ws_b9e28dc1",
+      "role": "OWNER",
+      "joinedAt": "2026-06-10T02:00:00.000Z",
+      "user": {
+        "id": "usr_982bca81",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "user@example.com",
+        "avatarUrl": ""
+      }
+    }
+  }
+  ```
+
+### Update Member Role
+* **Endpoint:** `PATCH /api/organizations/{organizationId}/members/{memberId}` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "role": "ADMIN"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Member role updated successfully",
+    "membership": {
+      "id": "mem_f0e8d7c6",
+      "userId": "usr_12345678",
+      "organizationId": "org_a7e4bca2",
+      "workspaceId": "ws_b9e28dc1",
+      "role": "ADMIN",
+      "joinedAt": "2026-06-10T02:10:00.000Z",
+      "user": {
+        "id": "usr_12345678",
+        "firstName": "Jane",
+        "lastName": "Smith",
+        "email": "jane.smith@example.com"
+      }
+    }
+  }
+  ```
+
+### Remove Member
+* **Endpoint:** `DELETE /api/organizations/{organizationId}/members/{memberId}` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Member removed successfully"
+  }
+  ```
 
 ---
 
-## Webhook Endpoints
+## 5. Workspace Routes
 
-### Email Status Webhook
-**Method:** `POST`  
-**Endpoint:** `/webhooks/email/status`  
-**Provider:** SendGrid/Email Service
+### Create Workspace
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "name": "Design Workspace"
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "workspace": {
+      "id": "ws_c7e8a9b2",
+      "organizationId": "org_a7e4bca2",
+      "name": "Design Workspace",
+      "slug": "design-workspace-org_a7e4bca2",
+      "createdAt": "2026-06-10T02:15:00.000Z",
+      "updatedAt": "2026-06-10T02:15:00.000Z"
+    },
+    "membership": {
+      "id": "mem_e8f2c3b6",
+      "userId": "usr_982bca81",
+      "organizationId": "org_a7e4bca2",
+      "workspaceId": "ws_c7e8a9b2",
+      "role": "OWNER",
+      "joinedAt": "2026-06-10T02:15:00.000Z"
+    }
+  }
+  ```
 
-### Credential Event Webhook
-**Method:** `POST`  
-**Endpoint:** `/webhooks/credentials/events`  
-**Purpose:** Track credential views, downloads, verifications
+### List Workspaces in Organization
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "workspaces": [
+      {
+        "id": "ws_b9e28dc1",
+        "name": "Acme Corp Workspace",
+        "slug": "workspace-org_a7e4bca2",
+        "organizationId": "org_a7e4bca2",
+        "brandingSettings": null,
+        "customDomain": null,
+        "smtpEnabled": false,
+        "smtpSettings": null,
+        "createdAt": "2026-06-10T02:00:00.000Z",
+        "updatedAt": "2026-06-10T02:00:00.000Z"
+      }
+    ]
+  }
+  ```
+
+### Get Workspace by ID
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{id}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "ws_b9e28dc1",
+    "name": "Acme Corp Workspace",
+    "slug": "workspace-org_a7e4bca2",
+    "organizationId": "org_a7e4bca2",
+    "brandingSettings": null,
+    "customDomain": null,
+    "smtpEnabled": false,
+    "smtpSettings": null,
+    "createdAt": "2026-06-10T02:00:00.000Z",
+    "updatedAt": "2026-06-10T02:00:00.000Z"
+  }
+  ```
+
+### Update Workspace
+* **Endpoint:** `PUT /api/organizations/{organizationId}/workspaces/{id}`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "name": "Acme Primary Workspace",
+    "brandingSettings": {
+      "primaryColor": "#ff0000",
+      "logo": "https://res.cloudinary.com/..."
+    },
+    "customDomain": "certs.acme.com",
+    "smtpEnabled": true,
+    "smtpSettings": {
+      "host": "smtp.mailgun.org",
+      "port": 587,
+      "username": "postmaster@acme.com",
+      "password": "smtppassword"
+    }
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "ws_b9e28dc1",
+    "name": "Acme Primary Workspace",
+    "slug": "acme-primary-workspace-org_a7e4bca2",
+    "organizationId": "org_a7e4bca2",
+    "brandingSettings": {
+      "primaryColor": "#ff0000",
+      "logo": "https://res.cloudinary.com/..."
+    },
+    "customDomain": "certs.acme.com",
+    "smtpEnabled": true,
+    "smtpSettings": {
+      "host": "smtp.mailgun.org",
+      "port": 587,
+      "username": "postmaster@acme.com"
+    },
+    "createdAt": "2026-06-10T02:00:00.000Z",
+    "updatedAt": "2026-06-10T02:20:00.000Z"
+  }
+  ```
+
+### Delete Workspace
+* **Endpoint:** `DELETE /api/organizations/{organizationId}/workspaces/{id}` (Note: Requires OWNER role)
+* **Auth:** Required
+* **Response (204 No Content)**
+
+### Upload File to Workspace
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces/{id}/upload`
+* **Auth:** Required
+* **Content-Type:** `multipart/form-data`
+* **Request:** File attached to `file` key
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "fil_7ca82bd1",
+    "workspaceId": "ws_b9e28dc1",
+    "uploadedById": "usr_982bca81",
+    "fileName": "students_list.csv",
+    "mimeType": "text/csv",
+    "fileSize": 4120,
+    "storageKey": "workspace_files/students_list_uuid",
+    "publicUrl": "https://res.cloudinary.com/...",
+    "createdAt": "2026-06-10T02:25:00.000Z",
+    "updatedAt": "2026-06-10T02:25:00.000Z"
+  }
+  ```
 
 ---
 
-## API Pagination
+## 6. Upload Routes
 
-All list endpoints support pagination:
+This module allows general file uploads to Cloudinary. Associate files with a workspace by sending the optional `workspaceId`.
 
-### Query Parameters:
-```
-page: 1 (default)
-limit: 20 (default, max: 100)
-sortBy: createdAt (default)
-sortOrder: desc (asc/desc)
-```
+### Upload Image
+* **Endpoint:** `POST /api/upload/image`
+* **Auth:** Required
+* **Content-Type:** `multipart/form-data`
+* **Request Parameters:**
+  * `file` (binary, required) - Image file
+  * `workspaceId` (string, optional) - Workspace ID
+* **Response (200 OK):**
+  ```json
+  {
+    "url": "https://res.cloudinary.com/...",
+    "public_id": "image_upload_id",
+    "dbEntry": null
+  }
+  ```
 
-### Response Format:
-```json
-{
-  "success": true,
-  "total": 250,
-  "page": 1,
-  "limit": 20,
-  "totalPages": 13,
-  "data": [...]
-}
-```
+### Upload Document / CSV / General File
+* **Endpoint:** `POST /api/upload/file`
+* **Auth:** Required
+* **Content-Type:** `multipart/form-data`
+* **Request Parameters:**
+  * `file` (binary, required) - Document file
+  * `workspaceId` (string, optional) - Workspace ID
+* **Response (200 OK):**
+  ```json
+  {
+    "url": "https://res.cloudinary.com/...",
+    "public_id": "file_upload_id",
+    "dbEntry": {
+      "id": "fil_7ca82bd1",
+      "workspaceId": "ws_b9e28dc1",
+      "uploadedById": "usr_982bca81",
+      "fileName": "certificates.csv",
+      "mimeType": "text/csv",
+      "fileSize": 1024,
+      "storageKey": "file_upload_id",
+      "publicUrl": "https://res.cloudinary.com/...",
+      "createdAt": "2026-06-10T02:25:00.000Z",
+      "updatedAt": "2026-06-10T02:25:00.000Z"
+    }
+  }
+  ```
 
 ---
 
-## Summary
+## 7. Certificate Template Routes
 
-This certificate management system follows a hierarchical architecture:
+### Create Template
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces/{workspaceId}/templates`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "name": "Achievement Certificate",
+    "description": "General award certificate template",
+    "htmlTemplate": "<div style='padding: 20px;'><h1>Award of Achievement</h1><p>Presented to {{recipientName}}</p><p>For: {{courseTitle}}</p></div>",
+    "cssStyles": "h1 { color: #333; }",
+    "orientation": "landscape",
+    "schemaDefinition": [
+      {
+        "key": "courseTitle",
+        "label": "Course Title",
+        "type": "text",
+        "required": true
+      }
+    ]
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "id": "tmpl_e8c7a6b2",
+    "name": "Achievement Certificate",
+    "description": "General award certificate template",
+    "htmlTemplate": "<div style='padding: 20px;'>...",
+    "cssStyles": "h1 { color: #333; }",
+    "orientation": "landscape",
+    "schemaDefinition": [
+      {
+        "key": "courseTitle",
+        "label": "Course Title",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "workspaceId": "ws_b9e28dc1",
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:30:00.000Z",
+    "updatedAt": "2026-06-10T02:30:00.000Z"
+  }
+  ```
 
-1. **Users** authenticate via Google OAuth
-2. **Organizations** contain multiple **Workspaces**
-3. **Workspaces** host **Certificate Templates**
-4. **Credentials** are issued based on templates
-5. **Credentials** are verified via unique codes
-6. **Emails** track engagement (opens, clicks)
-7. **Jobs** handle batch operations
-8. **Files** store user-uploaded data
-9. **Memberships** manage access control
+### List Templates in Workspace
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/templates`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "templates": [
+      {
+        "id": "tmpl_e8c7a6b2",
+        "name": "Achievement Certificate",
+        "description": "General award certificate template",
+        "htmlTemplate": "<div style='padding: 20px;'>...",
+        "cssStyles": "h1 { color: #333; }",
+        "orientation": "landscape",
+        "schemaDefinition": [ ... ],
+        "workspaceId": "ws_b9e28dc1",
+        "createdById": "usr_982bca81",
+        "createdAt": "2026-06-10T02:30:00.000Z",
+        "updatedAt": "2026-06-10T02:30:00.000Z"
+      }
+    ]
+  }
+  ```
 
-The system is designed for scalability with proper indexing, cascade deletes, and background job processing for bulk operations.
+### List My Templates in Workspace
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/my-templates`
+* **Auth:** Required
+* **Response (200 OK):** (Same pagination envelope as GET templates, showing only templates created by the logged-in user)
+
+### Get Template by ID
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "tmpl_e8c7a6b2",
+    "name": "Achievement Certificate",
+    "description": "General award certificate template",
+    "htmlTemplate": "<div style='padding: 20px;'>...",
+    "cssStyles": "h1 { color: #333; }",
+    "orientation": "landscape",
+    "schemaDefinition": [ ... ],
+    "workspaceId": "ws_b9e28dc1",
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:30:00.000Z",
+    "updatedAt": "2026-06-10T02:30:00.000Z"
+  }
+  ```
+
+### Update Template (Note: Allowed for creator or admin/owner)
+* **Endpoint:** `PUT /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}`
+* **Auth:** Required
+* **Request Body:** (All fields optional)
+  ```json
+  {
+    "name": "Updated Certificate Title",
+    "htmlTemplate": "<div>Updated HTML</div>"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "tmpl_e8c7a6b2",
+    "name": "Updated Certificate Title",
+    "description": "General award certificate template",
+    "htmlTemplate": "<div>Updated HTML</div>",
+    "cssStyles": "h1 { color: #333; }",
+    "orientation": "landscape",
+    "schemaDefinition": [ ... ],
+    "workspaceId": "ws_b9e28dc1",
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:30:00.000Z",
+    "updatedAt": "2026-06-10T02:35:00.000Z"
+  }
+  ```
+
+### Delete Template (Note: Allowed for creator or admin/owner if no credentials exist)
+* **Endpoint:** `DELETE /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}`
+* **Auth:** Required
+* **Response (204 No Content)**
+
+---
+
+## 8. Credential Routes
+
+### Create Single Credential
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "templateId": "tmpl_e8c7a6b2",
+    "recipientEmail": "student@example.com",
+    "recipientName": "Jane Doe",
+    "credentialData": {
+      "courseTitle": "Introduction to Node.js"
+    },
+    "expiresAt": null
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "id": "crd_8ebc2da1",
+    "workspaceId": "ws_b9e28dc1",
+    "organizationId": "org_a7e4bca2",
+    "templateId": "tmpl_e8c7a6b2",
+    "recipientName": "Jane Doe",
+    "recipientEmail": "student@example.com",
+    "credentialData": {
+      "courseTitle": "Introduction to Node.js"
+    },
+    "verificationCode": "CERT-8DBC7A98EF10492B",
+    "status": "draft",
+    "expiresAt": null,
+    "issuedAt": null,
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:40:00.000Z",
+    "updatedAt": "2026-06-10T02:40:00.000Z",
+    "template": { ... },
+    "createdBy": { ... }
+  }
+  ```
+
+### Create Batch Credentials (Asynchronous Job)
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials/batch`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "templateId": "tmpl_e8c7a6b2",
+    "fileId": "fil_7ca82bd1",
+    "recipientNameColumn": "name",
+    "recipientEmailColumn": "email",
+    "dataMapping": {
+      "courseTitle": "course"
+    }
+  }
+  ```
+* **Response (202 Accepted):**
+  ```json
+  {
+    "success": true,
+    "message": "Batch credential processing started",
+    "job": {
+      "id": "job_09e7ba21",
+      "workspaceId": "ws_b9e28dc1",
+      "type": "batch_credentials",
+      "status": "pending",
+      "progress": 0,
+      "createdAt": "2026-06-10T02:42:00.000Z",
+      "updatedAt": "2026-06-10T02:42:00.000Z"
+    }
+  }
+  ```
+
+### List Credentials in Workspace
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+  * `status` (string, optional) - `draft`, `issued`, or `revoked`
+  * `recipientEmail` (string, optional) - Filter by email
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "credentials": [
+      {
+        "id": "crd_8ebc2da1",
+        "workspaceId": "ws_b9e28dc1",
+        "organizationId": "org_a7e4bca2",
+        "templateId": "tmpl_e8c7a6b2",
+        "recipientName": "Jane Doe",
+        "recipientEmail": "student@example.com",
+        "credentialData": {
+          "courseTitle": "Introduction to Node.js"
+        },
+        "verificationCode": "CERT-8DBC7A98EF10492B",
+        "status": "draft",
+        "expiresAt": null,
+        "issuedAt": null,
+        "createdById": "usr_982bca81",
+        "createdAt": "2026-06-10T02:40:00.000Z",
+        "updatedAt": "2026-06-10T02:40:00.000Z",
+        "template": {
+          "name": "Achievement Certificate"
+        }
+      }
+    ]
+  }
+  ```
+
+### Get Credential by ID
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials/{id}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "crd_8ebc2da1",
+    "workspaceId": "ws_b9e28dc1",
+    "organizationId": "org_a7e4bca2",
+    "templateId": "tmpl_e8c7a6b2",
+    "recipientName": "Jane Doe",
+    "recipientEmail": "student@example.com",
+    "credentialData": {
+      "courseTitle": "Introduction to Node.js"
+    },
+    "verificationCode": "CERT-8DBC7A98EF10492B",
+    "status": "draft",
+    "expiresAt": null,
+    "issuedAt": null,
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:40:00.000Z",
+    "updatedAt": "2026-06-10T02:40:00.000Z",
+    "template": { ... },
+    "createdBy": {
+      "id": "usr_982bca81",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "user@example.com"
+    },
+    "events": [],
+    "emailLogs": []
+  }
+  ```
+
+### Issue Credential (Transitions status to `issued` & triggers email)
+* **Endpoint:** `PATCH /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials/{id}/issue`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "crd_8ebc2da1",
+    "workspaceId": "ws_b9e28dc1",
+    "organizationId": "org_a7e4bca2",
+    "templateId": "tmpl_e8c7a6b2",
+    "recipientName": "Jane Doe",
+    "recipientEmail": "student@example.com",
+    "credentialData": {
+      "courseTitle": "Introduction to Node.js"
+    },
+    "verificationCode": "CERT-8DBC7A98EF10492B",
+    "status": "issued",
+    "expiresAt": null,
+    "issuedAt": "2026-06-10T02:45:00.000Z",
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:40:00.000Z",
+    "updatedAt": "2026-06-10T02:45:00.000Z",
+    "template": { ... }
+  }
+  ```
+
+### Revoke Credential
+* **Endpoint:** `PATCH /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials/{id}/revoke`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "crd_8ebc2da1",
+    "workspaceId": "ws_b9e28dc1",
+    "organizationId": "org_a7e4bca2",
+    "templateId": "tmpl_e8c7a6b2",
+    "recipientName": "Jane Doe",
+    "recipientEmail": "student@example.com",
+    "credentialData": {
+      "courseTitle": "Introduction to Node.js"
+    },
+    "verificationCode": "CERT-8DBC7A98EF10492B",
+    "status": "revoked",
+    "expiresAt": null,
+    "issuedAt": "2026-06-10T02:45:00.000Z",
+    "createdById": "usr_982bca81",
+    "createdAt": "2026-06-10T02:40:00.000Z",
+    "updatedAt": "2026-06-10T02:50:00.000Z"
+  }
+  ```
+
+### Bulk Issue Draft Credentials (Asynchronous Job)
+* **Endpoint:** `POST /api/organizations/{organizationId}/workspaces/{workspaceId}/credentials/issue-batch`
+* **Auth:** Required
+* **Request Body:**
+  ```json
+  {
+    "credentialIds": ["crd_8ebc2da1", "crd_9fc02ab3"]
+  }
+  ```
+* **Response (202 Accepted):**
+  ```json
+  {
+    "success": true,
+    "message": "Bulk issuance job started",
+    "job": {
+      "id": "job_3ae8cb01",
+      "workspaceId": "ws_b9e28dc1",
+      "type": "bulk_issue",
+      "status": "pending",
+      "progress": 0,
+      "createdAt": "2026-06-10T02:52:00.000Z",
+      "updatedAt": "2026-06-10T02:52:00.000Z"
+    }
+  }
+  ```
+
+---
+
+## 9. Verification Routes
+
+These are public endpoints for credential verification, which do not require authentication.
+
+### Verify Credential by Code
+* **Endpoint:** `GET /api/verify/{verificationCode}`
+* **Auth:** Public
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "status": "issued",
+    "credential": {
+      "id": "crd_8ebc2da1",
+      "recipientName": "Jane Doe",
+      "recipientEmail": "student@example.com",
+      "credentialData": {
+        "courseTitle": "Introduction to Node.js"
+      },
+      "verificationCode": "CERT-8DBC7A98EF10492B",
+      "status": "issued",
+      "expiresAt": null,
+      "issuedAt": "2026-06-10T02:45:00.000Z",
+      "template": {
+        "id": "tmpl_e8c7a6b2",
+        "name": "Achievement Certificate",
+        "description": "General award certificate template"
+      },
+      "workspace": {
+        "id": "ws_b9e28dc1",
+        "name": "Acme Corp Workspace",
+        "customDomain": null
+      },
+      "organization": {
+        "id": "org_a7e4bca2",
+        "name": "Acme Corp",
+        "slug": "acme-corp-usr_982bca81",
+        "logoUrl": null
+      }
+    }
+  }
+  ```
+
+### Track Credential Event (e.g. Viewed, Downloaded)
+* **Endpoint:** `POST /api/credentials/{credId}/events`
+* **Auth:** Public
+* **Request Body:**
+  ```json
+  {
+    "eventType": "viewed",
+    "ipAddress": "192.168.1.100",
+    "userAgent": "Mozilla/5.0...",
+    "metadata": {
+      "screen": "public_viewer"
+    }
+  }
+  ```
+* **Response (201 Created):**
+  ```json
+  {
+    "success": true,
+    "event": {
+      "id": "evt_9fa1bca0",
+      "credentialId": "crd_8ebc2da1",
+      "eventType": "viewed",
+      "ipAddress": "192.168.1.100",
+      "userAgent": "Mozilla/5.0...",
+      "metadata": {
+        "screen": "public_viewer"
+      },
+      "createdAt": "2026-06-10T03:00:00.000Z"
+    }
+  }
+  ```
+
+---
+
+## 10. Email Routes
+
+### Manually Send Verification Email
+* **Endpoint:** `POST /api/email/send-verification`
+* **Auth:** Required (Allowed for workspace member/admin/owner)
+* **Request Body:**
+  ```json
+  {
+    "credentialId": "crd_8ebc2da1"
+  }
+  ```
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "Verification email sent successfully",
+    "logId": "log_a8e7cb01"
+  }
+  ```
+
+### List Workspace Email Logs
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/emails`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "logs": [
+      {
+        "id": "log_a8e7cb01",
+        "credentialId": "crd_8ebc2da1",
+        "status": "sent",
+        "providerMessageId": "mock-msg-id",
+        "bounceReason": null,
+        "openedAt": "2026-06-10T02:50:00.000Z",
+        "clickedAt": null,
+        "createdAt": "2026-06-10T02:45:00.000Z",
+        "updatedAt": "2026-06-10T02:50:00.000Z",
+        "credential": {
+          "recipientName": "Jane Doe",
+          "verificationCode": "CERT-8DBC7A98EF10492B"
+        }
+      }
+    ]
+  }
+  ```
+
+### Email Open Tracking (1x1 Transparent Pixel)
+* **Endpoint:** `GET /api/email/track/open/{logId}`
+* **Auth:** Public
+* **Response (200 OK):** transparent image/gif data
+
+### Email Link Click Tracking
+* **Endpoint:** `GET /api/email/track/click/{logId}`
+* **Auth:** Public
+* **Query Parameters:**
+  * `url` (string, required) - URL-encoded redirect URL destination
+* **Response (302 Found):** Redirects to the destination URL (if matching CORS allowed origins) or redirects to the default frontend URL home page.
+
+---
+
+## 11. Background Job Routes
+
+### List Workspace Jobs
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/jobs`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+  * `status` (string, optional) - `pending`, `in_progress`, `completed`, `failed`
+  * `type` (string, optional) - `batch_credentials` or `bulk_issue`
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "jobs": [
+      {
+        "id": "job_09e7ba21",
+        "workspaceId": "ws_b9e28dc1",
+        "type": "batch_credentials",
+        "status": "completed",
+        "progress": 100,
+        "payload": {
+          "templateId": "tmpl_e8c7a6b2",
+          "fileId": "fil_7ca82bd1",
+          "recipientNameColumn": "name",
+          "recipientEmailColumn": "email",
+          "dataMapping": {
+            "courseTitle": "course"
+          }
+        },
+        "result": {
+          "total": 5,
+          "success": 5,
+          "failed": 0,
+          "errors": []
+        },
+        "error": null,
+        "createdAt": "2026-06-10T02:42:00.000Z",
+        "updatedAt": "2026-06-10T02:43:00.000Z"
+      }
+    ]
+  }
+  ```
+
+### Get Job Status by ID
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/jobs/{jobId}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "job_09e7ba21",
+    "workspaceId": "ws_b9e28dc1",
+    "type": "batch_credentials",
+    "status": "completed",
+    "progress": 100,
+    "payload": { ... },
+    "result": { ... },
+    "error": null,
+    "createdAt": "2026-06-10T02:42:00.000Z",
+    "updatedAt": "2026-06-10T02:43:00.000Z"
+  }
+  ```
+
+---
+
+## 12. File Routes
+
+### List Workspace Files
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/files`
+* **Auth:** Required
+* **Query Parameters:**
+  * `page` (integer, default: 1)
+  * `limit` (integer, default: 10)
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "page": 1,
+    "limit": 10,
+    "total": 1,
+    "files": [
+      {
+        "id": "fil_7ca82bd1",
+        "workspaceId": "ws_b9e28dc1",
+        "uploadedById": "usr_982bca81",
+        "fileName": "students_list.csv",
+        "mimeType": "text/csv",
+        "fileSize": 4120,
+        "storageKey": "workspace_files/students_list_uuid",
+        "publicUrl": "https://res.cloudinary.com/...",
+        "createdAt": "2026-06-10T02:25:00.000Z",
+        "updatedAt": "2026-06-10T02:25:00.000Z",
+        "uploadedBy": {
+          "id": "usr_982bca81",
+          "firstName": "John",
+          "lastName": "Doe",
+          "email": "user@example.com"
+        }
+      }
+    ]
+  }
+  ```
+
+### Get File Details
+* **Endpoint:** `GET /api/organizations/{organizationId}/workspaces/{workspaceId}/files/{fileId}`
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "id": "fil_7ca82bd1",
+    "workspaceId": "ws_b9e28dc1",
+    "uploadedById": "usr_982bca81",
+    "fileName": "students_list.csv",
+    "mimeType": "text/csv",
+    "fileSize": 4120,
+    "storageKey": "workspace_files/students_list_uuid",
+    "publicUrl": "https://res.cloudinary.com/...",
+    "createdAt": "2026-06-10T02:25:00.000Z",
+    "updatedAt": "2026-06-10T02:25:00.000Z",
+    "uploadedBy": {
+      "id": "usr_982bca81",
+      "firstName": "John",
+      "lastName": "Doe",
+      "email": "user@example.com"
+    }
+  }
+  ```
+
+### Delete File (Note: Deletes file from database and Cloudinary storage)
+* **Endpoint:** `DELETE /api/organizations/{organizationId}/workspaces/{workspaceId}/files/{fileId}` (Note: Allowed for owner/admin)
+* **Auth:** Required
+* **Response (200 OK):**
+  ```json
+  {
+    "success": true,
+    "message": "File deleted successfully"
+  }
+  ```
+
+---
+
+## 13. Error Handling
+
+When errors occur during request processing, the backend handles them gracefully and responds with appropriate status codes and error bodies.
+
+* **400 Bad Request:** Occurs on input validation failure, e.g., missing required fields, Zod schema validation errors.
+* **401 Unauthorized:** Occurs when authorization token is missing, invalid, or expired.
+* **403 Forbidden:** Occurs when trying to perform operations without sufficient membership permission level (e.g. VIEWER attempting to issue credentials).
+* **404 Not Found:** Occurs when requesting non-existent entities (workspace, templates, files, credentials).
+* **409 Conflict:** Occurs when creating resources that violate unique constraints (e.g. user already exists).
+* **500 Internal Server Error:** General unhandled error fallback.

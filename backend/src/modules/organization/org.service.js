@@ -58,19 +58,27 @@ export const listOrganizations = async (query, userId) => {
     const page = Number(query.page) || 1;
     const limit = Number(query.limit) || 10;
     const skip = (page - 1) * limit;
+    const where = {
+      memberships: {
+        some: { userId },
+      },
+    };
     const organizations = await prisma.organization.findMany({
       skip,
       take: limit,
       orderBy: {
         createdAt: "desc",
       },
-      where: {
-        memberships: {
-          some: { userId },
-        },
-      },
+      where,
     });
-    return organizations;
+    const total = await prisma.organization.count({ where });
+    return {
+      success: true,
+      page,
+      limit,
+      total,
+      organizations,
+    };
   } catch (error) {
     console.error('Error listing organizations:', error);
     throw error;
@@ -107,13 +115,20 @@ export const updateOrganization = async (id, userId, data) => {
     if (!organization) {
       throw new Error("Organization not found or access denied");
     }
+
+    if (data.name !== undefined) {
+      const parsed = createOrganizationSchema.safeParse({ name: data.name });
+      if (!parsed.success) {
+        throw new Error(parsed.error.issues[0]?.message || "Invalid organization name");
+      }
+    }
+
     const updatedOrganization = await prisma.organization.update({
       where: { id },
       data: {
-        name: data.name || organization.name,
-        slug: data.name ? slugify(data.name, userId) : organization.slug,
-        logoUrl: data.logoUrl || organization.logoUrl,
-        updatedAt: new Date(),
+        name: data.name !== undefined ? data.name : organization.name,
+        slug: data.name !== undefined ? slugify(data.name, userId) : organization.slug,
+        logoUrl: data.logoUrl !== undefined ? data.logoUrl : organization.logoUrl,
       },
     });
     return updatedOrganization;

@@ -8,16 +8,28 @@ import orgRoutes from "./modules/organization/org.routes.js";
 import uploadRoutes from "./modules/upload/upload.routes.js";
 import workspaceRoutes from "./modules/workspaces/workspace.routes.js";
 import membershipRoutes from "./modules/memberships/membership.routes.js";
+import templateRoutes from "./modules/templates/template.routes.js";
+import credentialRoutes from "./modules/certificates/credential.routes.js";
+import verificationRoutes from "./modules/verification/verification.routes.js";
+import emailRoutes from "./modules/email/email.routes.js";
 import { swaggerUi, specs } from "./swagger.js";
 import userRoutes from "./modules/users/user.routes.js";
+import jobRoutes from "./modules/jobs/jobs.routes.js";
+import fileRoutes from "./modules/files/files.routes.js";
+import { errorHandler } from "./middlewares/error.middleware.js";
 
 dotenv.config();
+
+// Global BigInt serializer helper for JSON responses
+BigInt.prototype.toJSON = function () {
+  return Number(this);
+};
 
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
-  : ["http://localhost:5173", "http://localhost:5174"];
+  : ["http://localhost:5173", "http://localhost:5174", "http://localhost:8000"];
 
 app.use(
   cors({
@@ -31,7 +43,7 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
 // Swagger documentation
@@ -43,4 +55,13 @@ app.use("/api/organizations/:organizationId/members", membershipRoutes);
 app.use("/api/organizations/:organizationId/workspaces", workspaceRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/organizations/:organizationId/workspaces/:workspaceId/templates", templateRoutes);
+app.use("/api/organizations/:organizationId/workspaces/:workspaceId/credentials", credentialRoutes);
+app.use("/api/organizations/:organizationId/workspaces/:workspaceId/jobs", jobRoutes);
+app.use("/api/organizations/:organizationId/workspaces/:workspaceId/files", fileRoutes);
+app.use("/api", verificationRoutes);
+app.use("/api", emailRoutes);
+
+// Centralized error handler
+app.use(errorHandler);
 export default app;

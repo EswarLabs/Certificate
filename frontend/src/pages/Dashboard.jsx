@@ -23,14 +23,14 @@ export default function Dashboard() {
           <div style={{ marginTop: "20px" }}>
             <p><strong>Email:</strong> {user.email}</p>
             {user.avatarUrl && (
-              <img 
-                src={user.avatarUrl} 
-                alt="Avatar" 
+              <img
+                src={user.avatarUrl}
+                alt="Avatar"
                 style={{ width: "100px", borderRadius: "50%" }}
               />
             )}
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             style={{ marginTop: "20px", padding: "10px 20px" }}
           >

@@ -55,7 +55,7 @@ describe("Organizations API", () => {
 
       expect([200, 401, 403]).toContain(response.status);
       if (response.status === 200) {
-        expect(Array.isArray(response.body)).toBe(true);
+        expect(Array.isArray(response.body.organizations)).toBe(true);
       }
     });
   });

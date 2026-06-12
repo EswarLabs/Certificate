@@ -1,0 +1,150 @@
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+const getAuthHeader = () => {
+    const token = localStorage.getItem("accessToken");
+    return token ? { "Authorization": `Bearer ${token}` } : {};
+};
+
+// Create a new workspace under an organization
+export const createWorkspace = async (organizationId, name) => {
+    const res = await fetch(`${API_URL}/api/organizations/${organizationId}/workspaces`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            ...getAuthHeader(),
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name }),
+    });
+    return res.json();
+};
+
+// List workspaces for an organization
+export const listWorkspaces = async (organizationId, page = 1, limit = 10) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/workspaces?page=${page}&limit=${limit}`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    return res.json();
+};
+
+// Get a single workspace by ID
+export const getWorkspace = async (organizationId, workspaceId) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    return res.json();
+};
+
+// Update a workspace
+export const updateWorkspace = async (organizationId, workspaceId, data) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}`,
+        {
+            method: "PUT",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(data),
+        }
+    );
+    return res.json();
+};
+
+// Delete a workspace
+export const deleteWorkspaceApi = async (organizationId, workspaceId) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    // DELETE returns 204 No Content
+    if (res.status === 204) return { success: true };
+    return res.json();
+};
+
+// List members of an organization (members are tied to workspaces)
+export const listMembers = async (organizationId, page = 1, limit = 10) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/members?page=${page}&limit=${limit}`,
+        {
+            method: "GET",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    return res.json();
+};
+
+// Add a member to an organization & workspace
+export const addMember = async (organizationId, newUserId, workspaceId, role = "MEMBER") => {
+    const res = await fetch(`${API_URL}/api/organizations/${organizationId}/members`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            ...getAuthHeader(),
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ newUserId, workspaceId, role }),
+    });
+    return res.json();
+};
+
+// Remove a member
+export const removeMember = async (organizationId, memberId) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/members/${memberId}`,
+        {
+            method: "DELETE",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+        }
+    );
+    return res.json();
+};
+
+// Update a member's role
+export const updateMemberRole = async (organizationId, memberId, role) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/members/${memberId}`,
+        {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ role }),
+        }
+    );
+    return res.json();
+};

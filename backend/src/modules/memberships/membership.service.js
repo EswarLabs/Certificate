@@ -14,6 +14,17 @@ export const addMemberToOrganization = async (
       userId,
       role: "OWNER",
     },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
   });
 
   if (!requester) {

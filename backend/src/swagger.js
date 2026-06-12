@@ -32,6 +32,15 @@ const options = {
     "./src/modules/auth/auth.routes.js",
     "./src/modules/organization/org.routes.js",
     "./src/modules/upload/upload.routes.js",
+    "./src/modules/workspaces/workspace.routes.js",
+    "./src/modules/memberships/membership.routes.js",
+    "./src/modules/templates/template.routes.js",
+    "./src/modules/users/user.routes.js",
+    "./src/modules/certificates/credential.routes.js",
+    "./src/modules/verification/verification.routes.js",
+    "./src/modules/email/email.routes.js",
+    "./src/modules/jobs/jobs.routes.js",
+    "./src/modules/files/files.routes.js",
   ],
 };
 

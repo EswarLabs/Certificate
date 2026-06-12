@@ -28,6 +28,9 @@ router.use(authMiddleware);
  *                 type: string
  *                 format: binary
  *                 description: Image file to upload
+ *               workspaceId:
+ *                 type: string
+ *                 description: Optional workspace ID to associate the file in the database
  *     responses:
  *       200:
  *         description: Image uploaded successfully
@@ -40,6 +43,32 @@ router.use(authMiddleware);
  *                   type: string
  *                 public_id:
  *                   type: string
+ *                 dbEntry:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     workspaceId:
+ *                       type: string
+ *                     uploadedById:
+ *                       type: string
+ *                     fileName:
+ *                       type: string
+ *                     mimeType:
+ *                       type: string
+ *                     fileSize:
+ *                       type: integer
+ *                     storageKey:
+ *                       type: string
+ *                     publicUrl:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Invalid file format
  *       401:
@@ -69,6 +98,9 @@ router.post('/image', imageUploadMiddleware.single('file'), uploadImageControlle
  *                 type: string
  *                 format: binary
  *                 description: Document file to upload
+ *               workspaceId:
+ *                 type: string
+ *                 description: Optional workspace ID to associate the file in the database
  *     responses:
  *       200:
  *         description: File uploaded successfully
@@ -81,6 +113,32 @@ router.post('/image', imageUploadMiddleware.single('file'), uploadImageControlle
  *                   type: string
  *                 public_id:
  *                   type: string
+ *                 dbEntry:
+ *                   type: object
+ *                   nullable: true
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     workspaceId:
+ *                       type: string
+ *                     uploadedById:
+ *                       type: string
+ *                     fileName:
+ *                       type: string
+ *                     mimeType:
+ *                       type: string
+ *                     fileSize:
+ *                       type: integer
+ *                     storageKey:
+ *                       type: string
+ *                     publicUrl:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       400:
  *         description: Invalid file format
  *       401:

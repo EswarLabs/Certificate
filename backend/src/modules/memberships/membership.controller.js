@@ -7,7 +7,7 @@ import {
 } from "./membership.service.js";
 import { addMemberSchema, updateMemberRoleSchema } from "./membership.validation.js";
 
-export const addMemberController = async (req, res) => {
+export const addMemberController = async (req, res, next) => {
   try {
     const { organizationId } = req.params;
     const userId = req.user.userId;
@@ -42,15 +42,11 @@ export const addMemberController = async (req, res) => {
       membership,
     });
   } catch (error) {
-    console.error("Error adding member:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Internal server error",
-    });
+    next(error);
   }
 };
 
-export const listMembersController = async (req, res) => {
+export const listMembersController = async (req, res, next) => {
   try {
     const { organizationId } = req.params;
     const userId = req.user.userId;
@@ -64,15 +60,11 @@ export const listMembersController = async (req, res) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Error listing members:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Internal server error",
-    });
+    next(error);
   }
 };
 
-export const getMemberController = async (req, res) => {
+export const getMemberController = async (req, res, next) => {
   try {
     const { organizationId, memberId } = req.params;
     const userId = req.user.userId;
@@ -88,15 +80,11 @@ export const getMemberController = async (req, res) => {
       membership,
     });
   } catch (error) {
-    console.error("Error fetching member:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Internal server error",
-    });
+    next(error);
   }
 };
 
-export const updateMemberRoleController = async (req, res) => {
+export const updateMemberRoleController = async (req, res, next) => {
   try {
     const { organizationId, memberId } = req.params;
     const userId = req.user.userId;
@@ -126,15 +114,11 @@ export const updateMemberRoleController = async (req, res) => {
       membership: updated,
     });
   } catch (error) {
-    console.error("Error updating member role:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Internal server error",
-    });
+    next(error);
   }
 };
 
-export const removeMemberController = async (req, res) => {
+export const removeMemberController = async (req, res, next) => {
   try {
     const { organizationId, memberId } = req.params;
     const userId = req.user.userId;
@@ -143,10 +127,6 @@ export const removeMemberController = async (req, res) => {
 
     return res.status(200).json(result);
   } catch (error) {
-    console.error("Error removing member:", error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || "Internal server error",
-    });
+    next(error);
   }
 };

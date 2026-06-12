@@ -1,12 +1,136 @@
 import express from "express";
 import { 
-  googleAuthController, 
+  googleAuthController,
+  registerController,
+  loginController,
   logoutController, 
   getCurrentUserController 
 } from "./auth.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router();
+
+/**
+ * @openapi
+ * /api/auth/register:
+ *   post:
+ *     summary: Register new user with email and password
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: User's password (minimum 6 characters)
+ *               firstName:
+ *                 type: string
+ *                 description: User's first name
+ *               lastName:
+ *                 type: string
+ *                 description: User's last name
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                 accessToken:
+ *                   type: string
+ *       400:
+ *         description: Invalid input or password too short
+ *       409:
+ *         description: User already exists
+ */
+router.post("/register", registerController);
+
+/**
+ * @openapi
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user with email and password
+ *     tags:
+ *       - Authentication
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: User's email address
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: User's password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                 accessToken:
+ *                   type: string
+ *       400:
+ *         description: Invalid input or account uses Google OAuth
+ *       401:
+ *         description: Invalid email or password
+ *       404:
+ *         description: User not found
+ */
+router.post("/login", loginController);
 
 /**
  * @openapi
@@ -35,9 +159,22 @@ const router = express.Router();
  *             schema:
  *               type: object
  *               properties:
+ *                 success:
+ *                   type: boolean
  *                 user:
  *                   type: object
- *                 token:
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     avatarUrl:
+ *                       type: string
+ *                 accessToken:
  *                   type: string
  *       400:
  *         description: Invalid token
@@ -54,6 +191,15 @@ router.post("/google", googleAuthController);
  *     responses:
  *       200:
  *         description: Logout successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.post("/logout", logoutController);
 
@@ -74,12 +220,29 @@ router.post("/logout", logoutController);
  *             schema:
  *               type: object
  *               properties:
- *                 id:
+ *                 success:
+ *                   type: boolean
+ *                 message:
  *                   type: string
- *                 email:
- *                   type: string
- *                 name:
- *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
+ *                     avatarUrl:
+ *                       type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
  *       401:
  *         description: Unauthorized
  */

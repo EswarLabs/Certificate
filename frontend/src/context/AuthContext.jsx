@@ -1,9 +1,9 @@
 import { createContext, useState, useEffect } from "react";
-import {loginWithGoogle, logout, getCurrentUser} from "../services/authService";
+import { loginWithGoogle, loginWithEmail, registerWithEmail, logout, getCurrentUser } from "../services/authService";
 
 export const AuthContext = createContext();
 
-export const AuthProvider = ({children}) => {
+export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(() => {
         // Initialize from localStorage
         const savedUser = localStorage.getItem("user");
@@ -11,12 +11,48 @@ export const AuthProvider = ({children}) => {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    
-    const login =  async (credential) => {
+
+    const loginGoogle = async (credential) => {
         setLoading(true);
         setError(null);
         try {
             const res = await loginWithGoogle(credential);
+            if (res.success) {
+                setUser(res.user);
+                localStorage.setItem("user", JSON.stringify(res.user));
+                localStorage.setItem("accessToken", res.accessToken);
+            } else {
+                setError(res.message || "Login failed");
+            }
+        } catch (err) {
+            setError(err.message || "Login failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+    const registerEmail = async (firstName, lastName, email, password) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await registerWithEmail(firstName, lastName, email, password);
+            if (res.success) {
+                setUser(res.user);
+                localStorage.setItem("user", JSON.stringify(res.user));
+                localStorage.setItem("accessToken", res.accessToken);
+            } else {
+                setError(res.message || "Register failed");
+            }
+        } catch (err) {
+            setError(err.message || "Register failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+    const loginEmail = async (email, password) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const res = await loginWithEmail(email, password);
             if (res.success) {
                 setUser(res.user);
                 localStorage.setItem("user", JSON.stringify(res.user));
@@ -79,7 +115,9 @@ export const AuthProvider = ({children}) => {
         user,
         loading,
         error,
-        login,
+        registerEmail,
+        loginGoogle,
+        loginEmail,
         logoutUser
     };
     return (

@@ -1,9 +1,24 @@
 import { prisma } from "../../lib/prisma.js";
 import { slugify } from "../../utils/slugify.js";
 import { uploadFile as uploadServiceFile } from "../upload/upload.service.js";
+import { createWorkspaceSchema } from "./workspace.validation.js";
 
 export const createWorkspace = async (name, organizationId, userId) => {
+  const parsed = createWorkspaceSchema.safeParse({ name });
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues[0]?.message || "Invalid workspace name");
+  }
   const slug = slugify(name, organizationId);
+  const membership = await prisma.membership.findFirst({
+    where: {
+      userId,
+      organizationId,
+      role: { in: ["OWNER", "ADMIN"] },
+    }
+  });
+  if (!membership) {
+    throw new Error("User is not a member of the organization");
+  }
   const result = await prisma.$transaction(
     async (tx) => {
       const workspace = await tx.workspace.create({
@@ -24,8 +39,8 @@ export const createWorkspace = async (name, organizationId, userId) => {
       return { workspace, membership };
     },
     {
-      maxWait: 10000, // max 10s to wait to acquire transaction
-      timeout: 20000, // transaction times out after 20s
+      maxWait: 10000, 
+      timeout: 20000, 
     },
   );
   return result;
@@ -35,18 +50,26 @@ export const listWorkspaces = async (organizationId, userId, query = {}) => {
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
+  const where = {
+    organizationId,
+    memberships: {
+      some: { userId },
+    },
+  };
   const workspaces = await prisma.workspace.findMany({
     skip,
     take: limit,
-    where: {
-      organizationId,
-      memberships: {
-        some: { userId },
-      },
-    },
+    where,
     orderBy: { name: "asc" },
   });
-  return workspaces;
+  const total = await prisma.workspace.count({ where });
+  return {
+    success: true,
+    page,
+    limit,
+    total,
+    workspaces,
+  };
 };
 
 export const listWorkspaceById = async (workspaceId, userId) => {
@@ -70,16 +93,22 @@ export const updateWorkspace = async (workspaceId, userId, data) => {
     throw new Error("Workspace not found or access denied");
   }
 
+  if (data.name !== undefined) {
+    const parsed = createWorkspaceSchema.safeParse({ name: data.name });
+    if (!parsed.success) {
+      throw new Error(parsed.error.issues[0]?.message || "Invalid workspace name");
+    }
+  }
+
   const updated = await prisma.workspace.update({
     where: { id: workspaceId },
     data: {
-      name: data.name || undefined,
-      slug: data.name ? slugify(data.name, workspaceId) : undefined,
-      brandingSettings: data.brandingSettings || undefined,
-      customDomain: data.customDomain || undefined,
+      name: data.name !== undefined ? data.name : undefined,
+      slug: data.name !== undefined ? slugify(data.name, workspaceId) : undefined,
+      brandingSettings: data.brandingSettings !== undefined ? data.brandingSettings : undefined,
+      customDomain: data.customDomain !== undefined ? data.customDomain : undefined,
       smtpEnabled: typeof data.smtpEnabled === 'boolean' ? data.smtpEnabled : undefined,
-      smtpSettings: data.smtpSettings || undefined,
-      updatedAt: new Date(),
+      smtpSettings: data.smtpSettings !== undefined ? data.smtpSettings : undefined,
     },
   });
   return updated;
@@ -98,12 +127,19 @@ export const deleteWorkspace = async (workspaceId, userId) => {
 };
 
 export const uploadFile = async (workspaceId, userId, file) => {
+  const workspaceExists = await prisma.workspace.findUnique({
+    where: { id: workspaceId },
+  });
+  if (!workspaceExists) {
+    throw new Error("Workspace not found");
+  }
+
   // ensure user is a member of the workspace
   const membership = await prisma.membership.findFirst({
     where: { workspaceId, userId },
   });
   if (!membership) {
-    throw new Error("Workspace not found or access denied");
+    throw new Error("Access denied");
   }
 
   const result = await uploadServiceFile(file);
