@@ -12,6 +12,8 @@ export const verifyCredentialController = async (req, res, next) => {
             id: true,
             name: true,
             description: true,
+            editorData: true,
+            orientation: true,
           },
         },
         workspace: {
@@ -32,7 +34,7 @@ export const verifyCredentialController = async (req, res, next) => {
       },
     });
 
-    if (!credential || credential.status === "draft") {
+    if (!credential || credential.status === "DRAFT") {
       return res.status(404).json({
         success: false,
         message: "Credential not found or not issued yet",
@@ -49,6 +51,8 @@ export const verifyCredentialController = async (req, res, next) => {
   }
 };
 
+const VALID_EVENT_TYPES = ["CREATED", "ISSUED", "EMAILED", "OPENED", "VERIFIED", "REVOKED", "EXPIRED"];
+
 export const trackEventController = async (req, res, next) => {
   try {
     const credentialId = req.params.credId;
@@ -58,6 +62,13 @@ export const trackEventController = async (req, res, next) => {
       return res.status(400).json({
         success: false,
         message: "Event type is required",
+      });
+    }
+
+    if (!VALID_EVENT_TYPES.includes(eventType)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid event type. Must be one of: ${VALID_EVENT_TYPES.join(", ")}`,
       });
     }
 

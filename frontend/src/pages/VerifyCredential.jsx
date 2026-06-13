@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { verifyCredential, trackEvent } from "../services/verificationServices";
+import { renderEditorDataToHtml } from "../utils/editorDataRenderer";
 
 export default function VerifyCredential() {
   const { code: routeCode } = useParams();
   const navigate = useNavigate();
-  
+
   const [code, setCode] = useState(routeCode || "");
   const [credential, setCredential] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -54,39 +55,69 @@ export default function VerifyCredential() {
   };
 
   // Helper to compile template html with dynamic variables
-  const compileTemplate = (html, css, data, recipientName, issuedAt) => {
-    if (!html) return "";
-    let compiled = html;
-    
-    // Replace standard keys
-    compiled = compiled.replace(/\{\{recipientName\}\}/g, recipientName || "");
-    compiled = compiled.replace(/\{\{issuedAt\}\}/g, issuedAt ? new Date(issuedAt).toLocaleDateString() : "");
-    
-    // Replace custom data keys
-    if (data && typeof data === "object") {
-      Object.entries(data).forEach(([k, v]) => {
-        const regex = new RegExp(`\\{\\{${k}\\}\\}`, "g");
-        compiled = compiled.replace(regex, v || "");
-      });
-    }
+  const compileTemplate = (editorData, data, recipientName, issuedAt) => {
+    if (!editorData) return "";
 
-    // Wrap with custom styles
+    const replacements = {
+      recipientName: recipientName || "",
+      issuedAt: issuedAt ? new Date(issuedAt).toLocaleDateString() : "",
+      verificationCode: credential.verificationCode,
+      verificationUrl: `${window.location.origin}/verify/${credential.verificationCode}`,
+      ...(data && typeof data === "object" ? data : {}),
+    };
+
+    const certHtml = renderEditorDataToHtml(editorData, replacements);
+    const width = editorData.width || 1200;
+    const height = editorData.height || 900;
+
     return `
-      <html>
-        <head>
-          <style>
-            body { margin: 0; padding: 0; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f3f4f6; }
-            .certificate-container { background: white; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-radius: 8px; width: 100%; max-width: 800px; box-sizing: border-box; }
-            ${css || ""}
-          </style>
-        </head>
-        <body>
-          <div class="certificate-container">
-            ${compiled}
-          </div>
-        </body>
-      </html>
-    `;
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          * { box-sizing: border-box; }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: ${width}px;
+            height: ${height}px;
+            overflow: hidden;
+            background: #f3f4f6;
+          }
+          #cert-scale-wrapper {
+            width: ${width}px;
+            height: ${height}px;
+            transform-origin: top left;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            overflow: hidden;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="cert-scale-wrapper">
+          ${certHtml}
+        </div>
+        <script>
+          function adjustScale() {
+            const wrapper = document.getElementById('cert-scale-wrapper');
+            const certWidth = ${width};
+            const certHeight = ${height};
+            const scale = (window.innerWidth / certWidth) * 0.98;
+
+            wrapper.style.transform = 'scale(' + scale + ')';
+
+            // Notify parent of the scaled height so iframe can resize
+            const scaledHeight = certHeight * scale;
+            window.parent.postMessage({ scaledHeight }, '*');
+          }
+          window.addEventListener('resize', adjustScale);
+          adjustScale();
+        </script>
+      </body>
+    </html>
+  `;
   };
 
   const statusColor = (status) => {
@@ -99,10 +130,10 @@ export default function VerifyCredential() {
   };
 
   return (
-    <div style={{ maxWidth: "800px", margin: "40px auto", padding: "0 20px" }}>
+    <div style={{ maxWidth: "1400px", margin: "40px auto", padding: "0 20px" }}>
       <h1>Verify Certificate Credential</h1>
       <p>Enter a unique verification code to verify the validity, recipient details, and template of the certificate.</p>
-      
+
       <form onSubmit={handleSubmit} style={{ display: "flex", gap: "12px", marginBottom: "24px" }}>
         <input
           type="text"
@@ -195,15 +226,14 @@ export default function VerifyCredential() {
                 <iframe
                   title="Certificate Preview"
                   srcDoc={compileTemplate(
-                    credential.template.htmlTemplate,
-                    credential.template.cssStyles,
+                    credential.template.editorData,
                     credential.credentialData,
                     credential.recipientName,
                     credential.issuedAt
                   )}
                   style={{
                     width: "100%",
-                    height: "500px",
+                    height: "700px",
                     border: "1px solid #e5e7eb",
                     borderRadius: "6px",
                     boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.06)",

@@ -83,9 +83,9 @@ export default function CredentialDetail() {
 
   const statusColor = (status) => {
     switch (status) {
-      case "draft": return "#f59e0b";
-      case "issued": return "#22c55e";
-      case "revoked": return "#ef4444";
+      case "DRAFT": return "#f59e0b";
+      case "ISSUED": return "#22c55e";
+      case "REVOKED": return "#ef4444";
       default: return "#6b7280";
     }
   };
@@ -99,13 +99,14 @@ export default function CredentialDetail() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Credential Detail</h1>
         <div style={{ display: "flex", gap: "8px" }}>
-          {credential.status === "draft" && (
-            <button onClick={handleIssue} disabled={actionLoading}>Issue</button>
+
+          {credential.status === "DRAFT" && (
+            <button onClick={handleIssue} disabled={!credential}>Issue</button>
           )}
-          {credential.status === "issued" && (
+          {credential.status === "ISSUED" && (
             <>
-              <button onClick={handleSendEmail} disabled={actionLoading}>Send Email</button>
-              <button onClick={handleRevoke} disabled={actionLoading} style={{ color: "red" }}>Revoke</button>
+              <button onClick={handleSendEmail} disabled={!credential}>Send Email</button>
+              <button onClick={handleRevoke} disabled={!credential} style={{ color: "red" }}>Revoke</button>
             </>
           )}
           <button onClick={() => navigate("/credentials")}>Back to List</button>

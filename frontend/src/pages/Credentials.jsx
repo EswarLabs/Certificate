@@ -89,7 +89,7 @@ export default function Credentials() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1>Credentials</h1>
         <div style={{ display: "flex", gap: "8px" }}>
-          <Link to="/credentials/new"><button>+ New Credential</button></Link>
+          <Link to="/credentials/create"><button>+ New Credential</button></Link>
           <Link to="/credentials/batch"><button>Batch Import</button></Link>
         </div>
       </div>

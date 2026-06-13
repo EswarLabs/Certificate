@@ -1,5 +1,14 @@
 import express from "express";
-import { createTemplateController, deleteTemplateController, getAllTemplatesController, getMyTemplatesController, getTemplateByIdController, updateTemplateController } from "./template.controller.js";
+import {
+    createTemplateController,
+    deleteTemplateController,
+    getAllTemplatesController,
+    getMyTemplatesController,
+    getTemplateByIdController,
+    updateTemplateController,
+    publishTemplateController,
+    unpublishTemplateController,
+} from "./template.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router({ mergeParams: true });
@@ -19,13 +28,11 @@ const router = express.Router({ mergeParams: true });
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *     requestBody:
  *       required: true
  *       content:
@@ -34,94 +41,45 @@ const router = express.Router({ mergeParams: true });
  *             type: object
  *             required:
  *               - name
- *               - htmlTemplate
+ *               - editorData
  *               - schemaDefinition
  *             properties:
  *               name:
  *                 type: string
  *                 maxLength: 100
- *                 description: Template name
  *               description:
  *                 type: string
  *                 maxLength: 500
- *                 description: Template description
- *               htmlTemplate:
- *                 type: string
- *                 maxLength: 10000
- *                 description: HTML content of the template
- *               cssStyles:
- *                 type: string
- *                 maxLength: 1000
- *                 description: CSS stylesheet for the template
  *               orientation:
  *                 type: string
- *                 enum: [landscape, portrait]
- *                 default: landscape
- *                 description: Page layout orientation
+ *                 enum: [LANDSCAPE, PORTRAIT]
+ *                 default: LANDSCAPE
+ *               editorData:
+ *                 type: object
+ *                 description: Konva canvas JSON (version, width, height, background, elements[])
  *               schemaDefinition:
  *                 type: array
- *                 description: Dynamic fields required for the certificate template
  *                 items:
  *                   type: object
- *                   required:
- *                     - key
- *                     - label
- *                     - type
+ *                   required: [key, label, type]
  *                   properties:
  *                     key:
  *                       type: string
- *                       description: The identifier key for the field
  *                     label:
  *                       type: string
- *                       description: The human-readable label
  *                     type:
  *                       type: string
  *                       enum: [text, date, number, email, url]
- *                       description: Field type for validation
  *                     required:
  *                       type: boolean
  *                       default: false
- *                       description: Whether the field must be supplied
  *     responses:
  *       201:
  *         description: Template created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 description:
- *                   type: string
- *                   nullable: true
- *                 htmlTemplate:
- *                   type: string
- *                 cssStyles:
- *                   type: string
- *                   nullable: true
- *                 orientation:
- *                   type: string
- *                 schemaDefinition:
- *                   type: array
- *                   items:
- *                     type: object
- *                 workspaceId:
- *                   type: string
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
  *       400:
- *         description: Invalid input or validation failed
+ *         description: Validation failed
  *       403:
- *         description: Forbidden - User is not a member of organization/workspace
+ *         description: Forbidden
  */
 router.post("/", authMiddleware, createTemplateController);
 
@@ -140,76 +98,26 @@ router.post("/", authMiddleware, createTemplateController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of templates to return per page
  *     responses:
  *       200:
- *         description: List of templates retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 page:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 total:
- *                   type: integer
- *                 templates:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       name:
- *                         type: string
- *                       description:
- *                         type: string
- *                         nullable: true
- *                       htmlTemplate:
- *                         type: string
- *                       cssStyles:
- *                         type: string
- *                         nullable: true
- *                       orientation:
- *                         type: string
- *                       schemaDefinition:
- *                         type: array
- *                         items:
- *                           type: object
- *                       workspaceId:
- *                         type: string
- *                       createdById:
- *                         type: string
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *         description: List of templates
  *       403:
- *         description: Forbidden - Access denied
+ *         description: Forbidden
  */
 router.get("/", authMiddleware, getAllTemplatesController);
 
@@ -217,7 +125,7 @@ router.get("/", authMiddleware, getAllTemplatesController);
  * @openapi
  * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/my-templates:
  *   get:
- *     summary: Get templates created by current user in workspace
+ *     summary: Get templates created by the current user
  *     tags:
  *       - Certificate Templates
  *     security:
@@ -228,76 +136,26 @@ router.get("/", authMiddleware, getAllTemplatesController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number for pagination
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of templates to return per page
  *     responses:
  *       200:
- *         description: List of user's templates retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 page:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 total:
- *                   type: integer
- *                 templates:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       name:
- *                         type: string
- *                       description:
- *                         type: string
- *                         nullable: true
- *                       htmlTemplate:
- *                         type: string
- *                       cssStyles:
- *                         type: string
- *                         nullable: true
- *                       orientation:
- *                         type: string
- *                       schemaDefinition:
- *                         type: array
- *                         items:
- *                           type: object
- *                       workspaceId:
- *                         type: string
- *                       createdById:
- *                         type: string
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
+ *         description: List of user's templates
  *       403:
- *         description: Forbidden - Access denied
+ *         description: Forbidden
  */
 router.get("/my-templates", authMiddleware, getMyTemplatesController);
 
@@ -316,59 +174,23 @@ router.get("/my-templates", authMiddleware, getMyTemplatesController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Template ID
  *     responses:
  *       200:
- *         description: Template details retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 description:
- *                   type: string
- *                   nullable: true
- *                 htmlTemplate:
- *                   type: string
- *                 cssStyles:
- *                   type: string
- *                   nullable: true
- *                 orientation:
- *                   type: string
- *                 schemaDefinition:
- *                   type: array
- *                   items:
- *                     type: object
- *                 workspaceId:
- *                   type: string
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
+ *         description: Template details
  *       403:
- *         description: Forbidden - Access denied
+ *         description: Forbidden
  *       404:
- *         description: Template not found
+ *         description: Not found
  */
 router.get("/:id", authMiddleware, getTemplateByIdController);
 
@@ -376,7 +198,7 @@ router.get("/:id", authMiddleware, getTemplateByIdController);
  * @openapi
  * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}:
  *   put:
- *     summary: Update template by ID
+ *     summary: Update template by ID (auto-increments templateVersion)
  *     tags:
  *       - Certificate Templates
  *     security:
@@ -387,21 +209,17 @@ router.get("/:id", authMiddleware, getTemplateByIdController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Template ID
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
@@ -409,89 +227,34 @@ router.get("/:id", authMiddleware, getTemplateByIdController);
  *             properties:
  *               name:
  *                 type: string
- *                 maxLength: 100
- *                 description: Template name
  *               description:
  *                 type: string
- *                 maxLength: 500
- *                 description: Template description
- *               htmlTemplate:
- *                 type: string
- *                 maxLength: 10000
- *                 description: HTML content
- *               cssStyles:
- *                 type: string
- *                 maxLength: 1000
- *                 description: CSS content
  *               orientation:
  *                 type: string
- *                 enum: [landscape, portrait]
- *                 description: Page orientation
+ *                 enum: [LANDSCAPE, PORTRAIT]
+ *               editorData:
+ *                 type: object
  *               schemaDefinition:
  *                 type: array
- *                 description: Dynamic fields
  *                 items:
  *                   type: object
- *                   properties:
- *                     key:
- *                       type: string
- *                     label:
- *                       type: string
- *                     type:
- *                       type: string
- *                       enum: [text, date, number, email, url]
- *                     required:
- *                       type: boolean
  *     responses:
  *       200:
- *         description: Template updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 name:
- *                   type: string
- *                 description:
- *                   type: string
- *                   nullable: true
- *                 htmlTemplate:
- *                   type: string
- *                 cssStyles:
- *                   type: string
- *                   nullable: true
- *                 orientation:
- *                   type: string
- *                 schemaDefinition:
- *                   type: array
- *                   items:
- *                     type: object
- *                 workspaceId:
- *                   type: string
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
+ *         description: Template updated
  *       400:
- *         description: Invalid input or validation failed
+ *         description: Validation failed
  *       403:
- *         description: Forbidden - User is not creator or admin
+ *         description: Forbidden
  *       404:
- *         description: Template not found
+ *         description: Not found
  */
 router.put("/:id", authMiddleware, updateTemplateController);
 
 /**
  * @openapi
- * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}:
- *   delete:
- *     summary: Delete template by ID
+ * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}/publish:
+ *   post:
+ *     summary: Publish a template (makes it available for credential issuance)
  *     tags:
  *       - Certificate Templates
  *     security:
@@ -502,26 +265,93 @@ router.put("/:id", authMiddleware, updateTemplateController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Template ID
+ *     responses:
+ *       200:
+ *         description: Template published
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ */
+router.post("/:id/publish", authMiddleware, publishTemplateController);
+
+/**
+ * @openapi
+ * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}/unpublish:
+ *   post:
+ *     summary: Unpublish a template
+ *     tags:
+ *       - Certificate Templates
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Template unpublished
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Not found
+ */
+router.post("/:id/unpublish", authMiddleware, unpublishTemplateController);
+
+/**
+ * @openapi
+ * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}:
+ *   delete:
+ *     summary: Delete template by ID (only if no credentials exist)
+ *     tags:
+ *       - Certificate Templates
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       204:
- *         description: Template deleted successfully (No Content)
+ *         description: Template deleted
  *       403:
- *         description: Forbidden - User is not creator or admin
+ *         description: Forbidden
  *       404:
- *         description: Template not found
+ *         description: Not found
  */
 router.delete("/:id", authMiddleware, deleteTemplateController);
 

@@ -2,76 +2,90 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
-import { createTemplate } from "../services/templateServices";
+import { createTemplate, publishTemplate } from "../services/templateServices";
+import { uploadImage } from "../services/uploadServices";
+import CanvasEditor from "../components/editor/CanvasEditor";
+import { createDefaultEditorData } from "../utils/editorDataRenderer";
+
+const ACCENT = "#3b82f6";
+const BG = "#0f172a";
+const SURFACE = "#1e293b";
+const BORDER = "#334155";
+const TEXT = "#f1f5f9";
+const MUTED = "#94a3b8";
 
 export default function TemplateCreate() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    htmlTemplate: `<div style="text-align: center; border: 4px double #1f2937; padding: 40px; background: #fffcf4;">
-  <h1 style="font-size: 2.5rem; color: #1e3a8a; font-family: serif;">Certificate of Achievement</h1>
-  <p style="font-size: 1.1rem; color: #4b5563;">This is proudly presented to</p>
-  <h2 style="font-size: 2rem; color: #111827; border-bottom: 2px solid #3b82f6; display: inline-block; padding-bottom: 8px;">{{recipientName}}</h2>
-  <p style="font-size: 1.1rem; color: #4b5563;">for successfully completing the course</p>
-  <h3 style="font-size: 1.5rem; color: #1e3a8a;">{{courseTitle}}</h3>
-  <p style="font-size: 0.9rem; color: #6b7280; margin-top: 40px;">Issued on: {{issuedAt}}</p>
-</div>`,
-    cssStyles: `h1 { text-transform: uppercase; letter-spacing: 2px; }
-h2 { font-style: italic; }`,
-    orientation: "landscape",
-  });
-
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [orientation, setOrientation] = useState("LANDSCAPE");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
   const [schemaFields, setSchemaFields] = useState([
-    { key: "courseTitle", label: "Course Title", type: "text", required: true }
+    { key: "courseTitle", label: "Course Title", type: "text", required: true },
   ]);
+  const [editorData, setEditorData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Preview test values state
+  // Preview test values
   const [testValues, setTestValues] = useState({
     recipientName: "Jane Doe",
     issuedAt: new Date().toLocaleDateString(),
     courseTitle: "Advanced Full-Stack Development",
+    verificationUrl: "https://example.com/verify/CERT-XXXX",
   });
 
-  // Keep testValues keys updated based on schemaFields changes
+  // Initialise editorData when orientation changes
+  useEffect(() => {
+    setEditorData(createDefaultEditorData(orientation));
+  }, [orientation]);
+
+  // Handle image upload for template thumbnail
+  const handleThumbnailUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setThumbnailUploading(true);
+    try {
+      const res = await uploadImage(file, selectedWorkspace?.id);
+      // Assuming response contains image URL in `secure_url` or `url`
+      const url = res.secure_url || res.url;
+      setThumbnailUrl(url);
+    } catch (err) {
+      console.error('Thumbnail upload failed', err);
+      setError(err.message);
+    } finally {
+      setThumbnailUploading(false);
+    }
+  };
+
+  // Keep testValues up to date with schemaFields
   useEffect(() => {
     setTestValues((prev) => {
       const next = { ...prev };
-      schemaFields.forEach((field) => {
-        if (field.key && next[field.key] === undefined) {
-          next[field.key] = `[Preview ${field.label || field.key}]`;
+      schemaFields.forEach((f) => {
+        if (f.key && next[f.key] === undefined) {
+          next[f.key] = `[${f.label || f.key}]`;
         }
       });
       return next;
     });
   }, [schemaFields]);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const addSchemaField = () => {
+  const addSchemaField = () =>
     setSchemaFields([...schemaFields, { key: "", label: "", type: "text", required: false }]);
-  };
 
-  const updateSchemaField = (index, field, value) => {
+  const updateSchemaField = (i, field, value) => {
     const updated = [...schemaFields];
-    updated[index][field] = value;
+    updated[i][field] = value;
     setSchemaFields(updated);
   };
 
-  const removeSchemaField = (index) => {
-    setSchemaFields(schemaFields.filter((_, i) => i !== index));
-  };
-
-  const handleTestValueChange = (key, val) => {
-    setTestValues((prev) => ({ ...prev, [key]: val }));
-  };
+  const removeSchemaField = (i) =>
+    setSchemaFields(schemaFields.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -79,15 +93,45 @@ h2 { font-style: italic; }`,
     setLoading(true);
     setError(null);
     try {
+      // 1. Process and upload any local files attached to elements
+      let finalEditorData = editorData;
+      if (editorData && editorData.elements) {
+        const uploadPromises = editorData.elements.map(async (el) => {
+          if (el._file) {
+            const res = await uploadImage(el._file, selectedWorkspace.id);
+            const url = res.secure_url || res.url;
+            if (!url) throw new Error(`Upload failed for ${el.type} file.`);
+            const { _file, ...rest } = el;
+            return {
+              ...rest,
+              properties: { ...rest.properties, src: url },
+            };
+          }
+          return el;
+        });
+        const updatedElements = await Promise.all(uploadPromises);
+        finalEditorData = { ...editorData, elements: updatedElements };
+      }
+
+      // 2. Submit template data to backend
       const data = {
-        ...form,
+        name,
+        description,
+        orientation,
+        editorData: finalEditorData,
         schemaDefinition: schemaFields.filter((f) => f.key),
+        thumbnailUrl: thumbnailUrl || null,
       };
       const res = await createTemplate(selectedOrg.id, selectedWorkspace.id, data);
       if (res.id) {
+        try {
+          await publishTemplate(selectedOrg.id, selectedWorkspace.id, res.id);
+        } catch (publishErr) {
+          console.error("Auto-publish failed", publishErr);
+        }
         navigate(`/templates/${res.id}`);
       } else {
-        setError(res.message || "Failed to create template");
+        setError(res.message || JSON.stringify(res) || "Failed to create template");
       }
     } catch (err) {
       setError(err.message);
@@ -96,262 +140,206 @@ h2 { font-style: italic; }`,
     }
   };
 
-  // Helper to compile template html with test values for preview
-  const compilePreview = () => {
-    let compiled = form.htmlTemplate || "";
-    
-    // Replace standard placeholders
-    compiled = compiled.replace(/\{\{recipientName\}\}/g, testValues.recipientName || "");
-    compiled = compiled.replace(/\{\{issuedAt\}\}/g, testValues.issuedAt || "");
-
-    // Replace custom schema placeholders
-    schemaFields.forEach((field) => {
-      if (field.key) {
-        const val = testValues[field.key] !== undefined ? testValues[field.key] : `[${field.label || field.key}]`;
-        const regex = new RegExp(`\\{\\{${field.key}\\}\\}`, "g");
-        compiled = compiled.replace(regex, val || "");
-      }
-    });
-
-    const isLandscape = form.orientation === "landscape";
-
-    return `
-      <html>
-        <head>
-          <style>
-            body { 
-              margin: 0; 
-              padding: 10px; 
-              font-family: sans-serif; 
-              display: flex; 
-              justify-content: center; 
-              align-items: center; 
-              min-height: 100vh; 
-              background-color: #f3f4f6; 
-            }
-            .certificate-container { 
-              background: white; 
-              padding: 30px; 
-              box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
-              border-radius: 8px; 
-              box-sizing: border-box;
-              width: 100%;
-              max-width: ${isLandscape ? "800px" : "550px"};
-              aspect-ratio: ${isLandscape ? "1.414" : "0.707"};
-            }
-            ${form.cssStyles || ""}
-          </style>
-        </head>
-        <body>
-          <div class="certificate-container">
-            ${compiled}
-          </div>
-        </body>
-      </html>
-    `;
-  };
-
   if (!selectedOrg || !selectedWorkspace) {
-    return <div><p>Please select an organization and workspace first.</p></div>;
+    return (
+      <div style={{ padding: 40, color: MUTED, textAlign: "center" }}>
+        Please select an organization and workspace first.
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Create Template</h1>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: BG, color: TEXT, fontFamily: "Inter, system-ui, sans-serif" }}>
 
-      <div style={{ display: "flex", gap: "24px", flexDirection: "row", flexWrap: "wrap" }}>
-        
-        {/* Left Form Column */}
-        <div style={{ flex: "1 1 500px", minWidth: "320px" }}>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <label>
-                <strong>Template Name *</strong>
-                <input 
-                  type="text" 
-                  name="name" 
-                  value={form.name} 
-                  onChange={handleChange} 
-                  required 
-                  placeholder="e.g. Graduation Certificate"
-                  style={{ display: "block", width: "100%", padding: "8px", marginTop: "4px" }} 
-                />
-              </label>
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderBottom: `1px solid ${BORDER}`, background: SURFACE, flexShrink: 0, gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <button
+            onClick={() => navigate("/templates")}
+            style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 22, lineHeight: 1 }}
+          >←</button>
+          <div>
+            <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>NEW TEMPLATE</div>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Template name…"
+              required
+              style={{ background: "transparent", border: "none", borderBottom: `1px solid ${BORDER}`, color: TEXT, fontSize: 18, fontWeight: 700, outline: "none", width: 320, padding: "2px 0" }}
+            />
+            {/* Thumbnail Upload */}
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <label style={{ color: MUTED, fontSize: 12 }}>Thumbnail:</label>
+              <input type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={thumbnailUploading} />
+              {thumbnailUploading && <span style={{ color: MUTED, fontSize: 12 }}>Uploading...</span>}
+              {thumbnailUrl && <span style={{ color: ACCENT, fontSize: 12 }}>Uploaded</span>}
+            </div>
+          </div>
+        </div>
 
-              <label>
-                <strong>Description</strong>
-                <textarea 
-                  name="description" 
-                  value={form.description} 
-                  onChange={handleChange} 
-                  rows={2} 
-                  placeholder="e.g. Issued to students who graduate from our course"
-                  style={{ display: "block", width: "100%", padding: "8px", marginTop: "4px" }} 
-                />
-              </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Orientation */}
+          <div style={{ display: "flex", background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden" }}>
+            {["LANDSCAPE", "PORTRAIT"].map((o) => (
+              <button
+                key={o}
+                onClick={() => setOrientation(o)}
+                style={{
+                  background: orientation === o ? ACCENT : "transparent",
+                  border: "none",
+                  color: orientation === o ? "#fff" : MUTED,
+                  fontSize: 12,
+                  padding: "6px 14px",
+                  cursor: "pointer",
+                  fontWeight: 600,
+                }}
+              >{o[0] + o.slice(1).toLowerCase()}</button>
+            ))}
+          </div>
 
-              <label>
-                <strong>Orientation</strong>
-                <select 
-                  name="orientation" 
-                  value={form.orientation} 
-                  onChange={handleChange} 
-                  style={{ display: "block", width: "100%", padding: "8px", marginTop: "4px" }}
-                >
-                  <option value="landscape">Landscape</option>
-                  <option value="portrait">Portrait</option>
-                </select>
-              </label>
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !name || !editorData}
+            style={{
+              background: loading ? "#1e3a5f" : ACCENT,
+              border: "none",
+              borderRadius: 8,
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 700,
+              padding: "8px 20px",
+              cursor: loading ? "not-allowed" : "pointer",
+            }}
+          >
+            {loading ? "Saving…" : "Save Template"}
+          </button>
+        </div>
+      </div>
 
-              <label>
-                <strong>HTML Template *</strong>
-                <span style={{ fontSize: "0.8rem", color: "#6b7280", display: "block" }}>
-                  Use <code>{"{{recipientName}}"}</code>, <code>{"{{issuedAt}}"}</code> and custom schema variables below.
-                </span>
-                <textarea 
-                  name="htmlTemplate" 
-                  value={form.htmlTemplate} 
-                  onChange={handleChange} 
-                  required 
-                  rows={12} 
-                  style={{ display: "block", width: "100%", fontFamily: "monospace", padding: "8px", marginTop: "4px", backgroundColor: "#f9fafb" }} 
-                />
-              </label>
+      {error && (
+        <div style={{ background: "#450a0a", color: "#fca5a5", padding: "10px 24px", fontSize: 13, borderBottom: `1px solid #7f1d1d` }}>
+          ⚠ {error}
+        </div>
+      )}
 
-              <label>
-                <strong>CSS Styles</strong>
-                <textarea 
-                  name="cssStyles" 
-                  value={form.cssStyles} 
-                  onChange={handleChange} 
-                  rows={8} 
-                  placeholder="Add custom CSS rules here..."
-                  style={{ display: "block", width: "100%", fontFamily: "monospace", padding: "8px", marginTop: "4px", backgroundColor: "#f9fafb" }} 
-                />
-              </label>
+      {/* Main layout: left sidebar + canvas + right panel */}
+      <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
-              {/* Schema Definition */}
-              <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px", backgroundColor: "#fff" }}>
-                <h3>Schema Definition (Custom Placeholders)</h3>
-                <p style={{ fontSize: "0.85rem", color: "#6b7280", marginTop: "-8px", marginBottom: "16px" }}>
-                  Define custom variables (e.g. <code>courseTitle</code>) that you can inject into the HTML as <code>{"{{courseTitle}}"}</code>.
-                </p>
-                {schemaFields.map((field, i) => (
-                  <div key={i} style={{ display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" }}>
-                    <input
-                      placeholder="Variable Key (e.g. course)"
-                      value={field.key}
-                      onChange={(e) => updateSchemaField(i, "key", e.target.value)}
-                      style={{ flex: 1, padding: "6px" }}
-                      required
-                    />
-                    <input
-                      placeholder="Label (e.g. Course)"
-                      value={field.label}
-                      onChange={(e) => updateSchemaField(i, "label", e.target.value)}
-                      style={{ flex: 1, padding: "6px" }}
-                    />
-                    <select 
-                      value={field.type} 
+        {/* Left sidebar — Schema & settings */}
+        <div style={{ width: 200, background: SURFACE, borderRight: `1px solid ${BORDER}`, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+          
+          {/* Description */}
+          <div style={{ padding: "16px 16px 0" }}>
+            <label style={labelStyle}>Description</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              placeholder="Template description…"
+              style={textareaStyle}
+            />
+          </div>
+
+          {/* Schema fields */}
+          <div style={{ padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Schema Fields</span>
+              <button onClick={addSchemaField} style={iconBtn}>+ Add</button>
+            </div>
+            <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 12px" }}>
+              Define variables to inject into text elements like <code style={{ color: ACCENT }}>{"{{key}}"}</code>
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {schemaFields.map((field, i) => (
+                <div key={i} style={{ background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, color: MUTED }}>Field {i + 1}</span>
+                    <button onClick={() => removeSchemaField(i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 13 }}>✕</button>
+                  </div>
+                  <input
+                    placeholder="Variable key (e.g. courseTitle)"
+                    value={field.key}
+                    onChange={(e) => updateSchemaField(i, "key", e.target.value)}
+                    style={{ ...fieldInput, marginBottom: 5 }}
+                    required
+                  />
+                  <input
+                    placeholder="Label (e.g. Course Title)"
+                    value={field.label}
+                    onChange={(e) => updateSchemaField(i, "label", e.target.value)}
+                    style={{ ...fieldInput, marginBottom: 5 }}
+                  />
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <select
+                      value={field.type}
                       onChange={(e) => updateSchemaField(i, "type", e.target.value)}
-                      style={{ padding: "6px" }}
+                      style={{ ...fieldInput, flex: 1 }}
                     >
                       <option value="text">Text</option>
                       <option value="date">Date</option>
                       <option value="number">Number</option>
+                      <option value="email">Email</option>
+                      <option value="url">URL</option>
                     </select>
-                    <label style={{ whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED, whiteSpace: "nowrap" }}>
                       <input
                         type="checkbox"
                         checked={field.required}
                         onChange={(e) => updateSchemaField(i, "required", e.target.checked)}
-                      /> Req
+                      />
+                      Required
                     </label>
-                    <button type="button" onClick={() => removeSchemaField(i)} style={{ color: "red", background: "none", border: "none", fontSize: "1.2rem", cursor: "pointer" }}>✕</button>
                   </div>
-                ))}
-                <button type="button" onClick={addSchemaField} style={{ padding: "6px 12px", fontSize: "0.85rem", marginTop: "8px" }}>
-                  + Add Placeholder
-                </button>
-              </div>
-
-              <button type="submit" disabled={loading} style={{ padding: "12px", fontWeight: "bold", cursor: "pointer" }}>
-                {loading ? "Creating..." : "Create Template"}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Right Preview Column */}
-        <div style={{ flex: "1 1 400px", minWidth: "320px", borderLeft: "1px solid #e5e7eb", paddingLeft: "24px" }}>
-          <h2 style={{ marginTop: 0 }}>Live Preview</h2>
-          <p style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-            The certificate below renders in real-time as you modify the HTML, CSS, or test values.
-          </p>
-
-          {/* Test values input fields */}
-          <div style={{ 
-            backgroundColor: "#f9fafb", 
-            border: "1px solid #e5e7eb", 
-            borderRadius: "8px", 
-            padding: "16px", 
-            marginBottom: "20px" 
-          }}>
-            <h4 style={{ margin: "0 0 12px 0" }}>Update Preview Field Values</h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
-              <label style={{ display: "flex", flexDirection: "column", fontSize: "0.85rem" }}>
-                recipientName
-                <input 
-                  type="text" 
-                  value={testValues.recipientName} 
-                  onChange={(e) => handleTestValueChange("recipientName", e.target.value)} 
-                  style={{ padding: "4px", fontSize: "0.9rem" }}
-                />
-              </label>
-              <label style={{ display: "flex", flexDirection: "column", fontSize: "0.85rem" }}>
-                issuedAt
-                <input 
-                  type="text" 
-                  value={testValues.issuedAt} 
-                  onChange={(e) => handleTestValueChange("issuedAt", e.target.value)} 
-                  style={{ padding: "4px", fontSize: "0.9rem" }}
-                />
-              </label>
-              {schemaFields.map((field) => {
-                if (!field.key) return null;
-                return (
-                  <label key={field.key} style={{ display: "flex", flexDirection: "column", fontSize: "0.85rem" }}>
-                    {field.key} ({field.label || field.key})
-                    <input 
-                      type="text" 
-                      value={testValues[field.key] || ""} 
-                      onChange={(e) => handleTestValueChange(field.key, e.target.value)} 
-                      style={{ padding: "4px", fontSize: "0.9rem" }}
-                    />
-                  </label>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Render Preview Frame */}
-          <div style={{ border: "1px solid #d1d5db", borderRadius: "8px", overflow: "hidden", backgroundColor: "#f3f4f6", padding: "10px" }}>
-            <iframe
-              title="Live Template Preview"
-              srcDoc={compilePreview()}
-              style={{
-                width: "100%",
-                height: "450px",
-                border: "none",
-                borderRadius: "4px",
-                backgroundColor: "#fff",
-              }}
+          {/* Preview test values */}
+          <div style={{ padding: "0 16px 16px" }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Preview Values</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+              {[
+                { key: "recipientName", label: "Recipient Name" },
+                { key: "issuedAt", label: "Issued At" },
+                { key: "verificationUrl", label: "Verification URL" },
+                ...schemaFields.filter(f => f.key),
+              ].map(({ key, label }) => (
+                <label key={key} style={{ fontSize: 11, color: MUTED }}>
+                  <span style={{ color: ACCENT }}>{`{{${key}}}`}</span>
+                  <input
+                    value={testValues[key] || ""}
+                    onChange={(e) => setTestValues(prev => ({ ...prev, [key]: e.target.value }))}
+                    style={{ ...fieldInput, marginTop: 3 }}
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Canvas editor */}
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          {editorData ? (
+            <CanvasEditor
+              initialData={editorData}
+              orientation={orientation}
+              variables={testValues}
+              onChange={setEditorData}
             />
-          </div>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: MUTED }}>
+              Initializing canvas…
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );
 }
+
+// ─── shared micro-styles ────────────────────────────────────
+const labelStyle = { fontSize: 12, color: "#94a3b8", display: "block", marginBottom: 6, fontWeight: 600 };
+const textareaStyle = { width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 6, color: "#f1f5f9", fontSize: 13, padding: "8px 10px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" };
+const iconBtn = { background: "#3b82f6", border: "none", borderRadius: 6, color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", cursor: "pointer" };
+const fieldInput = { width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 5, color: "#f1f5f9", fontSize: 12, padding: "5px 8px", boxSizing: "border-box" };

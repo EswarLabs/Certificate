@@ -58,14 +58,9 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
     throw new Error("User does not have permission to create credentials");
   }
   const credentialLimit = await prisma.organization.findUnique({
-    where: {
-      id: orgId
-    },
-    select: {
-      credentialsUsed: true,
-      credentialLimit: true
-    }
-  })
+    where: { id: orgId },
+    select: { credentialsUsed: true, credentialLimit: true }
+  });
   if (credentialLimit.credentialsUsed >= credentialLimit.credentialLimit) {
     throw new Error("Credential limit reached");
   }
@@ -82,7 +77,6 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
 
   // Generate verification code
   let verificationCode = generateVerificationCode();
-  // Ensure uniqueness
   let isUnique = false;
   while (!isUnique) {
     const existing = await prisma.credential.findUnique({
@@ -104,7 +98,7 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
       recipientEmail: validated.recipientEmail,
       credentialData: validated.credentialData,
       verificationCode,
-      status: "draft",
+      status: "DRAFT",
       expiresAt: validated.expiresAt,
       createdById: userId,
     },
@@ -113,16 +107,20 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
       createdBy: true,
     },
   });
-  await prisma.organization.update({
-    where: {
-      id: orgId
-    },
+
+  // Log CREATED event
+  await prisma.credentialEvent.create({
     data: {
-      credentialsUsed: {
-        increment: 1,
-      }
-    }
-  })
+      credentialId: credential.id,
+      eventType: "CREATED",
+      metadata: { createdBy: userId },
+    },
+  });
+
+  await prisma.organization.update({
+    where: { id: orgId },
+    data: { credentialsUsed: { increment: 1 } }
+  });
 
   return credential;
 };
@@ -159,13 +157,7 @@ export const listCredentials = async (orgId, workspaceId, userId, filters = {}) 
 
   const total = await prisma.credential.count({ where: whereClause });
 
-  return {
-    success: true,
-    page,
-    limit,
-    total,
-    credentials,
-  };
+  return { success: true, page, limit, total, credentials };
 };
 
 // Get credential details
@@ -217,14 +209,14 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
     throw new Error("Credential not found");
   }
 
-  if (credential.status === "issued") {
+  if (credential.status === "ISSUED") {
     throw new Error("Credential is already issued");
   }
 
   const updated = await prisma.credential.update({
     where: { id },
     data: {
-      status: "issued",
+      status: "ISSUED",
       issuedAt: new Date(),
       updatedAt: new Date(),
     },
@@ -237,7 +229,7 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
   await prisma.credentialEvent.create({
     data: {
       credentialId: id,
-      eventType: "issued",
+      eventType: "ISSUED",
       metadata: { issuedBy: userId },
     },
   });
@@ -272,14 +264,14 @@ export const revokeCredential = async (id, orgId, workspaceId, userId) => {
     throw new Error("Credential not found");
   }
 
-  if (credential.status === "revoked") {
+  if (credential.status === "REVOKED") {
     throw new Error("Credential is already revoked");
   }
 
   const updated = await prisma.credential.update({
     where: { id },
     data: {
-      status: "revoked",
+      status: "REVOKED",
       updatedAt: new Date(),
     },
   });
@@ -288,7 +280,7 @@ export const revokeCredential = async (id, orgId, workspaceId, userId) => {
   await prisma.credentialEvent.create({
     data: {
       credentialId: id,
-      eventType: "revoked",
+      eventType: "REVOKED",
       metadata: { revokedBy: userId },
     },
   });
@@ -335,7 +327,7 @@ function parseCSVLine(line) {
   return result;
 }
 
-// Create Batch Credentials Async Process
+// Create Batch Credentials — starts a CSV_IMPORT job
 export const createBatchCredentials = async (data, orgId, workspaceId, userId) => {
   const validated = createBatchCredentialSchema.parse(data);
 
@@ -358,14 +350,9 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
     throw new Error("Template not found");
   }
   const credentialLimit = await prisma.organization.findUnique({
-    where: {
-      id: orgId
-    },
-    select: {
-      credentialsUsed: true,
-      credentialLimit: true
-    }
-  })
+    where: { id: orgId },
+    select: { credentialsUsed: true, credentialLimit: true }
+  });
   if (credentialLimit.credentialsUsed >= credentialLimit.credentialLimit) {
     throw new Error("Credential limit reached");
   }
@@ -381,8 +368,8 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
   const job = await prisma.job.create({
     data: {
       workspaceId,
-      type: "batch_credentials",
-      status: "pending",
+      type: "CSV_IMPORT",
+      status: "PENDING",
       progress: 0,
       payload: {
         templateId: validated.templateId,
@@ -397,19 +384,13 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
   // Run processing in background
   setImmediate(async () => {
     try {
-      // Update job to in_progress
       await prisma.job.update({
         where: { id: job.id },
-        data: {
-          status: "in_progress",
-          startedAt: new Date(),
-          progress: 10,
-        },
+        data: { status: "RUNNING", startedAt: new Date(), progress: 10 },
       });
 
       // Load CSV data
       let csvContent = "";
-      // Check if file metadata has testing data, otherwise fetch
       if (file.metadata && typeof file.metadata === "object" && file.metadata.testCsvContent) {
         csvContent = file.metadata.testCsvContent;
       } else if (file.publicUrl && file.publicUrl.startsWith("http")) {
@@ -425,14 +406,10 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
           csvContent = `name,email,course,date\n"Mock User","mock@example.com","Batch Course","2026-02-01"`;
         }
       } else {
-        // Fallback for mock/test runs without URLs
         csvContent = `name,email,course,date\n"Mock User","mock@example.com","Batch Course","2026-02-01"`;
       }
 
-      await prisma.job.update({
-        where: { id: job.id },
-        data: { progress: 40 },
-      });
+      await prisma.job.update({ where: { id: job.id }, data: { progress: 40 } });
 
       const records = parseCSV(csvContent);
       if (records.length === 0) {
@@ -447,26 +424,19 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
         const recipientName = record[validated.recipientNameColumn];
         const recipientEmail = validated.recipientEmailColumn ? record[validated.recipientEmailColumn] : null;
 
-        if (!recipientName) {
-          continue; // Skip invalid records without name
-        }
+        if (!recipientName) continue;
 
-        // Map fields
         const credentialData = {};
         for (const [destKey, srcColumn] of Object.entries(validated.dataMapping)) {
           credentialData[destKey] = record[srcColumn] || "";
         }
 
-        // Validate mapped data
         validateCredentialData(template, credentialData);
 
-        // Generate code
         let verificationCode = generateVerificationCode();
         let isUnique = false;
         while (!isUnique) {
-          const existing = await prisma.credential.findUnique({
-            where: { verificationCode },
-          });
+          const existing = await prisma.credential.findUnique({ where: { verificationCode } });
           if (!existing) {
             isUnique = true;
           } else {
@@ -483,39 +453,38 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
             recipientEmail,
             credentialData,
             verificationCode,
-            status: "draft",
+            status: "DRAFT",
             expiresAt: validated.expiresAt,
             createdById: userId,
           },
         });
 
+        // Log CREATED event
+        await prisma.credentialEvent.create({
+          data: {
+            credentialId: cred.id,
+            eventType: "CREATED",
+            metadata: { viaJobId: job.id },
+          },
+        });
+
         createdCredentials.push(cred.id);
 
-        // Update progress dynamically
         const progressPercent = Math.min(40 + Math.floor((i / totalRecords) * 50), 90);
-        await prisma.job.update({
-          where: { id: job.id },
-          data: { progress: progressPercent },
-        });
+        await prisma.job.update({ where: { id: job.id }, data: { progress: progressPercent } });
       }
 
-      // Update credential usage counter
       if (createdCredentials.length > 0) {
         await prisma.organization.update({
           where: { id: orgId },
-          data: {
-            credentialsUsed: {
-              increment: createdCredentials.length,
-            },
-          },
+          data: { credentialsUsed: { increment: createdCredentials.length } },
         });
       }
 
-      // Complete job
       await prisma.job.update({
         where: { id: job.id },
         data: {
-          status: "completed",
+          status: "COMPLETED",
           progress: 100,
           completedAt: new Date(),
           result: {
@@ -530,7 +499,7 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
       await prisma.job.update({
         where: { id: job.id },
         data: {
-          status: "failed",
+          status: "FAILED",
           errorMessage: jobErr.message,
           completedAt: new Date(),
         },
@@ -541,7 +510,7 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
   return job;
 };
 
-// Asynchronous Batch Credentials Issuing Worker
+// Asynchronous Batch Credentials Issuing — starts a BULK_ISSUE job
 export const issueBatchCredentials = async (data, orgId, workspaceId, userId) => {
   const validated = issueBatchCredentialsSchema.parse(data);
 
@@ -560,26 +529,19 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
   const job = await prisma.job.create({
     data: {
       workspaceId,
-      type: "bulk_issue",
-      status: "pending",
+      type: "BULK_ISSUE",
+      status: "PENDING",
       progress: 0,
-      payload: {
-        credentialIds: validated.credentialIds,
-      },
+      payload: { credentialIds: validated.credentialIds },
     },
   });
 
   // Run processing in background
   setImmediate(async () => {
     try {
-      // Update job to in_progress
       await prisma.job.update({
         where: { id: job.id },
-        data: {
-          status: "in_progress",
-          startedAt: new Date(),
-          progress: 10,
-        },
+        data: { status: "RUNNING", startedAt: new Date(), progress: 10 },
       });
 
       const { credentialIds } = validated;
@@ -590,32 +552,28 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
         const credId = credentialIds[i];
 
         try {
-          // Check if credential exists and belongs to the workspace
           const credential = await prisma.credential.findFirst({
             where: { id: credId, workspaceId },
           });
 
-          if (credential && credential.status !== "issued") {
-            // Update status
+          if (credential && credential.status !== "ISSUED") {
             const updated = await prisma.credential.update({
               where: { id: credId },
               data: {
-                status: "issued",
+                status: "ISSUED",
                 issuedAt: new Date(),
                 updatedAt: new Date(),
               },
             });
 
-            // Log event
             await prisma.credentialEvent.create({
               data: {
                 credentialId: credId,
-                eventType: "issued",
+                eventType: "ISSUED",
                 metadata: { issuedBy: userId, viaJobId: job.id },
               },
             });
 
-            // Trigger email send asynchronously
             if (updated.recipientEmail) {
               await sendCredentialEmail(updated.id, userId).catch((emailErr) => {
                 console.error(`Automatic email sending failed for credential ${credId} in batch:`, emailErr);
@@ -628,25 +586,17 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
           console.error(`Failed to issue credential ${credId} in batch:`, credErr);
         }
 
-        // Update progress dynamically
         const progressPercent = Math.min(10 + Math.floor((i / total) * 85), 95);
-        await prisma.job.update({
-          where: { id: job.id },
-          data: { progress: progressPercent },
-        });
+        await prisma.job.update({ where: { id: job.id }, data: { progress: progressPercent } });
       }
 
-      // Complete job
       await prisma.job.update({
         where: { id: job.id },
         data: {
-          status: "completed",
+          status: "COMPLETED",
           progress: 100,
           completedAt: new Date(),
-          result: {
-            totalRequested: total,
-            issuedCount,
-          },
+          result: { totalRequested: total, issuedCount },
         },
       });
     } catch (jobErr) {
@@ -654,7 +604,7 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
       await prisma.job.update({
         where: { id: job.id },
         data: {
-          status: "failed",
+          status: "FAILED",
           errorMessage: jobErr.message,
           completedAt: new Date(),
         },

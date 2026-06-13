@@ -12,7 +12,6 @@ export const uploadImageController = async (req, res, next) => {
         where: {
           userId: req.user.userId,
           workspaceId: req.body.workspaceId,
-          role: { in: ["OWNER", "ADMIN", "MEMBER"] },
         }
       });
       if (!membership) {
@@ -49,7 +48,6 @@ export const uploadFileController = async (req, res, next) => {
         where: {
           userId: req.user.userId,
           workspaceId: req.body.workspaceId,
-          role: { in: ["OWNER", "ADMIN", "MEMBER"] },
         }
       });
       if (!membership) {

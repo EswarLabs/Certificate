@@ -35,7 +35,9 @@ export type Workspace = $Result.DefaultSelection<Prisma.$WorkspacePayload>
 export type Membership = $Result.DefaultSelection<Prisma.$MembershipPayload>
 /**
  * Model CertificateTemplate
- * 
+ * Stores a Konva-compatible canvas design in editorData (JSONB).
+ * htmlTemplate and cssStyles have been replaced — all rendering
+ * is driven by editorData via the renderEditorData utility.
  */
 export type CertificateTemplate = $Result.DefaultSelection<Prisma.$CertificateTemplatePayload>
 /**
@@ -63,6 +65,116 @@ export type Job = $Result.DefaultSelection<Prisma.$JobPayload>
  * 
  */
 export type File = $Result.DefaultSelection<Prisma.$FilePayload>
+
+/**
+ * Enums
+ */
+export namespace $Enums {
+  export const WorkspaceRole: {
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  EDITOR: 'EDITOR',
+  ISSUER: 'ISSUER',
+  VIEWER: 'VIEWER'
+};
+
+export type WorkspaceRole = (typeof WorkspaceRole)[keyof typeof WorkspaceRole]
+
+
+export const TemplateOrientation: {
+  LANDSCAPE: 'LANDSCAPE',
+  PORTRAIT: 'PORTRAIT'
+};
+
+export type TemplateOrientation = (typeof TemplateOrientation)[keyof typeof TemplateOrientation]
+
+
+export const CredentialStatus: {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  REVOKED: 'REVOKED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type CredentialStatus = (typeof CredentialStatus)[keyof typeof CredentialStatus]
+
+
+export const CredentialEventType: {
+  CREATED: 'CREATED',
+  ISSUED: 'ISSUED',
+  EMAILED: 'EMAILED',
+  OPENED: 'OPENED',
+  VERIFIED: 'VERIFIED',
+  REVOKED: 'REVOKED',
+  EXPIRED: 'EXPIRED'
+};
+
+export type CredentialEventType = (typeof CredentialEventType)[keyof typeof CredentialEventType]
+
+
+export const EmailStatus: {
+  QUEUED: 'QUEUED',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  OPENED: 'OPENED',
+  CLICKED: 'CLICKED',
+  BOUNCED: 'BOUNCED',
+  FAILED: 'FAILED'
+};
+
+export type EmailStatus = (typeof EmailStatus)[keyof typeof EmailStatus]
+
+
+export const JobStatus: {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type JobStatus = (typeof JobStatus)[keyof typeof JobStatus]
+
+
+export const JobType: {
+  BULK_ISSUE: 'BULK_ISSUE',
+  BULK_EMAIL: 'BULK_EMAIL',
+  PDF_GENERATION: 'PDF_GENERATION',
+  IMAGE_GENERATION: 'IMAGE_GENERATION',
+  CSV_IMPORT: 'CSV_IMPORT'
+};
+
+export type JobType = (typeof JobType)[keyof typeof JobType]
+
+}
+
+export type WorkspaceRole = $Enums.WorkspaceRole
+
+export const WorkspaceRole: typeof $Enums.WorkspaceRole
+
+export type TemplateOrientation = $Enums.TemplateOrientation
+
+export const TemplateOrientation: typeof $Enums.TemplateOrientation
+
+export type CredentialStatus = $Enums.CredentialStatus
+
+export const CredentialStatus: typeof $Enums.CredentialStatus
+
+export type CredentialEventType = $Enums.CredentialEventType
+
+export const CredentialEventType: typeof $Enums.CredentialEventType
+
+export type EmailStatus = $Enums.EmailStatus
+
+export const EmailStatus: typeof $Enums.EmailStatus
+
+export type JobStatus = $Enums.JobStatus
+
+export const JobStatus: typeof $Enums.JobStatus
+
+export type JobType = $Enums.JobType
+
+export const JobType: typeof $Enums.JobType
 
 /**
  * ##  Prisma Client ʲˢ
@@ -5634,7 +5746,7 @@ export namespace Prisma {
     userId: string | null
     organizationId: string | null
     workspaceId: string | null
-    role: string | null
+    role: $Enums.WorkspaceRole | null
     joinedAt: Date | null
   }
 
@@ -5643,7 +5755,7 @@ export namespace Prisma {
     userId: string | null
     organizationId: string | null
     workspaceId: string | null
-    role: string | null
+    role: $Enums.WorkspaceRole | null
     joinedAt: Date | null
   }
 
@@ -5763,7 +5875,7 @@ export namespace Prisma {
     userId: string
     organizationId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt: Date
     _count: MembershipCountAggregateOutputType | null
     _min: MembershipMinAggregateOutputType | null
@@ -5858,7 +5970,7 @@ export namespace Prisma {
       userId: string
       organizationId: string
       workspaceId: string
-      role: string
+      role: $Enums.WorkspaceRole
       joinedAt: Date
     }, ExtArgs["result"]["membership"]>
     composites: {}
@@ -6290,7 +6402,7 @@ export namespace Prisma {
     readonly userId: FieldRef<"Membership", 'String'>
     readonly organizationId: FieldRef<"Membership", 'String'>
     readonly workspaceId: FieldRef<"Membership", 'String'>
-    readonly role: FieldRef<"Membership", 'String'>
+    readonly role: FieldRef<"Membership", 'WorkspaceRole'>
     readonly joinedAt: FieldRef<"Membership", 'DateTime'>
   }
     
@@ -6717,20 +6829,31 @@ export namespace Prisma {
 
   export type AggregateCertificateTemplate = {
     _count: CertificateTemplateCountAggregateOutputType | null
+    _avg: CertificateTemplateAvgAggregateOutputType | null
+    _sum: CertificateTemplateSumAggregateOutputType | null
     _min: CertificateTemplateMinAggregateOutputType | null
     _max: CertificateTemplateMaxAggregateOutputType | null
+  }
+
+  export type CertificateTemplateAvgAggregateOutputType = {
+    templateVersion: number | null
+  }
+
+  export type CertificateTemplateSumAggregateOutputType = {
+    templateVersion: number | null
   }
 
   export type CertificateTemplateMinAggregateOutputType = {
     id: string | null
     workspaceId: string | null
+    createdById: string | null
     name: string | null
     description: string | null
-    backgroundImageUrl: string | null
-    htmlTemplate: string | null
-    cssStyles: string | null
-    orientation: string | null
-    createdById: string | null
+    orientation: $Enums.TemplateOrientation | null
+    thumbnailUrl: string | null
+    templateVersion: number | null
+    isPublished: boolean | null
+    publishedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -6738,13 +6861,14 @@ export namespace Prisma {
   export type CertificateTemplateMaxAggregateOutputType = {
     id: string | null
     workspaceId: string | null
+    createdById: string | null
     name: string | null
     description: string | null
-    backgroundImageUrl: string | null
-    htmlTemplate: string | null
-    cssStyles: string | null
-    orientation: string | null
-    createdById: string | null
+    orientation: $Enums.TemplateOrientation | null
+    thumbnailUrl: string | null
+    templateVersion: number | null
+    isPublished: boolean | null
+    publishedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -6752,30 +6876,41 @@ export namespace Prisma {
   export type CertificateTemplateCountAggregateOutputType = {
     id: number
     workspaceId: number
+    createdById: number
     name: number
     description: number
-    backgroundImageUrl: number
-    htmlTemplate: number
-    cssStyles: number
-    schemaDefinition: number
     orientation: number
-    createdById: number
+    thumbnailUrl: number
+    editorData: number
+    templateVersion: number
+    isPublished: number
+    publishedAt: number
+    schemaDefinition: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
+  export type CertificateTemplateAvgAggregateInputType = {
+    templateVersion?: true
+  }
+
+  export type CertificateTemplateSumAggregateInputType = {
+    templateVersion?: true
+  }
+
   export type CertificateTemplateMinAggregateInputType = {
     id?: true
     workspaceId?: true
+    createdById?: true
     name?: true
     description?: true
-    backgroundImageUrl?: true
-    htmlTemplate?: true
-    cssStyles?: true
     orientation?: true
-    createdById?: true
+    thumbnailUrl?: true
+    templateVersion?: true
+    isPublished?: true
+    publishedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -6783,13 +6918,14 @@ export namespace Prisma {
   export type CertificateTemplateMaxAggregateInputType = {
     id?: true
     workspaceId?: true
+    createdById?: true
     name?: true
     description?: true
-    backgroundImageUrl?: true
-    htmlTemplate?: true
-    cssStyles?: true
     orientation?: true
-    createdById?: true
+    thumbnailUrl?: true
+    templateVersion?: true
+    isPublished?: true
+    publishedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -6797,14 +6933,16 @@ export namespace Prisma {
   export type CertificateTemplateCountAggregateInputType = {
     id?: true
     workspaceId?: true
+    createdById?: true
     name?: true
     description?: true
-    backgroundImageUrl?: true
-    htmlTemplate?: true
-    cssStyles?: true
-    schemaDefinition?: true
     orientation?: true
-    createdById?: true
+    thumbnailUrl?: true
+    editorData?: true
+    templateVersion?: true
+    isPublished?: true
+    publishedAt?: true
+    schemaDefinition?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -6848,6 +6986,18 @@ export namespace Prisma {
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
+     * Select which fields to average
+    **/
+    _avg?: CertificateTemplateAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CertificateTemplateSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
      * Select which fields to find the minimum value
     **/
     _min?: CertificateTemplateMinAggregateInputType
@@ -6878,6 +7028,8 @@ export namespace Prisma {
     take?: number
     skip?: number
     _count?: CertificateTemplateCountAggregateInputType | true
+    _avg?: CertificateTemplateAvgAggregateInputType
+    _sum?: CertificateTemplateSumAggregateInputType
     _min?: CertificateTemplateMinAggregateInputType
     _max?: CertificateTemplateMaxAggregateInputType
   }
@@ -6885,17 +7037,21 @@ export namespace Prisma {
   export type CertificateTemplateGroupByOutputType = {
     id: string
     workspaceId: string
+    createdById: string
     name: string
     description: string | null
-    backgroundImageUrl: string | null
-    htmlTemplate: string | null
-    cssStyles: string | null
+    orientation: $Enums.TemplateOrientation
+    thumbnailUrl: string | null
+    editorData: JsonValue
+    templateVersion: number
+    isPublished: boolean
+    publishedAt: Date | null
     schemaDefinition: JsonValue
-    orientation: string
-    createdById: string
     createdAt: Date
     updatedAt: Date
     _count: CertificateTemplateCountAggregateOutputType | null
+    _avg: CertificateTemplateAvgAggregateOutputType | null
+    _sum: CertificateTemplateSumAggregateOutputType | null
     _min: CertificateTemplateMinAggregateOutputType | null
     _max: CertificateTemplateMaxAggregateOutputType | null
   }
@@ -6917,14 +7073,16 @@ export namespace Prisma {
   export type CertificateTemplateSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     workspaceId?: boolean
+    createdById?: boolean
     name?: boolean
     description?: boolean
-    backgroundImageUrl?: boolean
-    htmlTemplate?: boolean
-    cssStyles?: boolean
-    schemaDefinition?: boolean
     orientation?: boolean
-    createdById?: boolean
+    thumbnailUrl?: boolean
+    editorData?: boolean
+    templateVersion?: boolean
+    isPublished?: boolean
+    publishedAt?: boolean
+    schemaDefinition?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -6936,14 +7094,16 @@ export namespace Prisma {
   export type CertificateTemplateSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     workspaceId?: boolean
+    createdById?: boolean
     name?: boolean
     description?: boolean
-    backgroundImageUrl?: boolean
-    htmlTemplate?: boolean
-    cssStyles?: boolean
-    schemaDefinition?: boolean
     orientation?: boolean
-    createdById?: boolean
+    thumbnailUrl?: boolean
+    editorData?: boolean
+    templateVersion?: boolean
+    isPublished?: boolean
+    publishedAt?: boolean
+    schemaDefinition?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -6953,14 +7113,16 @@ export namespace Prisma {
   export type CertificateTemplateSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     workspaceId?: boolean
+    createdById?: boolean
     name?: boolean
     description?: boolean
-    backgroundImageUrl?: boolean
-    htmlTemplate?: boolean
-    cssStyles?: boolean
-    schemaDefinition?: boolean
     orientation?: boolean
-    createdById?: boolean
+    thumbnailUrl?: boolean
+    editorData?: boolean
+    templateVersion?: boolean
+    isPublished?: boolean
+    publishedAt?: boolean
+    schemaDefinition?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -6970,19 +7132,21 @@ export namespace Prisma {
   export type CertificateTemplateSelectScalar = {
     id?: boolean
     workspaceId?: boolean
+    createdById?: boolean
     name?: boolean
     description?: boolean
-    backgroundImageUrl?: boolean
-    htmlTemplate?: boolean
-    cssStyles?: boolean
-    schemaDefinition?: boolean
     orientation?: boolean
-    createdById?: boolean
+    thumbnailUrl?: boolean
+    editorData?: boolean
+    templateVersion?: boolean
+    isPublished?: boolean
+    publishedAt?: boolean
+    schemaDefinition?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type CertificateTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "name" | "description" | "backgroundImageUrl" | "htmlTemplate" | "cssStyles" | "schemaDefinition" | "orientation" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["certificateTemplate"]>
+  export type CertificateTemplateOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "createdById" | "name" | "description" | "orientation" | "thumbnailUrl" | "editorData" | "templateVersion" | "isPublished" | "publishedAt" | "schemaDefinition" | "createdAt" | "updatedAt", ExtArgs["result"]["certificateTemplate"]>
   export type CertificateTemplateInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
     createdBy?: boolean | UserDefaultArgs<ExtArgs>
@@ -7008,14 +7172,28 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       workspaceId: string
+      createdById: string
       name: string
       description: string | null
-      backgroundImageUrl: string | null
-      htmlTemplate: string | null
-      cssStyles: string | null
+      orientation: $Enums.TemplateOrientation
+      thumbnailUrl: string | null
+      /**
+       * Konva canvas JSON: { version, width, height, background, elements[] }
+       */
+      editorData: Prisma.JsonValue
+      /**
+       * Auto-incremented on every save
+       */
+      templateVersion: number
+      /**
+       * Publish workflow — only published templates can be used for new credentials
+       */
+      isPublished: boolean
+      publishedAt: Date | null
+      /**
+       * Zod-validated field schema for credential data injection
+       */
       schemaDefinition: Prisma.JsonValue
-      orientation: string
-      createdById: string
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["certificateTemplate"]>
@@ -7446,14 +7624,16 @@ export namespace Prisma {
   interface CertificateTemplateFieldRefs {
     readonly id: FieldRef<"CertificateTemplate", 'String'>
     readonly workspaceId: FieldRef<"CertificateTemplate", 'String'>
+    readonly createdById: FieldRef<"CertificateTemplate", 'String'>
     readonly name: FieldRef<"CertificateTemplate", 'String'>
     readonly description: FieldRef<"CertificateTemplate", 'String'>
-    readonly backgroundImageUrl: FieldRef<"CertificateTemplate", 'String'>
-    readonly htmlTemplate: FieldRef<"CertificateTemplate", 'String'>
-    readonly cssStyles: FieldRef<"CertificateTemplate", 'String'>
+    readonly orientation: FieldRef<"CertificateTemplate", 'TemplateOrientation'>
+    readonly thumbnailUrl: FieldRef<"CertificateTemplate", 'String'>
+    readonly editorData: FieldRef<"CertificateTemplate", 'Json'>
+    readonly templateVersion: FieldRef<"CertificateTemplate", 'Int'>
+    readonly isPublished: FieldRef<"CertificateTemplate", 'Boolean'>
+    readonly publishedAt: FieldRef<"CertificateTemplate", 'DateTime'>
     readonly schemaDefinition: FieldRef<"CertificateTemplate", 'Json'>
-    readonly orientation: FieldRef<"CertificateTemplate", 'String'>
-    readonly createdById: FieldRef<"CertificateTemplate", 'String'>
     readonly createdAt: FieldRef<"CertificateTemplate", 'DateTime'>
     readonly updatedAt: FieldRef<"CertificateTemplate", 'DateTime'>
   }
@@ -7914,15 +8094,15 @@ export namespace Prisma {
     workspaceId: string | null
     organizationId: string | null
     templateId: string | null
+    createdById: string | null
     recipientName: string | null
     recipientEmail: string | null
     verificationCode: string | null
+    status: $Enums.CredentialStatus | null
     pdfUrl: string | null
     imageUrl: string | null
-    status: string | null
     issuedAt: Date | null
     expiresAt: Date | null
-    createdById: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7932,15 +8112,15 @@ export namespace Prisma {
     workspaceId: string | null
     organizationId: string | null
     templateId: string | null
+    createdById: string | null
     recipientName: string | null
     recipientEmail: string | null
     verificationCode: string | null
+    status: $Enums.CredentialStatus | null
     pdfUrl: string | null
     imageUrl: string | null
-    status: string | null
     issuedAt: Date | null
     expiresAt: Date | null
-    createdById: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -7950,16 +8130,16 @@ export namespace Prisma {
     workspaceId: number
     organizationId: number
     templateId: number
+    createdById: number
     recipientName: number
     recipientEmail: number
     credentialData: number
     verificationCode: number
+    status: number
     pdfUrl: number
     imageUrl: number
-    status: number
     issuedAt: number
     expiresAt: number
-    createdById: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -7971,15 +8151,15 @@ export namespace Prisma {
     workspaceId?: true
     organizationId?: true
     templateId?: true
+    createdById?: true
     recipientName?: true
     recipientEmail?: true
     verificationCode?: true
+    status?: true
     pdfUrl?: true
     imageUrl?: true
-    status?: true
     issuedAt?: true
     expiresAt?: true
-    createdById?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -7989,15 +8169,15 @@ export namespace Prisma {
     workspaceId?: true
     organizationId?: true
     templateId?: true
+    createdById?: true
     recipientName?: true
     recipientEmail?: true
     verificationCode?: true
+    status?: true
     pdfUrl?: true
     imageUrl?: true
-    status?: true
     issuedAt?: true
     expiresAt?: true
-    createdById?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -8007,16 +8187,16 @@ export namespace Prisma {
     workspaceId?: true
     organizationId?: true
     templateId?: true
+    createdById?: true
     recipientName?: true
     recipientEmail?: true
     credentialData?: true
     verificationCode?: true
+    status?: true
     pdfUrl?: true
     imageUrl?: true
-    status?: true
     issuedAt?: true
     expiresAt?: true
-    createdById?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -8099,16 +8279,16 @@ export namespace Prisma {
     workspaceId: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail: string | null
     credentialData: JsonValue
     verificationCode: string
+    status: $Enums.CredentialStatus
     pdfUrl: string | null
     imageUrl: string | null
-    status: string
     issuedAt: Date | null
     expiresAt: Date | null
-    createdById: string
     createdAt: Date
     updatedAt: Date
     _count: CredentialCountAggregateOutputType | null
@@ -8135,16 +8315,16 @@ export namespace Prisma {
     workspaceId?: boolean
     organizationId?: boolean
     templateId?: boolean
+    createdById?: boolean
     recipientName?: boolean
     recipientEmail?: boolean
     credentialData?: boolean
     verificationCode?: boolean
+    status?: boolean
     pdfUrl?: boolean
     imageUrl?: boolean
-    status?: boolean
     issuedAt?: boolean
     expiresAt?: boolean
-    createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -8161,16 +8341,16 @@ export namespace Prisma {
     workspaceId?: boolean
     organizationId?: boolean
     templateId?: boolean
+    createdById?: boolean
     recipientName?: boolean
     recipientEmail?: boolean
     credentialData?: boolean
     verificationCode?: boolean
+    status?: boolean
     pdfUrl?: boolean
     imageUrl?: boolean
-    status?: boolean
     issuedAt?: boolean
     expiresAt?: boolean
-    createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -8184,16 +8364,16 @@ export namespace Prisma {
     workspaceId?: boolean
     organizationId?: boolean
     templateId?: boolean
+    createdById?: boolean
     recipientName?: boolean
     recipientEmail?: boolean
     credentialData?: boolean
     verificationCode?: boolean
+    status?: boolean
     pdfUrl?: boolean
     imageUrl?: boolean
-    status?: boolean
     issuedAt?: boolean
     expiresAt?: boolean
-    createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
@@ -8207,21 +8387,21 @@ export namespace Prisma {
     workspaceId?: boolean
     organizationId?: boolean
     templateId?: boolean
+    createdById?: boolean
     recipientName?: boolean
     recipientEmail?: boolean
     credentialData?: boolean
     verificationCode?: boolean
+    status?: boolean
     pdfUrl?: boolean
     imageUrl?: boolean
-    status?: boolean
     issuedAt?: boolean
     expiresAt?: boolean
-    createdById?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type CredentialOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "organizationId" | "templateId" | "recipientName" | "recipientEmail" | "credentialData" | "verificationCode" | "pdfUrl" | "imageUrl" | "status" | "issuedAt" | "expiresAt" | "createdById" | "createdAt" | "updatedAt", ExtArgs["result"]["credential"]>
+  export type CredentialOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workspaceId" | "organizationId" | "templateId" | "createdById" | "recipientName" | "recipientEmail" | "credentialData" | "verificationCode" | "status" | "pdfUrl" | "imageUrl" | "issuedAt" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["credential"]>
   export type CredentialInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     workspace?: boolean | WorkspaceDefaultArgs<ExtArgs>
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
@@ -8259,16 +8439,19 @@ export namespace Prisma {
       workspaceId: string
       organizationId: string
       templateId: string
+      createdById: string
       recipientName: string
       recipientEmail: string | null
+      /**
+       * Arbitrary key-value pairs matching the template schemaDefinition
+       */
       credentialData: Prisma.JsonValue
       verificationCode: string
+      status: $Enums.CredentialStatus
       pdfUrl: string | null
       imageUrl: string | null
-      status: string
       issuedAt: Date | null
       expiresAt: Date | null
-      createdById: string
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["credential"]>
@@ -8704,16 +8887,16 @@ export namespace Prisma {
     readonly workspaceId: FieldRef<"Credential", 'String'>
     readonly organizationId: FieldRef<"Credential", 'String'>
     readonly templateId: FieldRef<"Credential", 'String'>
+    readonly createdById: FieldRef<"Credential", 'String'>
     readonly recipientName: FieldRef<"Credential", 'String'>
     readonly recipientEmail: FieldRef<"Credential", 'String'>
     readonly credentialData: FieldRef<"Credential", 'Json'>
     readonly verificationCode: FieldRef<"Credential", 'String'>
+    readonly status: FieldRef<"Credential", 'CredentialStatus'>
     readonly pdfUrl: FieldRef<"Credential", 'String'>
     readonly imageUrl: FieldRef<"Credential", 'String'>
-    readonly status: FieldRef<"Credential", 'String'>
     readonly issuedAt: FieldRef<"Credential", 'DateTime'>
     readonly expiresAt: FieldRef<"Credential", 'DateTime'>
-    readonly createdById: FieldRef<"Credential", 'String'>
     readonly createdAt: FieldRef<"Credential", 'DateTime'>
     readonly updatedAt: FieldRef<"Credential", 'DateTime'>
   }
@@ -9196,7 +9379,7 @@ export namespace Prisma {
   export type CredentialEventMinAggregateOutputType = {
     id: string | null
     credentialId: string | null
-    eventType: string | null
+    eventType: $Enums.CredentialEventType | null
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
@@ -9205,7 +9388,7 @@ export namespace Prisma {
   export type CredentialEventMaxAggregateOutputType = {
     id: string | null
     credentialId: string | null
-    eventType: string | null
+    eventType: $Enums.CredentialEventType | null
     ipAddress: string | null
     userAgent: string | null
     createdAt: Date | null
@@ -9327,7 +9510,7 @@ export namespace Prisma {
   export type CredentialEventGroupByOutputType = {
     id: string
     credentialId: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress: string | null
     userAgent: string | null
     metadata: JsonValue | null
@@ -9413,7 +9596,7 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       credentialId: string
-      eventType: string
+      eventType: $Enums.CredentialEventType
       ipAddress: string | null
       userAgent: string | null
       metadata: Prisma.JsonValue | null
@@ -9844,7 +10027,7 @@ export namespace Prisma {
   interface CredentialEventFieldRefs {
     readonly id: FieldRef<"CredentialEvent", 'String'>
     readonly credentialId: FieldRef<"CredentialEvent", 'String'>
-    readonly eventType: FieldRef<"CredentialEvent", 'String'>
+    readonly eventType: FieldRef<"CredentialEvent", 'CredentialEventType'>
     readonly ipAddress: FieldRef<"CredentialEvent", 'String'>
     readonly userAgent: FieldRef<"CredentialEvent", 'String'>
     readonly metadata: FieldRef<"CredentialEvent", 'Json'>
@@ -10283,7 +10466,7 @@ export namespace Prisma {
     credentialId: string | null
     recipientEmail: string | null
     providerMessageId: string | null
-    status: string | null
+    status: $Enums.EmailStatus | null
     bounceReason: string | null
     openedAt: Date | null
     clickedAt: Date | null
@@ -10295,7 +10478,7 @@ export namespace Prisma {
     credentialId: string | null
     recipientEmail: string | null
     providerMessageId: string | null
-    status: string | null
+    status: $Enums.EmailStatus | null
     bounceReason: string | null
     openedAt: Date | null
     clickedAt: Date | null
@@ -10430,7 +10613,7 @@ export namespace Prisma {
     credentialId: string
     recipientEmail: string
     providerMessageId: string | null
-    status: string
+    status: $Enums.EmailStatus
     bounceReason: string | null
     openedAt: Date | null
     clickedAt: Date | null
@@ -10526,7 +10709,7 @@ export namespace Prisma {
       credentialId: string
       recipientEmail: string
       providerMessageId: string | null
-      status: string
+      status: $Enums.EmailStatus
       bounceReason: string | null
       openedAt: Date | null
       clickedAt: Date | null
@@ -10959,7 +11142,7 @@ export namespace Prisma {
     readonly credentialId: FieldRef<"EmailLog", 'String'>
     readonly recipientEmail: FieldRef<"EmailLog", 'String'>
     readonly providerMessageId: FieldRef<"EmailLog", 'String'>
-    readonly status: FieldRef<"EmailLog", 'String'>
+    readonly status: FieldRef<"EmailLog", 'EmailStatus'>
     readonly bounceReason: FieldRef<"EmailLog", 'String'>
     readonly openedAt: FieldRef<"EmailLog", 'DateTime'>
     readonly clickedAt: FieldRef<"EmailLog", 'DateTime'>
@@ -11406,8 +11589,8 @@ export namespace Prisma {
   export type JobMinAggregateOutputType = {
     id: string | null
     workspaceId: string | null
-    type: string | null
-    status: string | null
+    type: $Enums.JobType | null
+    status: $Enums.JobStatus | null
     progress: number | null
     errorMessage: string | null
     startedAt: Date | null
@@ -11418,8 +11601,8 @@ export namespace Prisma {
   export type JobMaxAggregateOutputType = {
     id: string | null
     workspaceId: string | null
-    type: string | null
-    status: string | null
+    type: $Enums.JobType | null
+    status: $Enums.JobStatus | null
     progress: number | null
     errorMessage: string | null
     startedAt: Date | null
@@ -11579,8 +11762,8 @@ export namespace Prisma {
   export type JobGroupByOutputType = {
     id: string
     workspaceId: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status: $Enums.JobStatus
     progress: number
     payload: JsonValue | null
     result: JsonValue | null
@@ -11687,8 +11870,8 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       workspaceId: string
-      type: string
-      status: string
+      type: $Enums.JobType
+      status: $Enums.JobStatus
       progress: number
       payload: Prisma.JsonValue | null
       result: Prisma.JsonValue | null
@@ -12122,8 +12305,8 @@ export namespace Prisma {
   interface JobFieldRefs {
     readonly id: FieldRef<"Job", 'String'>
     readonly workspaceId: FieldRef<"Job", 'String'>
-    readonly type: FieldRef<"Job", 'String'>
-    readonly status: FieldRef<"Job", 'String'>
+    readonly type: FieldRef<"Job", 'JobType'>
+    readonly status: FieldRef<"Job", 'JobStatus'>
     readonly progress: FieldRef<"Job", 'Int'>
     readonly payload: FieldRef<"Job", 'Json'>
     readonly result: FieldRef<"Job", 'Json'>
@@ -13791,14 +13974,16 @@ export namespace Prisma {
   export const CertificateTemplateScalarFieldEnum: {
     id: 'id',
     workspaceId: 'workspaceId',
+    createdById: 'createdById',
     name: 'name',
     description: 'description',
-    backgroundImageUrl: 'backgroundImageUrl',
-    htmlTemplate: 'htmlTemplate',
-    cssStyles: 'cssStyles',
-    schemaDefinition: 'schemaDefinition',
     orientation: 'orientation',
-    createdById: 'createdById',
+    thumbnailUrl: 'thumbnailUrl',
+    editorData: 'editorData',
+    templateVersion: 'templateVersion',
+    isPublished: 'isPublished',
+    publishedAt: 'publishedAt',
+    schemaDefinition: 'schemaDefinition',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -13811,16 +13996,16 @@ export namespace Prisma {
     workspaceId: 'workspaceId',
     organizationId: 'organizationId',
     templateId: 'templateId',
+    createdById: 'createdById',
     recipientName: 'recipientName',
     recipientEmail: 'recipientEmail',
     credentialData: 'credentialData',
     verificationCode: 'verificationCode',
+    status: 'status',
     pdfUrl: 'pdfUrl',
     imageUrl: 'imageUrl',
-    status: 'status',
     issuedAt: 'issuedAt',
     expiresAt: 'expiresAt',
-    createdById: 'createdById',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -14002,6 +14187,104 @@ export namespace Prisma {
    * Reference to a field of type 'Boolean'
    */
   export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+  /**
+   * Reference to a field of type 'WorkspaceRole'
+   */
+  export type EnumWorkspaceRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceRole'>
+    
+
+
+  /**
+   * Reference to a field of type 'WorkspaceRole[]'
+   */
+  export type ListEnumWorkspaceRoleFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'WorkspaceRole[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TemplateOrientation'
+   */
+  export type EnumTemplateOrientationFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TemplateOrientation'>
+    
+
+
+  /**
+   * Reference to a field of type 'TemplateOrientation[]'
+   */
+  export type ListEnumTemplateOrientationFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TemplateOrientation[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CredentialStatus'
+   */
+  export type EnumCredentialStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CredentialStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'CredentialStatus[]'
+   */
+  export type ListEnumCredentialStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CredentialStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'CredentialEventType'
+   */
+  export type EnumCredentialEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CredentialEventType'>
+    
+
+
+  /**
+   * Reference to a field of type 'CredentialEventType[]'
+   */
+  export type ListEnumCredentialEventTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CredentialEventType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EmailStatus'
+   */
+  export type EnumEmailStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'EmailStatus[]'
+   */
+  export type ListEnumEmailStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EmailStatus[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'JobType'
+   */
+  export type EnumJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobType'>
+    
+
+
+  /**
+   * Reference to a field of type 'JobType[]'
+   */
+  export type ListEnumJobTypeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobType[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'JobStatus'
+   */
+  export type EnumJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobStatus'>
+    
+
+
+  /**
+   * Reference to a field of type 'JobStatus[]'
+   */
+  export type ListEnumJobStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'JobStatus[]'>
     
 
 
@@ -14246,6 +14529,7 @@ export namespace Prisma {
 
   export type WorkspaceWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    organizationId_slug?: WorkspaceOrganizationIdSlugCompoundUniqueInput
     AND?: WorkspaceWhereInput | WorkspaceWhereInput[]
     OR?: WorkspaceWhereInput[]
     NOT?: WorkspaceWhereInput | WorkspaceWhereInput[]
@@ -14264,7 +14548,7 @@ export namespace Prisma {
     jobs?: JobListRelationFilter
     files?: FileListRelationFilter
     memberships?: MembershipListRelationFilter
-  }, "id">
+  }, "id" | "organizationId_slug">
 
   export type WorkspaceOrderByWithAggregationInput = {
     id?: SortOrder
@@ -14306,7 +14590,7 @@ export namespace Prisma {
     userId?: StringFilter<"Membership"> | string
     organizationId?: StringFilter<"Membership"> | string
     workspaceId?: StringFilter<"Membership"> | string
-    role?: StringFilter<"Membership"> | string
+    role?: EnumWorkspaceRoleFilter<"Membership"> | $Enums.WorkspaceRole
     joinedAt?: DateTimeFilter<"Membership"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -14334,7 +14618,7 @@ export namespace Prisma {
     userId?: StringFilter<"Membership"> | string
     organizationId?: StringFilter<"Membership"> | string
     workspaceId?: StringFilter<"Membership"> | string
-    role?: StringFilter<"Membership"> | string
+    role?: EnumWorkspaceRoleFilter<"Membership"> | $Enums.WorkspaceRole
     joinedAt?: DateTimeFilter<"Membership"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
@@ -14361,7 +14645,7 @@ export namespace Prisma {
     userId?: StringWithAggregatesFilter<"Membership"> | string
     organizationId?: StringWithAggregatesFilter<"Membership"> | string
     workspaceId?: StringWithAggregatesFilter<"Membership"> | string
-    role?: StringWithAggregatesFilter<"Membership"> | string
+    role?: EnumWorkspaceRoleWithAggregatesFilter<"Membership"> | $Enums.WorkspaceRole
     joinedAt?: DateTimeWithAggregatesFilter<"Membership"> | Date | string
   }
 
@@ -14371,14 +14655,16 @@ export namespace Prisma {
     NOT?: CertificateTemplateWhereInput | CertificateTemplateWhereInput[]
     id?: StringFilter<"CertificateTemplate"> | string
     workspaceId?: StringFilter<"CertificateTemplate"> | string
+    createdById?: StringFilter<"CertificateTemplate"> | string
     name?: StringFilter<"CertificateTemplate"> | string
     description?: StringNullableFilter<"CertificateTemplate"> | string | null
-    backgroundImageUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
-    htmlTemplate?: StringNullableFilter<"CertificateTemplate"> | string | null
-    cssStyles?: StringNullableFilter<"CertificateTemplate"> | string | null
+    orientation?: EnumTemplateOrientationFilter<"CertificateTemplate"> | $Enums.TemplateOrientation
+    thumbnailUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
+    editorData?: JsonFilter<"CertificateTemplate">
+    templateVersion?: IntFilter<"CertificateTemplate"> | number
+    isPublished?: BoolFilter<"CertificateTemplate"> | boolean
+    publishedAt?: DateTimeNullableFilter<"CertificateTemplate"> | Date | string | null
     schemaDefinition?: JsonFilter<"CertificateTemplate">
-    orientation?: StringFilter<"CertificateTemplate"> | string
-    createdById?: StringFilter<"CertificateTemplate"> | string
     createdAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
     updatedAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
     workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
@@ -14389,14 +14675,16 @@ export namespace Prisma {
   export type CertificateTemplateOrderByWithRelationInput = {
     id?: SortOrder
     workspaceId?: SortOrder
+    createdById?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
-    backgroundImageUrl?: SortOrderInput | SortOrder
-    htmlTemplate?: SortOrderInput | SortOrder
-    cssStyles?: SortOrderInput | SortOrder
-    schemaDefinition?: SortOrder
     orientation?: SortOrder
-    createdById?: SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
+    editorData?: SortOrder
+    templateVersion?: SortOrder
+    isPublished?: SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    schemaDefinition?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     workspace?: WorkspaceOrderByWithRelationInput
@@ -14410,14 +14698,16 @@ export namespace Prisma {
     OR?: CertificateTemplateWhereInput[]
     NOT?: CertificateTemplateWhereInput | CertificateTemplateWhereInput[]
     workspaceId?: StringFilter<"CertificateTemplate"> | string
+    createdById?: StringFilter<"CertificateTemplate"> | string
     name?: StringFilter<"CertificateTemplate"> | string
     description?: StringNullableFilter<"CertificateTemplate"> | string | null
-    backgroundImageUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
-    htmlTemplate?: StringNullableFilter<"CertificateTemplate"> | string | null
-    cssStyles?: StringNullableFilter<"CertificateTemplate"> | string | null
+    orientation?: EnumTemplateOrientationFilter<"CertificateTemplate"> | $Enums.TemplateOrientation
+    thumbnailUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
+    editorData?: JsonFilter<"CertificateTemplate">
+    templateVersion?: IntFilter<"CertificateTemplate"> | number
+    isPublished?: BoolFilter<"CertificateTemplate"> | boolean
+    publishedAt?: DateTimeNullableFilter<"CertificateTemplate"> | Date | string | null
     schemaDefinition?: JsonFilter<"CertificateTemplate">
-    orientation?: StringFilter<"CertificateTemplate"> | string
-    createdById?: StringFilter<"CertificateTemplate"> | string
     createdAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
     updatedAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
     workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
@@ -14428,19 +14718,23 @@ export namespace Prisma {
   export type CertificateTemplateOrderByWithAggregationInput = {
     id?: SortOrder
     workspaceId?: SortOrder
+    createdById?: SortOrder
     name?: SortOrder
     description?: SortOrderInput | SortOrder
-    backgroundImageUrl?: SortOrderInput | SortOrder
-    htmlTemplate?: SortOrderInput | SortOrder
-    cssStyles?: SortOrderInput | SortOrder
-    schemaDefinition?: SortOrder
     orientation?: SortOrder
-    createdById?: SortOrder
+    thumbnailUrl?: SortOrderInput | SortOrder
+    editorData?: SortOrder
+    templateVersion?: SortOrder
+    isPublished?: SortOrder
+    publishedAt?: SortOrderInput | SortOrder
+    schemaDefinition?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: CertificateTemplateCountOrderByAggregateInput
+    _avg?: CertificateTemplateAvgOrderByAggregateInput
     _max?: CertificateTemplateMaxOrderByAggregateInput
     _min?: CertificateTemplateMinOrderByAggregateInput
+    _sum?: CertificateTemplateSumOrderByAggregateInput
   }
 
   export type CertificateTemplateScalarWhereWithAggregatesInput = {
@@ -14449,14 +14743,16 @@ export namespace Prisma {
     NOT?: CertificateTemplateScalarWhereWithAggregatesInput | CertificateTemplateScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"CertificateTemplate"> | string
     workspaceId?: StringWithAggregatesFilter<"CertificateTemplate"> | string
+    createdById?: StringWithAggregatesFilter<"CertificateTemplate"> | string
     name?: StringWithAggregatesFilter<"CertificateTemplate"> | string
     description?: StringNullableWithAggregatesFilter<"CertificateTemplate"> | string | null
-    backgroundImageUrl?: StringNullableWithAggregatesFilter<"CertificateTemplate"> | string | null
-    htmlTemplate?: StringNullableWithAggregatesFilter<"CertificateTemplate"> | string | null
-    cssStyles?: StringNullableWithAggregatesFilter<"CertificateTemplate"> | string | null
+    orientation?: EnumTemplateOrientationWithAggregatesFilter<"CertificateTemplate"> | $Enums.TemplateOrientation
+    thumbnailUrl?: StringNullableWithAggregatesFilter<"CertificateTemplate"> | string | null
+    editorData?: JsonWithAggregatesFilter<"CertificateTemplate">
+    templateVersion?: IntWithAggregatesFilter<"CertificateTemplate"> | number
+    isPublished?: BoolWithAggregatesFilter<"CertificateTemplate"> | boolean
+    publishedAt?: DateTimeNullableWithAggregatesFilter<"CertificateTemplate"> | Date | string | null
     schemaDefinition?: JsonWithAggregatesFilter<"CertificateTemplate">
-    orientation?: StringWithAggregatesFilter<"CertificateTemplate"> | string
-    createdById?: StringWithAggregatesFilter<"CertificateTemplate"> | string
     createdAt?: DateTimeWithAggregatesFilter<"CertificateTemplate"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CertificateTemplate"> | Date | string
   }
@@ -14469,16 +14765,16 @@ export namespace Prisma {
     workspaceId?: StringFilter<"Credential"> | string
     organizationId?: StringFilter<"Credential"> | string
     templateId?: StringFilter<"Credential"> | string
+    createdById?: StringFilter<"Credential"> | string
     recipientName?: StringFilter<"Credential"> | string
     recipientEmail?: StringNullableFilter<"Credential"> | string | null
     credentialData?: JsonFilter<"Credential">
     verificationCode?: StringFilter<"Credential"> | string
+    status?: EnumCredentialStatusFilter<"Credential"> | $Enums.CredentialStatus
     pdfUrl?: StringNullableFilter<"Credential"> | string | null
     imageUrl?: StringNullableFilter<"Credential"> | string | null
-    status?: StringFilter<"Credential"> | string
     issuedAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
-    createdById?: StringFilter<"Credential"> | string
     createdAt?: DateTimeFilter<"Credential"> | Date | string
     updatedAt?: DateTimeFilter<"Credential"> | Date | string
     workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
@@ -14494,16 +14790,16 @@ export namespace Prisma {
     workspaceId?: SortOrder
     organizationId?: SortOrder
     templateId?: SortOrder
+    createdById?: SortOrder
     recipientName?: SortOrder
     recipientEmail?: SortOrderInput | SortOrder
     credentialData?: SortOrder
     verificationCode?: SortOrder
+    status?: SortOrder
     pdfUrl?: SortOrderInput | SortOrder
     imageUrl?: SortOrderInput | SortOrder
-    status?: SortOrder
     issuedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
-    createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     workspace?: WorkspaceOrderByWithRelationInput
@@ -14523,15 +14819,15 @@ export namespace Prisma {
     workspaceId?: StringFilter<"Credential"> | string
     organizationId?: StringFilter<"Credential"> | string
     templateId?: StringFilter<"Credential"> | string
+    createdById?: StringFilter<"Credential"> | string
     recipientName?: StringFilter<"Credential"> | string
     recipientEmail?: StringNullableFilter<"Credential"> | string | null
     credentialData?: JsonFilter<"Credential">
+    status?: EnumCredentialStatusFilter<"Credential"> | $Enums.CredentialStatus
     pdfUrl?: StringNullableFilter<"Credential"> | string | null
     imageUrl?: StringNullableFilter<"Credential"> | string | null
-    status?: StringFilter<"Credential"> | string
     issuedAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
-    createdById?: StringFilter<"Credential"> | string
     createdAt?: DateTimeFilter<"Credential"> | Date | string
     updatedAt?: DateTimeFilter<"Credential"> | Date | string
     workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
@@ -14547,16 +14843,16 @@ export namespace Prisma {
     workspaceId?: SortOrder
     organizationId?: SortOrder
     templateId?: SortOrder
+    createdById?: SortOrder
     recipientName?: SortOrder
     recipientEmail?: SortOrderInput | SortOrder
     credentialData?: SortOrder
     verificationCode?: SortOrder
+    status?: SortOrder
     pdfUrl?: SortOrderInput | SortOrder
     imageUrl?: SortOrderInput | SortOrder
-    status?: SortOrder
     issuedAt?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
-    createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: CredentialCountOrderByAggregateInput
@@ -14572,16 +14868,16 @@ export namespace Prisma {
     workspaceId?: StringWithAggregatesFilter<"Credential"> | string
     organizationId?: StringWithAggregatesFilter<"Credential"> | string
     templateId?: StringWithAggregatesFilter<"Credential"> | string
+    createdById?: StringWithAggregatesFilter<"Credential"> | string
     recipientName?: StringWithAggregatesFilter<"Credential"> | string
     recipientEmail?: StringNullableWithAggregatesFilter<"Credential"> | string | null
     credentialData?: JsonWithAggregatesFilter<"Credential">
     verificationCode?: StringWithAggregatesFilter<"Credential"> | string
+    status?: EnumCredentialStatusWithAggregatesFilter<"Credential"> | $Enums.CredentialStatus
     pdfUrl?: StringNullableWithAggregatesFilter<"Credential"> | string | null
     imageUrl?: StringNullableWithAggregatesFilter<"Credential"> | string | null
-    status?: StringWithAggregatesFilter<"Credential"> | string
     issuedAt?: DateTimeNullableWithAggregatesFilter<"Credential"> | Date | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"Credential"> | Date | string | null
-    createdById?: StringWithAggregatesFilter<"Credential"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Credential"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Credential"> | Date | string
   }
@@ -14592,7 +14888,7 @@ export namespace Prisma {
     NOT?: CredentialEventWhereInput | CredentialEventWhereInput[]
     id?: StringFilter<"CredentialEvent"> | string
     credentialId?: StringFilter<"CredentialEvent"> | string
-    eventType?: StringFilter<"CredentialEvent"> | string
+    eventType?: EnumCredentialEventTypeFilter<"CredentialEvent"> | $Enums.CredentialEventType
     ipAddress?: StringNullableFilter<"CredentialEvent"> | string | null
     userAgent?: StringNullableFilter<"CredentialEvent"> | string | null
     metadata?: JsonNullableFilter<"CredentialEvent">
@@ -14617,7 +14913,7 @@ export namespace Prisma {
     OR?: CredentialEventWhereInput[]
     NOT?: CredentialEventWhereInput | CredentialEventWhereInput[]
     credentialId?: StringFilter<"CredentialEvent"> | string
-    eventType?: StringFilter<"CredentialEvent"> | string
+    eventType?: EnumCredentialEventTypeFilter<"CredentialEvent"> | $Enums.CredentialEventType
     ipAddress?: StringNullableFilter<"CredentialEvent"> | string | null
     userAgent?: StringNullableFilter<"CredentialEvent"> | string | null
     metadata?: JsonNullableFilter<"CredentialEvent">
@@ -14644,7 +14940,7 @@ export namespace Prisma {
     NOT?: CredentialEventScalarWhereWithAggregatesInput | CredentialEventScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"CredentialEvent"> | string
     credentialId?: StringWithAggregatesFilter<"CredentialEvent"> | string
-    eventType?: StringWithAggregatesFilter<"CredentialEvent"> | string
+    eventType?: EnumCredentialEventTypeWithAggregatesFilter<"CredentialEvent"> | $Enums.CredentialEventType
     ipAddress?: StringNullableWithAggregatesFilter<"CredentialEvent"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"CredentialEvent"> | string | null
     metadata?: JsonNullableWithAggregatesFilter<"CredentialEvent">
@@ -14659,7 +14955,7 @@ export namespace Prisma {
     credentialId?: StringFilter<"EmailLog"> | string
     recipientEmail?: StringFilter<"EmailLog"> | string
     providerMessageId?: StringNullableFilter<"EmailLog"> | string | null
-    status?: StringFilter<"EmailLog"> | string
+    status?: EnumEmailStatusFilter<"EmailLog"> | $Enums.EmailStatus
     bounceReason?: StringNullableFilter<"EmailLog"> | string | null
     openedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
     clickedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
@@ -14688,7 +14984,7 @@ export namespace Prisma {
     credentialId?: StringFilter<"EmailLog"> | string
     recipientEmail?: StringFilter<"EmailLog"> | string
     providerMessageId?: StringNullableFilter<"EmailLog"> | string | null
-    status?: StringFilter<"EmailLog"> | string
+    status?: EnumEmailStatusFilter<"EmailLog"> | $Enums.EmailStatus
     bounceReason?: StringNullableFilter<"EmailLog"> | string | null
     openedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
     clickedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
@@ -14719,7 +15015,7 @@ export namespace Prisma {
     credentialId?: StringWithAggregatesFilter<"EmailLog"> | string
     recipientEmail?: StringWithAggregatesFilter<"EmailLog"> | string
     providerMessageId?: StringNullableWithAggregatesFilter<"EmailLog"> | string | null
-    status?: StringWithAggregatesFilter<"EmailLog"> | string
+    status?: EnumEmailStatusWithAggregatesFilter<"EmailLog"> | $Enums.EmailStatus
     bounceReason?: StringNullableWithAggregatesFilter<"EmailLog"> | string | null
     openedAt?: DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
     clickedAt?: DateTimeNullableWithAggregatesFilter<"EmailLog"> | Date | string | null
@@ -14732,8 +15028,8 @@ export namespace Prisma {
     NOT?: JobWhereInput | JobWhereInput[]
     id?: StringFilter<"Job"> | string
     workspaceId?: StringFilter<"Job"> | string
-    type?: StringFilter<"Job"> | string
-    status?: StringFilter<"Job"> | string
+    type?: EnumJobTypeFilter<"Job"> | $Enums.JobType
+    status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     progress?: IntFilter<"Job"> | number
     payload?: JsonNullableFilter<"Job">
     result?: JsonNullableFilter<"Job">
@@ -14765,8 +15061,8 @@ export namespace Prisma {
     OR?: JobWhereInput[]
     NOT?: JobWhereInput | JobWhereInput[]
     workspaceId?: StringFilter<"Job"> | string
-    type?: StringFilter<"Job"> | string
-    status?: StringFilter<"Job"> | string
+    type?: EnumJobTypeFilter<"Job"> | $Enums.JobType
+    status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     progress?: IntFilter<"Job"> | number
     payload?: JsonNullableFilter<"Job">
     result?: JsonNullableFilter<"Job">
@@ -14802,8 +15098,8 @@ export namespace Prisma {
     NOT?: JobScalarWhereWithAggregatesInput | JobScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"Job"> | string
     workspaceId?: StringWithAggregatesFilter<"Job"> | string
-    type?: StringWithAggregatesFilter<"Job"> | string
-    status?: StringWithAggregatesFilter<"Job"> | string
+    type?: EnumJobTypeWithAggregatesFilter<"Job"> | $Enums.JobType
+    status?: EnumJobStatusWithAggregatesFilter<"Job"> | $Enums.JobStatus
     progress?: IntWithAggregatesFilter<"Job"> | number
     payload?: JsonNullableWithAggregatesFilter<"Job">
     result?: JsonNullableWithAggregatesFilter<"Job">
@@ -14848,6 +15144,7 @@ export namespace Prisma {
 
   export type FileWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    storageKey?: string
     AND?: FileWhereInput | FileWhereInput[]
     OR?: FileWhereInput[]
     NOT?: FileWhereInput | FileWhereInput[]
@@ -14856,13 +15153,12 @@ export namespace Prisma {
     fileName?: StringFilter<"File"> | string
     mimeType?: StringFilter<"File"> | string
     fileSize?: BigIntFilter<"File"> | bigint | number
-    storageKey?: StringFilter<"File"> | string
     publicUrl?: StringNullableFilter<"File"> | string | null
     metadata?: JsonNullableFilter<"File">
     createdAt?: DateTimeFilter<"File"> | Date | string
     workspace?: XOR<WorkspaceScalarRelationFilter, WorkspaceWhereInput>
     uploadedBy?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id">
+  }, "id" | "storageKey">
 
   export type FileOrderByWithAggregationInput = {
     id?: SortOrder
@@ -15206,7 +15502,7 @@ export namespace Prisma {
 
   export type MembershipCreateInput = {
     id?: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
     user: UserCreateNestedOneWithoutMembershipsInput
     organization: OrganizationCreateNestedOneWithoutMembershipsInput
@@ -15218,13 +15514,13 @@ export namespace Prisma {
     userId: string
     organizationId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
   export type MembershipUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
     organization?: OrganizationUpdateOneRequiredWithoutMembershipsNestedInput
@@ -15236,7 +15532,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -15245,13 +15541,13 @@ export namespace Prisma {
     userId: string
     organizationId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
   export type MembershipUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -15260,7 +15556,7 @@ export namespace Prisma {
     userId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -15268,11 +15564,13 @@ export namespace Prisma {
     id?: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     workspace: WorkspaceCreateNestedOneWithoutTemplatesInput
@@ -15283,14 +15581,16 @@ export namespace Prisma {
   export type CertificateTemplateUncheckedCreateInput = {
     id?: string
     workspaceId: string
+    createdById: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     credentials?: CredentialUncheckedCreateNestedManyWithoutTemplateInput
@@ -15300,11 +15600,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workspace?: WorkspaceUpdateOneRequiredWithoutTemplatesNestedInput
@@ -15315,14 +15617,16 @@ export namespace Prisma {
   export type CertificateTemplateUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     credentials?: CredentialUncheckedUpdateManyWithoutTemplateNestedInput
@@ -15331,14 +15635,16 @@ export namespace Prisma {
   export type CertificateTemplateCreateManyInput = {
     id?: string
     workspaceId: string
+    createdById: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15347,11 +15653,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15359,14 +15667,16 @@ export namespace Prisma {
   export type CertificateTemplateUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15377,9 +15687,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -15397,16 +15707,16 @@ export namespace Prisma {
     workspaceId: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: CredentialEventUncheckedCreateNestedManyWithoutCredentialInput
@@ -15419,9 +15729,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15439,16 +15749,16 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: CredentialEventUncheckedUpdateManyWithoutCredentialNestedInput
@@ -15460,16 +15770,16 @@ export namespace Prisma {
     workspaceId: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15480,9 +15790,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -15494,23 +15804,23 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CredentialEventCreateInput = {
     id?: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15521,7 +15831,7 @@ export namespace Prisma {
   export type CredentialEventUncheckedCreateInput = {
     id?: string
     credentialId: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15530,7 +15840,7 @@ export namespace Prisma {
 
   export type CredentialEventUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15541,7 +15851,7 @@ export namespace Prisma {
   export type CredentialEventUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     credentialId?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15551,7 +15861,7 @@ export namespace Prisma {
   export type CredentialEventCreateManyInput = {
     id?: string
     credentialId: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15560,7 +15870,7 @@ export namespace Prisma {
 
   export type CredentialEventUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15570,7 +15880,7 @@ export namespace Prisma {
   export type CredentialEventUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     credentialId?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -15581,7 +15891,7 @@ export namespace Prisma {
     id?: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -15594,7 +15904,7 @@ export namespace Prisma {
     credentialId: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -15605,7 +15915,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15618,7 +15928,7 @@ export namespace Prisma {
     credentialId?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15630,7 +15940,7 @@ export namespace Prisma {
     credentialId: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -15641,7 +15951,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15653,7 +15963,7 @@ export namespace Prisma {
     credentialId?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -15662,8 +15972,8 @@ export namespace Prisma {
 
   export type JobCreateInput = {
     id?: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15677,8 +15987,8 @@ export namespace Prisma {
   export type JobUncheckedCreateInput = {
     id?: string
     workspaceId: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15690,8 +16000,8 @@ export namespace Prisma {
 
   export type JobUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15705,8 +16015,8 @@ export namespace Prisma {
   export type JobUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15719,8 +16029,8 @@ export namespace Prisma {
   export type JobCreateManyInput = {
     id?: string
     workspaceId: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15732,8 +16042,8 @@ export namespace Prisma {
 
   export type JobUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -15746,8 +16056,8 @@ export namespace Prisma {
   export type JobUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -16168,6 +16478,11 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type WorkspaceOrganizationIdSlugCompoundUniqueInput = {
+    organizationId: string
+    slug: string
+  }
+
   export type WorkspaceCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
@@ -16211,6 +16526,13 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type EnumWorkspaceRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceRole | EnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceRoleFilter<$PrismaModel> | $Enums.WorkspaceRole
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
@@ -16252,6 +16574,23 @@ export namespace Prisma {
     role?: SortOrder
     joinedAt?: SortOrder
   }
+
+  export type EnumWorkspaceRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceRole | EnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceRoleWithAggregatesFilter<$PrismaModel> | $Enums.WorkspaceRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWorkspaceRoleFilter<$PrismaModel>
+    _max?: NestedEnumWorkspaceRoleFilter<$PrismaModel>
+  }
+
+  export type EnumTemplateOrientationFilter<$PrismaModel = never> = {
+    equals?: $Enums.TemplateOrientation | EnumTemplateOrientationFieldRefInput<$PrismaModel>
+    in?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    not?: NestedEnumTemplateOrientationFilter<$PrismaModel> | $Enums.TemplateOrientation
+  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -16276,31 +16615,49 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type CertificateTemplateCountOrderByAggregateInput = {
     id?: SortOrder
     workspaceId?: SortOrder
+    createdById?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    backgroundImageUrl?: SortOrder
-    htmlTemplate?: SortOrder
-    cssStyles?: SortOrder
-    schemaDefinition?: SortOrder
     orientation?: SortOrder
-    createdById?: SortOrder
+    thumbnailUrl?: SortOrder
+    editorData?: SortOrder
+    templateVersion?: SortOrder
+    isPublished?: SortOrder
+    publishedAt?: SortOrder
+    schemaDefinition?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type CertificateTemplateAvgOrderByAggregateInput = {
+    templateVersion?: SortOrder
   }
 
   export type CertificateTemplateMaxOrderByAggregateInput = {
     id?: SortOrder
     workspaceId?: SortOrder
+    createdById?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    backgroundImageUrl?: SortOrder
-    htmlTemplate?: SortOrder
-    cssStyles?: SortOrder
     orientation?: SortOrder
-    createdById?: SortOrder
+    thumbnailUrl?: SortOrder
+    templateVersion?: SortOrder
+    isPublished?: SortOrder
+    publishedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -16308,15 +16665,30 @@ export namespace Prisma {
   export type CertificateTemplateMinOrderByAggregateInput = {
     id?: SortOrder
     workspaceId?: SortOrder
+    createdById?: SortOrder
     name?: SortOrder
     description?: SortOrder
-    backgroundImageUrl?: SortOrder
-    htmlTemplate?: SortOrder
-    cssStyles?: SortOrder
     orientation?: SortOrder
-    createdById?: SortOrder
+    thumbnailUrl?: SortOrder
+    templateVersion?: SortOrder
+    isPublished?: SortOrder
+    publishedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+  }
+
+  export type CertificateTemplateSumOrderByAggregateInput = {
+    templateVersion?: SortOrder
+  }
+
+  export type EnumTemplateOrientationWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TemplateOrientation | EnumTemplateOrientationFieldRefInput<$PrismaModel>
+    in?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    not?: NestedEnumTemplateOrientationWithAggregatesFilter<$PrismaModel> | $Enums.TemplateOrientation
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTemplateOrientationFilter<$PrismaModel>
+    _max?: NestedEnumTemplateOrientationFilter<$PrismaModel>
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -16345,7 +16717,7 @@ export namespace Prisma {
     _max?: NestedJsonFilter<$PrismaModel>
   }
 
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -16353,7 +16725,17 @@ export namespace Prisma {
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type EnumCredentialStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialStatus | EnumCredentialStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialStatusFilter<$PrismaModel> | $Enums.CredentialStatus
   }
 
   export type CertificateTemplateScalarRelationFilter = {
@@ -16386,16 +16768,16 @@ export namespace Prisma {
     workspaceId?: SortOrder
     organizationId?: SortOrder
     templateId?: SortOrder
+    createdById?: SortOrder
     recipientName?: SortOrder
     recipientEmail?: SortOrder
     credentialData?: SortOrder
     verificationCode?: SortOrder
+    status?: SortOrder
     pdfUrl?: SortOrder
     imageUrl?: SortOrder
-    status?: SortOrder
     issuedAt?: SortOrder
     expiresAt?: SortOrder
-    createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -16405,15 +16787,15 @@ export namespace Prisma {
     workspaceId?: SortOrder
     organizationId?: SortOrder
     templateId?: SortOrder
+    createdById?: SortOrder
     recipientName?: SortOrder
     recipientEmail?: SortOrder
     verificationCode?: SortOrder
+    status?: SortOrder
     pdfUrl?: SortOrder
     imageUrl?: SortOrder
-    status?: SortOrder
     issuedAt?: SortOrder
     expiresAt?: SortOrder
-    createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -16423,31 +16805,34 @@ export namespace Prisma {
     workspaceId?: SortOrder
     organizationId?: SortOrder
     templateId?: SortOrder
+    createdById?: SortOrder
     recipientName?: SortOrder
     recipientEmail?: SortOrder
     verificationCode?: SortOrder
+    status?: SortOrder
     pdfUrl?: SortOrder
     imageUrl?: SortOrder
-    status?: SortOrder
     issuedAt?: SortOrder
     expiresAt?: SortOrder
-    createdById?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  export type EnumCredentialStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialStatus | EnumCredentialStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialStatusWithAggregatesFilter<$PrismaModel> | $Enums.CredentialStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCredentialStatusFilter<$PrismaModel>
+    _max?: NestedEnumCredentialStatusFilter<$PrismaModel>
+  }
+
+  export type EnumCredentialEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialEventType | EnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialEventTypeFilter<$PrismaModel> | $Enums.CredentialEventType
   }
 
   export type CredentialScalarRelationFilter = {
@@ -16481,6 +16866,23 @@ export namespace Prisma {
     ipAddress?: SortOrder
     userAgent?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumCredentialEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialEventType | EnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.CredentialEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCredentialEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumCredentialEventTypeFilter<$PrismaModel>
+  }
+
+  export type EnumEmailStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.EmailStatus | EnumEmailStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumEmailStatusFilter<$PrismaModel> | $Enums.EmailStatus
   }
 
   export type EmailLogCountOrderByAggregateInput = {
@@ -16517,6 +16919,30 @@ export namespace Prisma {
     openedAt?: SortOrder
     clickedAt?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumEmailStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EmailStatus | EnumEmailStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumEmailStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEmailStatusFilter<$PrismaModel>
+    _max?: NestedEnumEmailStatusFilter<$PrismaModel>
+  }
+
+  export type EnumJobTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobType | EnumJobTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobTypeFilter<$PrismaModel> | $Enums.JobType
+  }
+
+  export type EnumJobStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobStatus | EnumJobStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobStatusFilter<$PrismaModel> | $Enums.JobStatus
   }
 
   export type JobCountOrderByAggregateInput = {
@@ -16563,6 +16989,26 @@ export namespace Prisma {
 
   export type JobSumOrderByAggregateInput = {
     progress?: SortOrder
+  }
+
+  export type EnumJobTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobType | EnumJobTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobTypeWithAggregatesFilter<$PrismaModel> | $Enums.JobType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumJobTypeFilter<$PrismaModel>
+    _max?: NestedEnumJobTypeFilter<$PrismaModel>
+  }
+
+  export type EnumJobStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobStatus | EnumJobStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobStatusWithAggregatesFilter<$PrismaModel> | $Enums.JobStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumJobStatusFilter<$PrismaModel>
+    _max?: NestedEnumJobStatusFilter<$PrismaModel>
   }
 
   export type BigIntFilter<$PrismaModel = never> = {
@@ -17197,6 +17643,10 @@ export namespace Prisma {
     connect?: WorkspaceWhereUniqueInput
   }
 
+  export type EnumWorkspaceRoleFieldUpdateOperationsInput = {
+    set?: $Enums.WorkspaceRole
+  }
+
   export type UserUpdateOneRequiredWithoutMembershipsNestedInput = {
     create?: XOR<UserCreateWithoutMembershipsInput, UserUncheckedCreateWithoutMembershipsInput>
     connectOrCreate?: UserCreateOrConnectWithoutMembershipsInput
@@ -17245,6 +17695,14 @@ export namespace Prisma {
     connectOrCreate?: CredentialCreateOrConnectWithoutTemplateInput | CredentialCreateOrConnectWithoutTemplateInput[]
     createMany?: CredentialCreateManyTemplateInputEnvelope
     connect?: CredentialWhereUniqueInput | CredentialWhereUniqueInput[]
+  }
+
+  export type EnumTemplateOrientationFieldUpdateOperationsInput = {
+    set?: $Enums.TemplateOrientation
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type WorkspaceUpdateOneRequiredWithoutTemplatesNestedInput = {
@@ -17343,8 +17801,8 @@ export namespace Prisma {
     connect?: EmailLogWhereUniqueInput | EmailLogWhereUniqueInput[]
   }
 
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
+  export type EnumCredentialStatusFieldUpdateOperationsInput = {
+    set?: $Enums.CredentialStatus
   }
 
   export type WorkspaceUpdateOneRequiredWithoutCredentialsNestedInput = {
@@ -17441,6 +17899,10 @@ export namespace Prisma {
     connect?: CredentialWhereUniqueInput
   }
 
+  export type EnumCredentialEventTypeFieldUpdateOperationsInput = {
+    set?: $Enums.CredentialEventType
+  }
+
   export type CredentialUpdateOneRequiredWithoutEventsNestedInput = {
     create?: XOR<CredentialCreateWithoutEventsInput, CredentialUncheckedCreateWithoutEventsInput>
     connectOrCreate?: CredentialCreateOrConnectWithoutEventsInput
@@ -17455,6 +17917,10 @@ export namespace Prisma {
     connect?: CredentialWhereUniqueInput
   }
 
+  export type EnumEmailStatusFieldUpdateOperationsInput = {
+    set?: $Enums.EmailStatus
+  }
+
   export type CredentialUpdateOneRequiredWithoutEmailLogsNestedInput = {
     create?: XOR<CredentialCreateWithoutEmailLogsInput, CredentialUncheckedCreateWithoutEmailLogsInput>
     connectOrCreate?: CredentialCreateOrConnectWithoutEmailLogsInput
@@ -17467,6 +17933,14 @@ export namespace Prisma {
     create?: XOR<WorkspaceCreateWithoutJobsInput, WorkspaceUncheckedCreateWithoutJobsInput>
     connectOrCreate?: WorkspaceCreateOrConnectWithoutJobsInput
     connect?: WorkspaceWhereUniqueInput
+  }
+
+  export type EnumJobTypeFieldUpdateOperationsInput = {
+    set?: $Enums.JobType
+  }
+
+  export type EnumJobStatusFieldUpdateOperationsInput = {
+    set?: $Enums.JobStatus
   }
 
   export type WorkspaceUpdateOneRequiredWithoutJobsNestedInput = {
@@ -17684,6 +18158,51 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
+
+  export type NestedEnumWorkspaceRoleFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceRole | EnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceRoleFilter<$PrismaModel> | $Enums.WorkspaceRole
+  }
+
+  export type NestedEnumWorkspaceRoleWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.WorkspaceRole | EnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    in?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    notIn?: $Enums.WorkspaceRole[] | ListEnumWorkspaceRoleFieldRefInput<$PrismaModel>
+    not?: NestedEnumWorkspaceRoleWithAggregatesFilter<$PrismaModel> | $Enums.WorkspaceRole
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumWorkspaceRoleFilter<$PrismaModel>
+    _max?: NestedEnumWorkspaceRoleFilter<$PrismaModel>
+  }
+
+  export type NestedEnumTemplateOrientationFilter<$PrismaModel = never> = {
+    equals?: $Enums.TemplateOrientation | EnumTemplateOrientationFieldRefInput<$PrismaModel>
+    in?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    not?: NestedEnumTemplateOrientationFilter<$PrismaModel> | $Enums.TemplateOrientation
+  }
+
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
+  export type NestedEnumTemplateOrientationWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TemplateOrientation | EnumTemplateOrientationFieldRefInput<$PrismaModel>
+    in?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TemplateOrientation[] | ListEnumTemplateOrientationFieldRefInput<$PrismaModel>
+    not?: NestedEnumTemplateOrientationWithAggregatesFilter<$PrismaModel> | $Enums.TemplateOrientation
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTemplateOrientationFilter<$PrismaModel>
+    _max?: NestedEnumTemplateOrientationFilter<$PrismaModel>
+  }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -17708,17 +18227,6 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
@@ -17731,6 +18239,91 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCredentialStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialStatus | EnumCredentialStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialStatusFilter<$PrismaModel> | $Enums.CredentialStatus
+  }
+
+  export type NestedEnumCredentialStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialStatus | EnumCredentialStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialStatus[] | ListEnumCredentialStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialStatusWithAggregatesFilter<$PrismaModel> | $Enums.CredentialStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCredentialStatusFilter<$PrismaModel>
+    _max?: NestedEnumCredentialStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumCredentialEventTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialEventType | EnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialEventTypeFilter<$PrismaModel> | $Enums.CredentialEventType
+  }
+
+  export type NestedEnumCredentialEventTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.CredentialEventType | EnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.CredentialEventType[] | ListEnumCredentialEventTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumCredentialEventTypeWithAggregatesFilter<$PrismaModel> | $Enums.CredentialEventType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumCredentialEventTypeFilter<$PrismaModel>
+    _max?: NestedEnumCredentialEventTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumEmailStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.EmailStatus | EnumEmailStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumEmailStatusFilter<$PrismaModel> | $Enums.EmailStatus
+  }
+
+  export type NestedEnumEmailStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EmailStatus | EnumEmailStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EmailStatus[] | ListEnumEmailStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumEmailStatusWithAggregatesFilter<$PrismaModel> | $Enums.EmailStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEmailStatusFilter<$PrismaModel>
+    _max?: NestedEnumEmailStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumJobTypeFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobType | EnumJobTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobTypeFilter<$PrismaModel> | $Enums.JobType
+  }
+
+  export type NestedEnumJobStatusFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobStatus | EnumJobStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobStatusFilter<$PrismaModel> | $Enums.JobStatus
+  }
+
+  export type NestedEnumJobTypeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobType | EnumJobTypeFieldRefInput<$PrismaModel>
+    in?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobType[] | ListEnumJobTypeFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobTypeWithAggregatesFilter<$PrismaModel> | $Enums.JobType
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumJobTypeFilter<$PrismaModel>
+    _max?: NestedEnumJobTypeFilter<$PrismaModel>
+  }
+
+  export type NestedEnumJobStatusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.JobStatus | EnumJobStatusFieldRefInput<$PrismaModel>
+    in?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.JobStatus[] | ListEnumJobStatusFieldRefInput<$PrismaModel>
+    not?: NestedEnumJobStatusWithAggregatesFilter<$PrismaModel> | $Enums.JobStatus
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumJobStatusFilter<$PrismaModel>
+    _max?: NestedEnumJobStatusFilter<$PrismaModel>
   }
 
   export type NestedBigIntFilter<$PrismaModel = never> = {
@@ -17762,7 +18355,7 @@ export namespace Prisma {
 
   export type MembershipCreateWithoutUserInput = {
     id?: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutMembershipsInput
     workspace: WorkspaceCreateNestedOneWithoutMembershipsInput
@@ -17772,7 +18365,7 @@ export namespace Prisma {
     id?: string
     organizationId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -17790,11 +18383,13 @@ export namespace Prisma {
     id?: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     workspace: WorkspaceCreateNestedOneWithoutTemplatesInput
@@ -17806,11 +18401,13 @@ export namespace Prisma {
     workspaceId: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     credentials?: CredentialUncheckedCreateNestedManyWithoutTemplateInput
@@ -17832,9 +18429,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -17855,9 +18452,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -17934,7 +18531,7 @@ export namespace Prisma {
     userId?: StringFilter<"Membership"> | string
     organizationId?: StringFilter<"Membership"> | string
     workspaceId?: StringFilter<"Membership"> | string
-    role?: StringFilter<"Membership"> | string
+    role?: EnumWorkspaceRoleFilter<"Membership"> | $Enums.WorkspaceRole
     joinedAt?: DateTimeFilter<"Membership"> | Date | string
   }
 
@@ -17960,14 +18557,16 @@ export namespace Prisma {
     NOT?: CertificateTemplateScalarWhereInput | CertificateTemplateScalarWhereInput[]
     id?: StringFilter<"CertificateTemplate"> | string
     workspaceId?: StringFilter<"CertificateTemplate"> | string
+    createdById?: StringFilter<"CertificateTemplate"> | string
     name?: StringFilter<"CertificateTemplate"> | string
     description?: StringNullableFilter<"CertificateTemplate"> | string | null
-    backgroundImageUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
-    htmlTemplate?: StringNullableFilter<"CertificateTemplate"> | string | null
-    cssStyles?: StringNullableFilter<"CertificateTemplate"> | string | null
+    orientation?: EnumTemplateOrientationFilter<"CertificateTemplate"> | $Enums.TemplateOrientation
+    thumbnailUrl?: StringNullableFilter<"CertificateTemplate"> | string | null
+    editorData?: JsonFilter<"CertificateTemplate">
+    templateVersion?: IntFilter<"CertificateTemplate"> | number
+    isPublished?: BoolFilter<"CertificateTemplate"> | boolean
+    publishedAt?: DateTimeNullableFilter<"CertificateTemplate"> | Date | string | null
     schemaDefinition?: JsonFilter<"CertificateTemplate">
-    orientation?: StringFilter<"CertificateTemplate"> | string
-    createdById?: StringFilter<"CertificateTemplate"> | string
     createdAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
     updatedAt?: DateTimeFilter<"CertificateTemplate"> | Date | string
   }
@@ -17996,16 +18595,16 @@ export namespace Prisma {
     workspaceId?: StringFilter<"Credential"> | string
     organizationId?: StringFilter<"Credential"> | string
     templateId?: StringFilter<"Credential"> | string
+    createdById?: StringFilter<"Credential"> | string
     recipientName?: StringFilter<"Credential"> | string
     recipientEmail?: StringNullableFilter<"Credential"> | string | null
     credentialData?: JsonFilter<"Credential">
     verificationCode?: StringFilter<"Credential"> | string
+    status?: EnumCredentialStatusFilter<"Credential"> | $Enums.CredentialStatus
     pdfUrl?: StringNullableFilter<"Credential"> | string | null
     imageUrl?: StringNullableFilter<"Credential"> | string | null
-    status?: StringFilter<"Credential"> | string
     issuedAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
     expiresAt?: DateTimeNullableFilter<"Credential"> | Date | string | null
-    createdById?: StringFilter<"Credential"> | string
     createdAt?: DateTimeFilter<"Credential"> | Date | string
     updatedAt?: DateTimeFilter<"Credential"> | Date | string
   }
@@ -18088,7 +18687,7 @@ export namespace Prisma {
 
   export type MembershipCreateWithoutOrganizationInput = {
     id?: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
     user: UserCreateNestedOneWithoutMembershipsInput
     workspace: WorkspaceCreateNestedOneWithoutMembershipsInput
@@ -18098,7 +18697,7 @@ export namespace Prisma {
     id?: string
     userId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -18118,9 +18717,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -18136,16 +18735,16 @@ export namespace Prisma {
     id?: string
     workspaceId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: CredentialEventUncheckedCreateNestedManyWithoutCredentialInput
@@ -18263,11 +18862,13 @@ export namespace Prisma {
     id?: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     createdBy: UserCreateNestedOneWithoutTemplatesInput
@@ -18276,14 +18877,16 @@ export namespace Prisma {
 
   export type CertificateTemplateUncheckedCreateWithoutWorkspaceInput = {
     id?: string
+    createdById: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     credentials?: CredentialUncheckedCreateNestedManyWithoutTemplateInput
@@ -18305,9 +18908,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -18323,16 +18926,16 @@ export namespace Prisma {
     id?: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: CredentialEventUncheckedCreateNestedManyWithoutCredentialInput
@@ -18351,8 +18954,8 @@ export namespace Prisma {
 
   export type JobCreateWithoutWorkspaceInput = {
     id?: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -18364,8 +18967,8 @@ export namespace Prisma {
 
   export type JobUncheckedCreateWithoutWorkspaceInput = {
     id?: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -18421,7 +19024,7 @@ export namespace Prisma {
 
   export type MembershipCreateWithoutWorkspaceInput = {
     id?: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
     user: UserCreateNestedOneWithoutMembershipsInput
     organization: OrganizationCreateNestedOneWithoutMembershipsInput
@@ -18431,7 +19034,7 @@ export namespace Prisma {
     id?: string
     userId: string
     organizationId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -18538,8 +19141,8 @@ export namespace Prisma {
     NOT?: JobScalarWhereInput | JobScalarWhereInput[]
     id?: StringFilter<"Job"> | string
     workspaceId?: StringFilter<"Job"> | string
-    type?: StringFilter<"Job"> | string
-    status?: StringFilter<"Job"> | string
+    type?: EnumJobTypeFilter<"Job"> | $Enums.JobType
+    status?: EnumJobStatusFilter<"Job"> | $Enums.JobStatus
     progress?: IntFilter<"Job"> | number
     payload?: JsonNullableFilter<"Job">
     result?: JsonNullableFilter<"Job">
@@ -18893,9 +19496,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -18911,16 +19514,16 @@ export namespace Prisma {
     id?: string
     workspaceId: string
     organizationId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: CredentialEventUncheckedCreateNestedManyWithoutCredentialInput
@@ -19115,11 +19718,13 @@ export namespace Prisma {
     id?: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
     workspace: WorkspaceCreateNestedOneWithoutTemplatesInput
@@ -19129,14 +19734,16 @@ export namespace Prisma {
   export type CertificateTemplateUncheckedCreateWithoutCredentialsInput = {
     id?: string
     workspaceId: string
+    createdById: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -19183,7 +19790,7 @@ export namespace Prisma {
 
   export type CredentialEventCreateWithoutCredentialInput = {
     id?: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -19192,7 +19799,7 @@ export namespace Prisma {
 
   export type CredentialEventUncheckedCreateWithoutCredentialInput = {
     id?: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -19213,7 +19820,7 @@ export namespace Prisma {
     id?: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -19224,7 +19831,7 @@ export namespace Prisma {
     id?: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -19340,11 +19947,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workspace?: WorkspaceUpdateOneRequiredWithoutTemplatesNestedInput
@@ -19354,14 +19963,16 @@ export namespace Prisma {
   export type CertificateTemplateUncheckedUpdateWithoutCredentialsInput = {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -19429,7 +20040,7 @@ export namespace Prisma {
     NOT?: CredentialEventScalarWhereInput | CredentialEventScalarWhereInput[]
     id?: StringFilter<"CredentialEvent"> | string
     credentialId?: StringFilter<"CredentialEvent"> | string
-    eventType?: StringFilter<"CredentialEvent"> | string
+    eventType?: EnumCredentialEventTypeFilter<"CredentialEvent"> | $Enums.CredentialEventType
     ipAddress?: StringNullableFilter<"CredentialEvent"> | string | null
     userAgent?: StringNullableFilter<"CredentialEvent"> | string | null
     metadata?: JsonNullableFilter<"CredentialEvent">
@@ -19460,7 +20071,7 @@ export namespace Prisma {
     credentialId?: StringFilter<"EmailLog"> | string
     recipientEmail?: StringFilter<"EmailLog"> | string
     providerMessageId?: StringNullableFilter<"EmailLog"> | string | null
-    status?: StringFilter<"EmailLog"> | string
+    status?: EnumEmailStatusFilter<"EmailLog"> | $Enums.EmailStatus
     bounceReason?: StringNullableFilter<"EmailLog"> | string | null
     openedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
     clickedAt?: DateTimeNullableFilter<"EmailLog"> | Date | string | null
@@ -19473,9 +20084,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -19492,16 +20103,16 @@ export namespace Prisma {
     workspaceId: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     emailLogs?: EmailLogUncheckedCreateNestedManyWithoutCredentialInput
@@ -19529,9 +20140,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19548,16 +20159,16 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     emailLogs?: EmailLogUncheckedUpdateManyWithoutCredentialNestedInput
@@ -19569,9 +20180,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -19588,16 +20199,16 @@ export namespace Prisma {
     workspaceId: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
     events?: CredentialEventUncheckedCreateNestedManyWithoutCredentialInput
@@ -19625,9 +20236,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19644,16 +20255,16 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: CredentialEventUncheckedUpdateManyWithoutCredentialNestedInput
@@ -19907,7 +20518,7 @@ export namespace Prisma {
     id?: string
     organizationId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -19916,11 +20527,13 @@ export namespace Prisma {
     workspaceId: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -19934,9 +20547,9 @@ export namespace Prisma {
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -19957,7 +20570,7 @@ export namespace Prisma {
 
   export type MembershipUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutMembershipsNestedInput
     workspace?: WorkspaceUpdateOneRequiredWithoutMembershipsNestedInput
@@ -19967,7 +20580,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -19975,7 +20588,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -19983,11 +20596,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     workspace?: WorkspaceUpdateOneRequiredWithoutTemplatesNestedInput
@@ -19999,11 +20614,13 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     credentials?: CredentialUncheckedUpdateManyWithoutTemplateNestedInput
@@ -20014,11 +20631,13 @@ export namespace Prisma {
     workspaceId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20029,9 +20648,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20052,9 +20671,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20072,9 +20691,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20133,7 +20752,7 @@ export namespace Prisma {
     id?: string
     userId: string
     workspaceId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -20141,16 +20760,16 @@ export namespace Prisma {
     id?: string
     workspaceId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20203,7 +20822,7 @@ export namespace Prisma {
 
   export type MembershipUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
     workspace?: WorkspaceUpdateOneRequiredWithoutMembershipsNestedInput
@@ -20213,7 +20832,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20221,7 +20840,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20231,9 +20850,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20249,16 +20868,16 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: CredentialEventUncheckedUpdateManyWithoutCredentialNestedInput
@@ -20269,30 +20888,32 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CertificateTemplateCreateManyWorkspaceInput = {
     id?: string
+    createdById: string
     name: string
     description?: string | null
-    backgroundImageUrl?: string | null
-    htmlTemplate?: string | null
-    cssStyles?: string | null
+    orientation?: $Enums.TemplateOrientation
+    thumbnailUrl?: string | null
+    editorData: JsonNullValueInput | InputJsonValue
+    templateVersion?: number
+    isPublished?: boolean
+    publishedAt?: Date | string | null
     schemaDefinition: JsonNullValueInput | InputJsonValue
-    orientation?: string
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20301,24 +20922,24 @@ export namespace Prisma {
     id?: string
     organizationId: string
     templateId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
   export type JobCreateManyWorkspaceInput = {
     id?: string
-    type: string
-    status: string
+    type: $Enums.JobType
+    status?: $Enums.JobStatus
     progress?: number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -20344,7 +20965,7 @@ export namespace Prisma {
     id?: string
     userId: string
     organizationId: string
-    role: string
+    role: $Enums.WorkspaceRole
     joinedAt?: Date | string
   }
 
@@ -20352,11 +20973,13 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdBy?: UserUpdateOneRequiredWithoutTemplatesNestedInput
@@ -20365,14 +20988,16 @@ export namespace Prisma {
 
   export type CertificateTemplateUncheckedUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     credentials?: CredentialUncheckedUpdateManyWithoutTemplateNestedInput
@@ -20380,14 +21005,16 @@ export namespace Prisma {
 
   export type CertificateTemplateUncheckedUpdateManyWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    backgroundImageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    htmlTemplate?: NullableStringFieldUpdateOperationsInput | string | null
-    cssStyles?: NullableStringFieldUpdateOperationsInput | string | null
+    orientation?: EnumTemplateOrientationFieldUpdateOperationsInput | $Enums.TemplateOrientation
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    editorData?: JsonNullValueInput | InputJsonValue
+    templateVersion?: IntFieldUpdateOperationsInput | number
+    isPublished?: BoolFieldUpdateOperationsInput | boolean
+    publishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     schemaDefinition?: JsonNullValueInput | InputJsonValue
-    orientation?: StringFieldUpdateOperationsInput | string
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -20398,9 +21025,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20416,16 +21043,16 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: CredentialEventUncheckedUpdateManyWithoutCredentialNestedInput
@@ -20436,24 +21063,24 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     templateId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type JobUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -20465,8 +21092,8 @@ export namespace Prisma {
 
   export type JobUncheckedUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -20478,8 +21105,8 @@ export namespace Prisma {
 
   export type JobUncheckedUpdateManyWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
-    type?: StringFieldUpdateOperationsInput | string
-    status?: StringFieldUpdateOperationsInput | string
+    type?: EnumJobTypeFieldUpdateOperationsInput | $Enums.JobType
+    status?: EnumJobStatusFieldUpdateOperationsInput | $Enums.JobStatus
     progress?: IntFieldUpdateOperationsInput | number
     payload?: NullableJsonNullValueInput | InputJsonValue
     result?: NullableJsonNullValueInput | InputJsonValue
@@ -20527,7 +21154,7 @@ export namespace Prisma {
 
   export type MembershipUpdateWithoutWorkspaceInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutMembershipsNestedInput
     organization?: OrganizationUpdateOneRequiredWithoutMembershipsNestedInput
@@ -20537,7 +21164,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20545,7 +21172,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
+    role?: EnumWorkspaceRoleFieldUpdateOperationsInput | $Enums.WorkspaceRole
     joinedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -20553,16 +21180,16 @@ export namespace Prisma {
     id?: string
     workspaceId: string
     organizationId: string
+    createdById: string
     recipientName: string
     recipientEmail?: string | null
     credentialData: JsonNullValueInput | InputJsonValue
     verificationCode: string
+    status?: $Enums.CredentialStatus
     pdfUrl?: string | null
     imageUrl?: string | null
-    status?: string
     issuedAt?: Date | string | null
     expiresAt?: Date | string | null
-    createdById: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -20573,9 +21200,9 @@ export namespace Prisma {
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -20591,16 +21218,16 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     events?: CredentialEventUncheckedUpdateManyWithoutCredentialNestedInput
@@ -20611,23 +21238,23 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     workspaceId?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
+    createdById?: StringFieldUpdateOperationsInput | string
     recipientName?: StringFieldUpdateOperationsInput | string
     recipientEmail?: NullableStringFieldUpdateOperationsInput | string | null
     credentialData?: JsonNullValueInput | InputJsonValue
     verificationCode?: StringFieldUpdateOperationsInput | string
+    status?: EnumCredentialStatusFieldUpdateOperationsInput | $Enums.CredentialStatus
     pdfUrl?: NullableStringFieldUpdateOperationsInput | string | null
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
     issuedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdById?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CredentialEventCreateManyCredentialInput = {
     id?: string
-    eventType: string
+    eventType: $Enums.CredentialEventType
     ipAddress?: string | null
     userAgent?: string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -20638,7 +21265,7 @@ export namespace Prisma {
     id?: string
     recipientEmail: string
     providerMessageId?: string | null
-    status: string
+    status?: $Enums.EmailStatus
     bounceReason?: string | null
     openedAt?: Date | string | null
     clickedAt?: Date | string | null
@@ -20647,7 +21274,7 @@ export namespace Prisma {
 
   export type CredentialEventUpdateWithoutCredentialInput = {
     id?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -20656,7 +21283,7 @@ export namespace Prisma {
 
   export type CredentialEventUncheckedUpdateWithoutCredentialInput = {
     id?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -20665,7 +21292,7 @@ export namespace Prisma {
 
   export type CredentialEventUncheckedUpdateManyWithoutCredentialInput = {
     id?: StringFieldUpdateOperationsInput | string
-    eventType?: StringFieldUpdateOperationsInput | string
+    eventType?: EnumCredentialEventTypeFieldUpdateOperationsInput | $Enums.CredentialEventType
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
@@ -20676,7 +21303,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20687,7 +21314,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -20698,7 +21325,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     recipientEmail?: StringFieldUpdateOperationsInput | string
     providerMessageId?: NullableStringFieldUpdateOperationsInput | string | null
-    status?: StringFieldUpdateOperationsInput | string
+    status?: EnumEmailStatusFieldUpdateOperationsInput | $Enums.EmailStatus
     bounceReason?: NullableStringFieldUpdateOperationsInput | string | null
     openedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     clickedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

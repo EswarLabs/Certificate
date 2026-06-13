@@ -61,3 +61,12 @@ export const deleteTemplate = async (orgId, wsId, id) => {
     if (res.status === 204) return { success: true };
     return res.json();
 };
+
+export const publishTemplate = async (orgId, wsId, id) => {
+    const res = await fetch(`${base(orgId, wsId)}/${id}/publish`, {
+        method: "POST",
+        credentials: "include",
+        headers: { ...getAuthHeader() },
+    });
+    return res.json();
+};

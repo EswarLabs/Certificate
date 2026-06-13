@@ -169,14 +169,16 @@ exports.Prisma.MembershipScalarFieldEnum = {
 exports.Prisma.CertificateTemplateScalarFieldEnum = {
   id: 'id',
   workspaceId: 'workspaceId',
+  createdById: 'createdById',
   name: 'name',
   description: 'description',
-  backgroundImageUrl: 'backgroundImageUrl',
-  htmlTemplate: 'htmlTemplate',
-  cssStyles: 'cssStyles',
-  schemaDefinition: 'schemaDefinition',
   orientation: 'orientation',
-  createdById: 'createdById',
+  thumbnailUrl: 'thumbnailUrl',
+  editorData: 'editorData',
+  templateVersion: 'templateVersion',
+  isPublished: 'isPublished',
+  publishedAt: 'publishedAt',
+  schemaDefinition: 'schemaDefinition',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -186,16 +188,16 @@ exports.Prisma.CredentialScalarFieldEnum = {
   workspaceId: 'workspaceId',
   organizationId: 'organizationId',
   templateId: 'templateId',
+  createdById: 'createdById',
   recipientName: 'recipientName',
   recipientEmail: 'recipientEmail',
   credentialData: 'credentialData',
   verificationCode: 'verificationCode',
+  status: 'status',
   pdfUrl: 'pdfUrl',
   imageUrl: 'imageUrl',
-  status: 'status',
   issuedAt: 'issuedAt',
   expiresAt: 'expiresAt',
-  createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -278,7 +280,61 @@ exports.Prisma.JsonNullValueFilter = {
   JsonNull: Prisma.JsonNull,
   AnyNull: Prisma.AnyNull
 };
+exports.WorkspaceRole = exports.$Enums.WorkspaceRole = {
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  EDITOR: 'EDITOR',
+  ISSUER: 'ISSUER',
+  VIEWER: 'VIEWER'
+};
 
+exports.TemplateOrientation = exports.$Enums.TemplateOrientation = {
+  LANDSCAPE: 'LANDSCAPE',
+  PORTRAIT: 'PORTRAIT'
+};
+
+exports.CredentialStatus = exports.$Enums.CredentialStatus = {
+  DRAFT: 'DRAFT',
+  ISSUED: 'ISSUED',
+  REVOKED: 'REVOKED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.CredentialEventType = exports.$Enums.CredentialEventType = {
+  CREATED: 'CREATED',
+  ISSUED: 'ISSUED',
+  EMAILED: 'EMAILED',
+  OPENED: 'OPENED',
+  VERIFIED: 'VERIFIED',
+  REVOKED: 'REVOKED',
+  EXPIRED: 'EXPIRED'
+};
+
+exports.EmailStatus = exports.$Enums.EmailStatus = {
+  QUEUED: 'QUEUED',
+  SENT: 'SENT',
+  DELIVERED: 'DELIVERED',
+  OPENED: 'OPENED',
+  CLICKED: 'CLICKED',
+  BOUNCED: 'BOUNCED',
+  FAILED: 'FAILED'
+};
+
+exports.JobType = exports.$Enums.JobType = {
+  BULK_ISSUE: 'BULK_ISSUE',
+  BULK_EMAIL: 'BULK_EMAIL',
+  PDF_GENERATION: 'PDF_GENERATION',
+  IMAGE_GENERATION: 'IMAGE_GENERATION',
+  CSV_IMPORT: 'CSV_IMPORT'
+};
+
+exports.JobStatus = exports.$Enums.JobStatus = {
+  PENDING: 'PENDING',
+  RUNNING: 'RUNNING',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  CANCELLED: 'CANCELLED'
+};
 
 exports.Prisma.ModelName = {
   User: 'User',

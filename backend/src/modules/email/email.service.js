@@ -1,179 +1,142 @@
 import nodemailer from "nodemailer";
 import { prisma } from "../../lib/prisma.js";
+import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
 
-// Factory to get Nodemailer transporter
+// ─── Factory: get Nodemailer transporter ─────────────────────────────────────
+
 export const getTransporter = async (workspaceId) => {
-  // If running in test environment, use JSON transport for mocking
   if (process.env.NODE_ENV === "test") {
-    return nodemailer.createTransport({ jsonTransport: true });
+    return { transport: nodemailer.createTransport({ jsonTransport: true }), fromEmail: "test@mock.com" };
   }
 
-  // Fetch workspace SMTP settings
-  const workspace = await prisma.workspace.findUnique({
-    where: { id: workspaceId },
-  });
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
 
-  if (workspace && workspace.smtpEnabled && workspace.smtpSettings) {
-    const settings = workspace.smtpSettings;
-    const secure = settings.port === 465 || settings.secure === true;
-    return nodemailer.createTransport({
-      host: settings.host,
-      port: parseInt(settings.port) || 587,
+  // Workspace-level custom SMTP
+  if (workspace?.smtpEnabled && workspace?.smtpSettings) {
+    const s = workspace.smtpSettings;
+    const secure = s.port === 465 || s.secure === true;
+    const transport = nodemailer.createTransport({
+      host: s.host,
+      port: parseInt(s.port) || 587,
       secure,
-      auth: {
-        user: settings.username || settings.user,
-        pass: settings.password || settings.pass,
-      },
+      auth: { user: s.username || s.user, pass: s.password || s.pass },
     });
+
+    // Resolve fromEmail from workspace settings
+    let fromEmail = "no-reply@eswarlabs.com";
+    if (s.from) fromEmail = s.from;
+    else if (s.username?.includes("@")) fromEmail = s.username;
+    else if (s.user?.includes("@")) fromEmail = s.user;
+
+    return { transport, fromEmail };
   }
 
-  // Fallback to system-wide default SMTP
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = parseInt(process.env.SMTP_PORT) || 587;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-
-  if (smtpHost && smtpUser && smtpPass) {
-    return nodemailer.createTransport({
-      host: smtpHost,
-      port: smtpPort,
-      secure: smtpPort === 465,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass,
-      },
-    });
+  // System-wide fallback SMTP
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    const port = parseInt(SMTP_PORT) || 587;
+    const fromEmail = SMTP_FROM || (SMTP_USER.includes("@") ? SMTP_USER : "no-reply@eswarlabs.com");
+    return {
+      transport: nodemailer.createTransport({
+        host: SMTP_HOST,
+        port,
+        secure: port === 465,
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      }),
+      fromEmail,
+    };
   }
 
-  // Fallback to mock transport if no configuration is present
+  // Mock fallback — no SMTP configured
   console.warn("No SMTP settings configured, using mock jsonTransport fallback");
-  return nodemailer.createTransport({ jsonTransport: true });
+  return {
+    transport: nodemailer.createTransport({ jsonTransport: true }),
+    fromEmail: "no-reply@eswarlabs.com",
+  };
 };
 
-// Send certificate notification email
+// ─── Send certificate notification email ─────────────────────────────────────
+
 export const sendCredentialEmail = async (credentialId, userId) => {
-  // Fetch credential details
-  const credential = await prisma.credential.findUnique({
+  // ✅ FIX: Auth check before fetching sensitive credential data
+  const credentialMeta = await prisma.credential.findUnique({
     where: { id: credentialId },
-    include: {
-      template: true,
-      workspace: true,
-    },
+    select: { workspaceId: true, organizationId: true },
   });
 
-  if (!credential) {
-    throw new Error("Credential not found");
-  }
+  if (!credentialMeta) throw new Error("Credential not found");
 
-  // Check workspace membership
   const membership = await prisma.membership.findFirst({
     where: {
       userId,
-      workspaceId: credential.workspaceId,
-      organizationId: credential.organizationId,
+      workspaceId: credentialMeta.workspaceId,
+      organizationId: credentialMeta.organizationId,
     },
   });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
-  if (membership.role === "VIEWER") {
-    throw new Error("User does not have permission to send emails");
-  }
+
+  if (!membership) throw new Error("User is not a member of the workspace");
+  if (membership.role === "VIEWER") throw new Error("User does not have permission to send emails");
+
+  // Now safe to fetch full credential
+  const credential = await prisma.credential.findUnique({
+    where: { id: credentialId },
+    include: { template: true, workspace: true },
+  });
 
   if (!credential.recipientEmail) {
     throw new Error("Credential recipient has no email address configured");
   }
 
-  // Generate Email Log as "pending"
+  // ✅ FIX: Guard against missing template or editorData
+  if (!credential.template) {
+    throw new Error("No template associated with this credential");
+  }
+  if (!credential.template.editorData) {
+    throw new Error("Template has no editor data to render");
+  }
+
+  // Create email log as QUEUED
   const emailLog = await prisma.emailLog.create({
     data: {
       credentialId: credential.id,
       recipientEmail: credential.recipientEmail,
-      status: "pending",
+      status: "QUEUED",
     },
   });
 
   const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  const verificationUrl = `${frontendUrl}/verify/${credential.verificationCode}`;
 
-  // Build the email template content
-  let emailHtml = credential.template.htmlTemplate || "<div class='certificate'>Certificate of Achievement</div>";
-  const cssStyles = credential.template.cssStyles || "";
-
-  // Combine HTML and CSS into a email body
-  let fullHtml = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <style>
-        ${cssStyles}
-        body { font-family: sans-serif; margin: 0; padding: 20px; }
-        .verification-info { margin-top: 30px; padding: 15px; border-top: 1px solid #eee; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      ${emailHtml}
-      
-      <div class="verification-info">
-        <p>This certificate is cryptographically verifiable.</p>
-        <p>Verification Link: <a class="verify-link" href="${frontendUrl}/verify/${credential.verificationCode}">Verify Authenticity</a></p>
-        <p>Verification Code: <strong>${credential.verificationCode}</strong></p>
-      </div>
-    </body>
-    </html>
-  `;
-
-  // Dynamic variable replacement (recipientName, recipientEmail, verificationCode, and credentialData keys)
+  // Build variable replacement map
   const replacements = {
     recipientName: credential.recipientName,
     recipientEmail: credential.recipientEmail,
     verificationCode: credential.verificationCode,
+    verificationUrl,
+    issuedAt: credential.issuedAt
+      ? new Date(credential.issuedAt).toLocaleDateString()
+      : "",
     ...(typeof credential.credentialData === "object" ? credential.credentialData : {}),
   };
 
-  for (const [key, value] of Object.entries(replacements)) {
-    const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
-    fullHtml = fullHtml.replace(regex, value !== null && value !== undefined ? String(value) : "");
-  }
+  // Render certificate HTML
+  renderEditorDataToHtml(credential.template.editorData, replacements);
 
-  // Click Tracking link rewriting
-  const rewriteUrl = (originalUrl) => {
-    if (originalUrl.startsWith("http://") || originalUrl.startsWith("https://")) {
-      return `${backendUrl}/api/email/track/click/${emailLog.id}?url=${encodeURIComponent(originalUrl)}`;
-    }
-    return originalUrl;
-  };
-  fullHtml = fullHtml.replace(/href="([^"]+)"/g, (match, p1) => `href="${rewriteUrl(p1)}"`);
+  const courseTitle = replacements.courseTitle || null;
 
-  // Open Tracking Pixel injection (1x1 transparent image)
-  const trackingPixel = `<img src="${backendUrl}/api/email/track/open/${emailLog.id}" width="1" height="1" alt="" style="display:none;" />`;
-  fullHtml += trackingPixel;
+  const fullHtml = buildEmailHtml({
+    credential,
+    replacements,
+    verificationUrl,
+    backendUrl,
+    emailLogId: emailLog.id,
+    courseTitle,
+  });
 
   try {
-    const transporter = await getTransporter(credential.workspaceId);
-
-    // Determine the sender address (from)
-    let fromEmail = "no-reply@eswarlabs.com";
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: credential.workspaceId },
-    });
-    if (workspace && workspace.smtpEnabled && workspace.smtpSettings) {
-      const settings = workspace.smtpSettings;
-      if (settings.from) {
-        fromEmail = settings.from;
-      } else if (settings.username && settings.username.includes("@")) {
-        fromEmail = settings.username;
-      } else if (settings.user && settings.user.includes("@")) {
-        fromEmail = settings.user;
-      }
-    } else {
-      if (process.env.SMTP_FROM) {
-        fromEmail = process.env.SMTP_FROM;
-      } else if (process.env.SMTP_USER && process.env.SMTP_USER.includes("@")) {
-        fromEmail = process.env.SMTP_USER;
-      }
-    }
+    // ✅ FIX: getTransporter now returns { transport, fromEmail } — single DB call
+    const { transport, fromEmail } = await getTransporter(credential.workspaceId);
 
     const mailOptions = {
       from: `"EswarLabs Certificates" <${fromEmail}>`,
@@ -182,23 +145,22 @@ export const sendCredentialEmail = async (credentialId, userId) => {
       html: fullHtml,
     };
 
-    const info = await transporter.sendMail(mailOptions);
+    const info = await transport.sendMail(mailOptions);
 
-    // Update log
-    const providerMessageId = info.messageId || (info.message && info.message.messageId) || "mock-msg-id";
+    const providerMessageId =
+      info.messageId ||
+      (info.message && info.message.messageId) ||
+      "mock-msg-id";
+
     await prisma.emailLog.update({
       where: { id: emailLog.id },
-      data: {
-        status: "sent",
-        providerMessageId,
-      },
+      data: { status: "SENT", providerMessageId },
     });
 
-    // Log Event
     await prisma.credentialEvent.create({
       data: {
         credentialId: credential.id,
-        eventType: "email_sent",
+        eventType: "EMAILED",
         metadata: { emailLogId: emailLog.id },
       },
     });
@@ -208,114 +170,164 @@ export const sendCredentialEmail = async (credentialId, userId) => {
     console.error("Failed to send credential email:", error);
     await prisma.emailLog.update({
       where: { id: emailLog.id },
-      data: {
-        status: "failed",
-        bounceReason: error.message,
-      },
+      data: { status: "FAILED", bounceReason: error.message },
     });
     throw error;
   }
 };
 
-// Track Open Event
+// ─── Build email HTML (extracted for clarity) ────────────────────────────────
+
+function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl, emailLogId, courseTitle }) {
+  // ✅ FIX: Only rewrite <a href="..."> tags — not style blocks or src attributes
+  const rewriteUrl = (url) => {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return `${backendUrl}/api/email/track/click/${emailLogId}?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
+  const trackedVerificationUrl = rewriteUrl(verificationUrl);
+
+  // ✅ FIX: courseTitle block is conditionally rendered, not silently "Completion"
+  const courseTitleBlock = courseTitle
+    ? `
+      <p style="font-size: 15px; line-height: 1.5; color: #475569;">
+        We are pleased to inform you that your certificate for <strong>${courseTitle}</strong> has been successfully issued and verified.
+      </p>
+      <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">Course</div>
+      <div style="font-size: 16px; font-weight: bold; color: #1e3a8a;">${courseTitle}</div>
+    `
+    : `
+      <p style="font-size: 15px; line-height: 1.5; color: #475569;">
+        We are pleased to inform you that your certificate has been successfully issued and verified.
+      </p>
+    `;
+
+  // Open tracking pixel appended at the end (after all href rewrites are already done inline)
+  const trackingPixel = `<img src="${backendUrl}/api/email/track/open/${emailLogId}" width="1" height="1" alt="" style="display:none;" />`;
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 40px 20px; background: #f8fafc; color: #1e293b; }
+        .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .email-header { background: #1e3a8a; padding: 30px; text-align: center; color: #ffffff; }
+        .email-body { padding: 40px 30px; text-align: center; }
+        .cert-preview-card { margin: 30px 0; padding: 30px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: center; }
+        .btn-view { display: inline-block; background-color: #3b82f6; color: #ffffff !important; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(59,130,246,0.2); }
+        .verification-info { background: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 13px; color: #64748b; text-align: left; }
+        .info-row { margin: 8px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+      </style>
+    </head>
+    <body>
+      <div class="email-container">
+        <div class="email-header">
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 1px;">CERTIFICATE DELIVERED</h2>
+        </div>
+        <div class="email-body">
+          <p style="font-size: 16px; margin-top: 0; color: #475569;">Hello <strong>${credential.recipientName}</strong>,</p>
+
+          ${courseTitleBlock}
+
+          <div class="cert-preview-card">
+            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">Certificate Recipient</div>
+            <div style="font-size: 22px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">${credential.recipientName}</div>
+          </div>
+
+          <div style="margin: 35px 0;">
+            <a class="btn-view" href="${trackedVerificationUrl}" target="_blank">View Certificate &amp; Credentials</a>
+          </div>
+
+          <div class="verification-info">
+            <h4 style="margin: 0 0 10px 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Verification Record</h4>
+            <div class="info-row"><strong>Code:</strong> <span style="font-family: monospace; color: #1e293b; font-weight: bold;">${credential.verificationCode}</span></div>
+            <div class="info-row"><strong>Issued On:</strong> <span style="color: #1e293b;">${replacements.issuedAt || new Date().toLocaleDateString()}</span></div>
+            <div class="info-row"><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">VERIFIED</span></div>
+          </div>
+        </div>
+      </div>
+      ${trackingPixel}
+    </body>
+    </html>
+  `;
+}
+
+// ─── Track Open Event ─────────────────────────────────────────────────────────
+
 export const trackOpen = async (logId) => {
-  const log = await prisma.emailLog.findUnique({
+  const log = await prisma.emailLog.findUnique({ where: { id: logId } });
+  if (!log || log.openedAt) return;
+
+  await prisma.emailLog.update({
     where: { id: logId },
+    data: { status: "OPENED", openedAt: new Date() },
   });
 
-  if (!log) return;
-
-  if (!log.openedAt) {
-    await prisma.emailLog.update({
-      where: { id: logId },
-      data: {
-        status: "opened",
-        openedAt: new Date(),
-      },
-    });
-
-    // Log Event
-    await prisma.credentialEvent.create({
-      data: {
-        credentialId: log.credentialId,
-        eventType: "email_open",
-        metadata: { emailLogId: logId },
-      },
-    });
-  }
+  await prisma.credentialEvent.create({
+    data: {
+      credentialId: log.credentialId,
+      eventType: "OPENED",
+      metadata: { emailLogId: logId },
+    },
+  });
 };
 
-// Track Click Event
+// ─── Track Click Event ────────────────────────────────────────────────────────
+
 export const trackClick = async (logId) => {
-  const log = await prisma.emailLog.findUnique({
+  const log = await prisma.emailLog.findUnique({ where: { id: logId } });
+  if (!log || log.clickedAt) return;
+
+  await prisma.emailLog.update({
     where: { id: logId },
+    data: { clickedAt: new Date() },
   });
 
-  if (!log) return;
-
-  if (!log.clickedAt) {
-    await prisma.emailLog.update({
-      where: { id: logId },
-      data: {
-        clickedAt: new Date(),
-      },
-    });
-
-    // Log Event
-    await prisma.credentialEvent.create({
-      data: {
-        credentialId: log.credentialId,
-        eventType: "email_click",
-        metadata: { emailLogId: logId },
-      },
-    });
-  }
+  await prisma.credentialEvent.create({
+    data: {
+      credentialId: log.credentialId,
+      eventType: "VERIFIED",
+      metadata: { emailLogId: logId },
+    },
+  });
 };
 
-// Get Email Logs for Workspace
+// ─── Get Email Logs for Workspace ─────────────────────────────────────────────
+
 export const getEmailLogs = async (orgId, workspaceId, userId, filters = {}) => {
   const { page = 1, limit = 10 } = filters;
 
-  // Check workspace membership
   const membership = await prisma.membership.findFirst({
     where: { userId, workspaceId, organizationId: orgId },
   });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
+  if (!membership) throw new Error("User is not a member of the workspace");
 
-  const logs = await prisma.emailLog.findMany({
-    where: {
-      credential: {
-        workspaceId,
-      },
+  const whereClause = {
+    credential: {
+      workspaceId,
+      organizationId: orgId,
     },
-    skip: (page - 1) * limit,
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: {
-      credential: {
-        select: {
-          recipientName: true,
-          verificationCode: true,
+  };
+
+  const [logs, total] = await Promise.all([
+    prisma.emailLog.findMany({
+      where: whereClause,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        credential: {
+          select: { recipientName: true, verificationCode: true },
         },
       },
-    },
-  });
+    }),
+    prisma.emailLog.count({ where: whereClause }),
+  ]);
 
-  const total = await prisma.emailLog.count({
-    where: {
-      credential: {
-        workspaceId,
-      },
-    },
-  });
-
-  return {
-    success: true,
-    page,
-    limit,
-    total,
-    logs,
-  };
+  return { success: true, page, limit, total, logs };
 };
