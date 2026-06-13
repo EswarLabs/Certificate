@@ -22,12 +22,26 @@ import PublicRoute from "./components/PublicRoute";
 import AppLayout from "./components/layout/AppLayout";
 import OrgProvider from "./context/OrgContext";
 import WorkspaceProvider from "./context/WorkspaceContext";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <OrgProvider>
       <WorkspaceProvider>
         <BrowserRouter>
+          <Toaster 
+            position="top-right" 
+            toastOptions={{
+              style: {
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                fontSize: '13px',
+                borderRadius: '6px',
+                boxShadow: 'var(--shadow-md)',
+              },
+            }}
+          />
           <Routes>
             {/* Public Auth Routes */}
             <Route

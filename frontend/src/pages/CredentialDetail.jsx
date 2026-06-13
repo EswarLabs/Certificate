@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { getCredential, issueCredential, revokeCredential } from "../services/credentialServices";
 import { sendVerificationEmail } from "../services/emailServices";
+import { ArrowLeft, Mail, Ban, CheckCircle, Clock } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function CredentialDetail() {
   const { id } = useParams();
@@ -41,24 +43,32 @@ export default function CredentialDetail() {
     setActionLoading(true);
     try {
       const res = await issueCredential(selectedOrg.id, selectedWorkspace.id, id);
-      if (res.id) setCredential(res);
-      else alert(res.message || "Issue failed");
+      if (res.id) {
+        setCredential(res);
+        toast.success("Credential issued successfully");
+      } else {
+        toast.error(res.message || "Issue failed");
+      }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleRevoke = async () => {
-    if (!confirm("Revoke this credential?")) return;
+    if (!window.confirm("Revoke this credential?")) return;
     setActionLoading(true);
     try {
       const res = await revokeCredential(selectedOrg.id, selectedWorkspace.id, id);
-      if (res.id) setCredential(res);
-      else alert(res.message || "Revoke failed");
+      if (res.id) {
+        setCredential(res);
+        toast.success("Credential revoked");
+      } else {
+        toast.error(res.message || "Revoke failed");
+      }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setActionLoading(false);
     }
@@ -69,157 +79,186 @@ export default function CredentialDetail() {
     try {
       const res = await sendVerificationEmail(id);
       if (res.success) {
-        alert("Verification email sent!");
+        toast.success("Verification email sent!");
         fetchCredential(); // Refresh to get updated email logs
       } else {
-        alert(res.message || "Failed to send email");
+        toast.error(res.message || "Failed to send email");
       }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const statusColor = (status) => {
+  const StatusBadge = ({ status }) => {
+    let colorClass = "";
     switch (status) {
-      case "DRAFT": return "#f59e0b";
-      case "ISSUED": return "#22c55e";
-      case "REVOKED": return "#ef4444";
-      default: return "#6b7280";
+      case "DRAFT": colorClass = "var(--warning)"; break;
+      case "ISSUED": colorClass = "var(--success)"; break;
+      case "REVOKED": colorClass = "var(--danger)"; break;
+      default: colorClass = "var(--text-secondary)"; break;
     }
+    
+    let bgClass = "";
+    switch (status) {
+      case "DRAFT": bgClass = "var(--warning-light)"; break;
+      case "ISSUED": bgClass = "var(--success-light)"; break;
+      case "REVOKED": bgClass = "var(--danger-light)"; break;
+      default: bgClass = "var(--bg-hover)"; break;
+    }
+
+    return (
+      <span style={{
+        backgroundColor: bgClass,
+        color: colorClass,
+        padding: "4px 10px",
+        borderRadius: "12px",
+        fontSize: "12px",
+        fontWeight: 600,
+      }}>
+        {status}
+      </span>
+    );
   };
 
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!credential) return <p>Credential not found</p>;
+  if (loading) return <div className="page-container" style={{ textAlign: "center", color: "var(--text-secondary)", marginTop: "40px" }}>Loading...</div>;
+  if (error) return <div className="page-container" style={{ textAlign: "center", color: "var(--danger)", marginTop: "40px" }}>{error}</div>;
+  if (!credential) return <div className="page-container" style={{ textAlign: "center", color: "var(--text-secondary)", marginTop: "40px" }}>Credential not found</div>;
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Credential Detail</h1>
-        <div style={{ display: "flex", gap: "8px" }}>
-
+    <div className="page-container">
+      <div className="page-header" style={{ marginBottom: "32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <Link to="/credentials" style={{ textDecoration: "none" }}>
+            <button className="btn-icon">
+              <ArrowLeft size={20} />
+            </button>
+          </Link>
+          <div>
+            <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              Credential Detail
+              <StatusBadge status={credential.status} />
+            </h1>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>ID: {credential.id}</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: "12px" }}>
           {credential.status === "DRAFT" && (
-            <button onClick={handleIssue} disabled={!credential}>Issue</button>
+            <button onClick={handleIssue} disabled={actionLoading} className="btn btn-primary">
+              <CheckCircle size={16} /> Issue
+            </button>
           )}
           {credential.status === "ISSUED" && (
             <>
-              <button onClick={handleSendEmail} disabled={!credential}>Send Email</button>
-              <button onClick={handleRevoke} disabled={!credential} style={{ color: "red" }}>Revoke</button>
+              <button onClick={handleSendEmail} disabled={actionLoading} className="btn btn-secondary">
+                <Mail size={16} /> Send Email
+              </button>
+              <button onClick={handleRevoke} disabled={actionLoading} className="btn btn-secondary" style={{ color: "var(--danger)", borderColor: "var(--danger-light)" }}>
+                <Ban size={16} /> Revoke
+              </button>
             </>
           )}
-          <button onClick={() => navigate("/credentials")}>Back to List</button>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <span style={{
-        color: "#fff",
-        backgroundColor: statusColor(credential.status),
-        padding: "4px 12px",
-        borderRadius: "9999px",
-        fontSize: "0.85rem",
-        fontWeight: "600",
-      }}>
-        {credential.status}
-      </span>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
+        
+        {/* Left Column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          <div className="card">
+            <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "16px", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "8px" }}>
+              General Information
+            </h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <InfoRow label="Recipient Name" value={credential.recipientName} />
+              <InfoRow label="Recipient Email" value={credential.recipientEmail} />
+              <InfoRow label="Verification Code" value={<code style={{ color: "var(--brand-primary)", fontFamily: "var(--font-mono)" }}>{credential.verificationCode}</code>} />
+              <InfoRow label="Template" value={credential.template?.name || credential.templateId} />
+              <InfoRow label="Expires At" value={credential.expiresAt ? new Date(credential.expiresAt).toLocaleString() : "Never"} />
+              <InfoRow label="Issued At" value={credential.issuedAt ? new Date(credential.issuedAt).toLocaleString() : "—"} />
+              <InfoRow label="Created At" value={new Date(credential.createdAt).toLocaleString()} />
+            </div>
+          </div>
 
-      {/* Credential Info */}
-      <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "16px" }}>
-        <tbody>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>ID</td><td style={{ padding: "6px" }}>{credential.id}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Recipient</td><td style={{ padding: "6px" }}>{credential.recipientName}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Email</td><td style={{ padding: "6px" }}>{credential.recipientEmail}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Verification Code</td><td style={{ padding: "6px", fontFamily: "monospace" }}>{credential.verificationCode}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Template</td><td style={{ padding: "6px" }}>{credential.template?.name || credential.templateId}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Organization</td><td style={{ padding: "6px" }}>{credential.organizationId}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Workspace</td><td style={{ padding: "6px" }}>{credential.workspaceId}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Expires At</td><td style={{ padding: "6px" }}>{credential.expiresAt ? new Date(credential.expiresAt).toLocaleString() : "Never"}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Issued At</td><td style={{ padding: "6px" }}>{credential.issuedAt ? new Date(credential.issuedAt).toLocaleString() : "—"}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Created At</td><td style={{ padding: "6px" }}>{new Date(credential.createdAt).toLocaleString()}</td></tr>
-          <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Updated At</td><td style={{ padding: "6px" }}>{new Date(credential.updatedAt).toLocaleString()}</td></tr>
-        </tbody>
-      </table>
-
-      {/* Created By */}
-      {credential.createdBy && (
-        <div style={{ marginTop: "16px" }}>
-          <h3>Created By</h3>
-          <p>{credential.createdBy.firstName} {credential.createdBy.lastName} ({credential.createdBy.email})</p>
+          {credential.credentialData && Object.keys(credential.credentialData).length > 0 && (
+            <div className="card">
+              <h3 style={{ fontSize: "15px", fontWeight: 600, marginBottom: "16px", color: "var(--text-primary)" }}>Credential Data</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                {Object.entries(credential.credentialData).map(([key, val]) => (
+                  <InfoRow key={key} label={key} value={String(val)} />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Credential Data */}
-      {credential.credentialData && Object.keys(credential.credentialData).length > 0 && (
-        <div style={{ marginTop: "16px" }}>
-          <h3>Credential Data</h3>
-          <table style={{ borderCollapse: "collapse" }}>
-            <tbody>
-              {Object.entries(credential.credentialData).map(([key, val]) => (
-                <tr key={key}>
-                  <td style={{ padding: "4px 12px 4px 0", fontWeight: "bold" }}>{key}</td>
-                  <td style={{ padding: "4px" }}>{String(val)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {/* Right Column */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+          {/* Email Logs */}
+          <div className="card" style={{ padding: "0" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-color)" }}>
+              <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Email Logs</h3>
+            </div>
+            {(!credential.emailLogs || credential.emailLogs.length === 0) ? (
+              <div style={{ padding: "32px", textAlign: "center", color: "var(--text-secondary)", fontSize: "13px" }}>No email logs found.</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>Status</th>
+                    <th style={{ textAlign: "left", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>Sent At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {credential.emailLogs.map((log) => (
+                    <tr key={log.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <td style={{ padding: "16px 24px", fontSize: "13px", color: "var(--text-primary)" }}>{log.status}</td>
+                      <td style={{ padding: "16px 24px", fontSize: "13px", color: "var(--text-secondary)" }}>{new Date(log.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
 
-      {/* Events */}
-      {credential.events && credential.events.length > 0 && (
-        <div style={{ marginTop: "16px" }}>
-          <h3>Events</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Type</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>IP Address</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>User Agent</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {credential.events.map((ev) => (
-                <tr key={ev.id}>
-                  <td style={{ padding: "6px" }}>{ev.eventType}</td>
-                  <td style={{ padding: "6px" }}>{ev.ipAddress || "—"}</td>
-                  <td style={{ padding: "6px", fontSize: "0.8rem", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis" }}>{ev.userAgent || "—"}</td>
-                  <td style={{ padding: "6px" }}>{new Date(ev.createdAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Events */}
+          <div className="card" style={{ padding: "0" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border-color)" }}>
+              <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Event History</h3>
+            </div>
+            {(!credential.events || credential.events.length === 0) ? (
+              <div style={{ padding: "32px", textAlign: "center", color: "var(--text-secondary)", fontSize: "13px" }}>No events found.</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    <th style={{ textAlign: "left", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>Type</th>
+                    <th style={{ textAlign: "left", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 500 }}>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {credential.events.map((ev) => (
+                    <tr key={ev.id} style={{ borderBottom: "1px solid var(--border-color)" }}>
+                      <td style={{ padding: "16px 24px", fontSize: "13px", color: "var(--text-primary)" }}>{ev.eventType}</td>
+                      <td style={{ padding: "16px 24px", fontSize: "13px", color: "var(--text-secondary)" }}>{new Date(ev.createdAt).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      {/* Email Logs */}
-      {credential.emailLogs && credential.emailLogs.length > 0 && (
-        <div style={{ marginTop: "16px" }}>
-          <h3>Email Logs</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Status</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Opened At</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Clicked At</th>
-                <th style={{ textAlign: "left", padding: "6px", borderBottom: "1px solid #e5e7eb" }}>Sent At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {credential.emailLogs.map((log) => (
-                <tr key={log.id}>
-                  <td style={{ padding: "6px" }}>{log.status}</td>
-                  <td style={{ padding: "6px" }}>{log.openedAt ? new Date(log.openedAt).toLocaleString() : "—"}</td>
-                  <td style={{ padding: "6px" }}>{log.clickedAt ? new Date(log.clickedAt).toLocaleString() : "—"}</td>
-                  <td style={{ padding: "6px" }}>{new Date(log.createdAt).toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+function InfoRow({ label, value }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: "12px", borderBottom: "1px solid var(--border-color)", fontSize: "13px" }}>
+      <span style={{ color: "var(--text-secondary)", fontWeight: 500, flexShrink: 0 }}>{label}</span>
+      <span style={{ color: "var(--text-primary)", textAlign: "right" }}>{value}</span>
     </div>
   );
 }

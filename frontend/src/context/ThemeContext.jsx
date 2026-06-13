@@ -10,12 +10,12 @@ export const ThemeProvider = ({ children }) => {
     });
 
     useEffect(() => {
-        // Apply theme class to <html> element for CSS variable switching
+        // Apply theme attribute to <html> element for CSS variable switching
         const root = document.documentElement;
         if (theme === 'dark') {
-            root.classList.add('dark-theme');
+            root.setAttribute('data-theme', 'dark');
         } else {
-            root.classList.remove('dark-theme');
+            root.removeAttribute('data-theme');
         }
         // Persist selection
         localStorage.setItem('theme', theme);

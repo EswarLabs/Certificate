@@ -6,13 +6,7 @@ import { createTemplate, publishTemplate } from "../services/templateServices";
 import { uploadImage } from "../services/uploadServices";
 import CanvasEditor from "../components/editor/CanvasEditor";
 import { createDefaultEditorData } from "../utils/editorDataRenderer";
-
-const ACCENT = "#3b82f6";
-const BG = "#0f172a";
-const SURFACE = "#1e293b";
-const BORDER = "#334155";
-const TEXT = "#f1f5f9";
-const MUTED = "#94a3b8";
+import { ArrowLeft, Plus, X } from "lucide-react";
 
 export default function TemplateCreate() {
   const { selectedOrg } = useOrg();
@@ -51,7 +45,6 @@ export default function TemplateCreate() {
     setThumbnailUploading(true);
     try {
       const res = await uploadImage(file, selectedWorkspace?.id);
-      // Assuming response contains image URL in `secure_url` or `url`
       const url = res.secure_url || res.url;
       setThumbnailUrl(url);
     } catch (err) {
@@ -142,56 +135,59 @@ export default function TemplateCreate() {
 
   if (!selectedOrg || !selectedWorkspace) {
     return (
-      <div style={{ padding: 40, color: MUTED, textAlign: "center" }}>
+      <div className="page-container" style={{ textAlign: "center", color: "var(--text-secondary)" }}>
         Please select an organization and workspace first.
       </div>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: BG, color: TEXT, fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
 
       {/* Top bar */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderBottom: `1px solid ${BORDER}`, background: SURFACE, flexShrink: 0, gap: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)", flexShrink: 0, gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <button
             onClick={() => navigate("/templates")}
-            style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 22, lineHeight: 1 }}
-          >←</button>
+            className="btn-icon"
+          >
+            <ArrowLeft size={20} />
+          </button>
           <div>
-            <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>NEW TEMPLATE</div>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 600, letterSpacing: "0.5px" }}>NEW TEMPLATE</div>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Template name…"
               required
-              style={{ background: "transparent", border: "none", borderBottom: `1px solid ${BORDER}`, color: TEXT, fontSize: 18, fontWeight: 700, outline: "none", width: 320, padding: "2px 0" }}
+              style={{ background: "transparent", border: "none", borderBottom: "1px solid var(--border-color)", color: "var(--text-primary)", fontSize: "16px", fontWeight: 600, outline: "none", width: "320px", padding: "4px 0" }}
             />
             {/* Thumbnail Upload */}
-            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
-              <label style={{ color: MUTED, fontSize: 12 }}>Thumbnail:</label>
-              <input type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={thumbnailUploading} />
-              {thumbnailUploading && <span style={{ color: MUTED, fontSize: 12 }}>Uploading...</span>}
-              {thumbnailUrl && <span style={{ color: ACCENT, fontSize: 12 }}>Uploaded</span>}
+            <div style={{ marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+              <label style={{ color: "var(--text-secondary)", fontSize: "12px", fontWeight: 500 }}>Thumbnail:</label>
+              <input type="file" accept="image/*" onChange={handleThumbnailUpload} disabled={thumbnailUploading} style={{ fontSize: "12px" }} />
+              {thumbnailUploading && <span style={{ color: "var(--text-secondary)", fontSize: "12px" }}>Uploading...</span>}
+              {thumbnailUrl && <span style={{ color: "var(--success)", fontSize: "12px" }}>Uploaded</span>}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {/* Orientation */}
-          <div style={{ display: "flex", background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", backgroundColor: "var(--bg-primary)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "4px" }}>
             {["LANDSCAPE", "PORTRAIT"].map((o) => (
               <button
                 key={o}
                 onClick={() => setOrientation(o)}
                 style={{
-                  background: orientation === o ? ACCENT : "transparent",
+                  backgroundColor: orientation === o ? "var(--bg-hover)" : "transparent",
                   border: "none",
-                  color: orientation === o ? "#fff" : MUTED,
-                  fontSize: 12,
-                  padding: "6px 14px",
+                  color: orientation === o ? "var(--text-primary)" : "var(--text-secondary)",
+                  borderRadius: "4px",
+                  fontSize: "12px",
+                  padding: "6px 12px",
                   cursor: "pointer",
-                  fontWeight: 600,
+                  fontWeight: 500,
                 }}
               >{o[0] + o.slice(1).toLowerCase()}</button>
             ))}
@@ -200,16 +196,7 @@ export default function TemplateCreate() {
           <button
             onClick={handleSubmit}
             disabled={loading || !name || !editorData}
-            style={{
-              background: loading ? "#1e3a5f" : ACCENT,
-              border: "none",
-              borderRadius: 8,
-              color: "#fff",
-              fontSize: 13,
-              fontWeight: 700,
-              padding: "8px 20px",
-              cursor: loading ? "not-allowed" : "pointer",
-            }}
+            className="btn btn-primary"
           >
             {loading ? "Saving…" : "Save Template"}
           </button>
@@ -217,7 +204,7 @@ export default function TemplateCreate() {
       </div>
 
       {error && (
-        <div style={{ background: "#450a0a", color: "#fca5a5", padding: "10px 24px", fontSize: 13, borderBottom: `1px solid #7f1d1d` }}>
+        <div style={{ backgroundColor: "var(--danger-light)", color: "var(--danger)", padding: "12px 24px", fontSize: "13px", fontWeight: 500 }}>
           ⚠ {error}
         </div>
       )}
@@ -226,54 +213,62 @@ export default function TemplateCreate() {
       <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
 
         {/* Left sidebar — Schema & settings */}
-        <div style={{ width: 200, background: SURFACE, borderRight: `1px solid ${BORDER}`, overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
+        <div style={{ width: "320px", backgroundColor: "var(--bg-secondary)", borderRight: "1px solid var(--border-color)", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
           
           {/* Description */}
-          <div style={{ padding: "16px 16px 0" }}>
-            <label style={labelStyle}>Description</label>
+          <div style={{ padding: "20px 20px 0" }}>
+            <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "8px", fontWeight: 500 }}>Description</label>
             <textarea
+              className="input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Template description…"
-              style={textareaStyle}
+              style={{ width: "100%", resize: "vertical" }}
             />
           </div>
 
           {/* Schema fields */}
-          <div style={{ padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Schema Fields</span>
-              <button onClick={addSchemaField} style={iconBtn}>+ Add</button>
+          <div style={{ padding: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Schema Fields</span>
+              <button onClick={addSchemaField} className="btn btn-secondary" style={{ padding: "4px 8px", fontSize: "11px", height: "auto" }}>
+                <Plus size={12} /> Add
+              </button>
             </div>
-            <p style={{ fontSize: 11, color: "#64748b", margin: "0 0 12px" }}>
-              Define variables to inject into text elements like <code style={{ color: ACCENT }}>{"{{key}}"}</code>
+            <p style={{ fontSize: "11px", color: "var(--text-tertiary)", margin: "0 0 16px" }}>
+              Define variables to inject into text elements like <code style={{ color: "var(--brand-primary)", fontFamily: "var(--font-mono)" }}>{"{{key}}"}</code>
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {schemaFields.map((field, i) => (
-                <div key={i} style={{ background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 8, padding: "10px 12px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                    <span style={{ fontSize: 11, color: MUTED }}>Field {i + 1}</span>
-                    <button onClick={() => removeSchemaField(i)} style={{ background: "none", border: "none", color: "#ef4444", cursor: "pointer", fontSize: 13 }}>✕</button>
+                <div key={i} className="card" style={{ padding: "12px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px", alignItems: "center" }}>
+                    <span style={{ fontSize: "11px", color: "var(--text-secondary)", fontWeight: 500 }}>Field {i + 1}</span>
+                    <button onClick={() => removeSchemaField(i)} className="btn-icon" style={{ color: "var(--danger)", padding: 2 }}>
+                      <X size={14} />
+                    </button>
                   </div>
                   <input
+                    className="input"
                     placeholder="Variable key (e.g. courseTitle)"
                     value={field.key}
                     onChange={(e) => updateSchemaField(i, "key", e.target.value)}
-                    style={{ ...fieldInput, marginBottom: 5 }}
+                    style={{ marginBottom: "8px" }}
                     required
                   />
                   <input
+                    className="input"
                     placeholder="Label (e.g. Course Title)"
                     value={field.label}
                     onChange={(e) => updateSchemaField(i, "label", e.target.value)}
-                    style={{ ...fieldInput, marginBottom: 5 }}
+                    style={{ marginBottom: "8px" }}
                   />
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     <select
+                      className="input"
                       value={field.type}
                       onChange={(e) => updateSchemaField(i, "type", e.target.value)}
-                      style={{ ...fieldInput, flex: 1 }}
+                      style={{ flex: 1, padding: "6px 8px" }}
                     >
                       <option value="text">Text</option>
                       <option value="date">Date</option>
@@ -281,11 +276,12 @@ export default function TemplateCreate() {
                       <option value="email">Email</option>
                       <option value="url">URL</option>
                     </select>
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: MUTED, whiteSpace: "nowrap" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", cursor: "pointer" }}>
                       <input
                         type="checkbox"
                         checked={field.required}
                         onChange={(e) => updateSchemaField(i, "required", e.target.checked)}
+                        style={{ cursor: "pointer" }}
                       />
                       Required
                     </label>
@@ -296,21 +292,21 @@ export default function TemplateCreate() {
           </div>
 
           {/* Preview test values */}
-          <div style={{ padding: "0 16px 16px" }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 }}>Preview Values</span>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 10 }}>
+          <div style={{ padding: "0 20px 20px" }}>
+            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Preview Values</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
               {[
                 { key: "recipientName", label: "Recipient Name" },
                 { key: "issuedAt", label: "Issued At" },
                 { key: "verificationUrl", label: "Verification URL" },
                 ...schemaFields.filter(f => f.key),
               ].map(({ key, label }) => (
-                <label key={key} style={{ fontSize: 11, color: MUTED }}>
-                  <span style={{ color: ACCENT }}>{`{{${key}}}`}</span>
+                <label key={key} style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--brand-primary)", fontFamily: "var(--font-mono)" }}>{`{{${key}}}`}</span>
                   <input
+                    className="input"
                     value={testValues[key] || ""}
                     onChange={(e) => setTestValues(prev => ({ ...prev, [key]: e.target.value }))}
-                    style={{ ...fieldInput, marginTop: 3 }}
                   />
                 </label>
               ))}
@@ -319,7 +315,7 @@ export default function TemplateCreate() {
         </div>
 
         {/* Canvas editor */}
-        <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, minHeight: 0, backgroundColor: "var(--bg-primary)" }}>
           {editorData ? (
             <CanvasEditor
               initialData={editorData}
@@ -328,7 +324,7 @@ export default function TemplateCreate() {
               onChange={setEditorData}
             />
           ) : (
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: MUTED }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-secondary)" }}>
               Initializing canvas…
             </div>
           )}
@@ -337,9 +333,3 @@ export default function TemplateCreate() {
     </div>
   );
 }
-
-// ─── shared micro-styles ────────────────────────────────────
-const labelStyle = { fontSize: 12, color: "#94a3b8", display: "block", marginBottom: 6, fontWeight: 600 };
-const textareaStyle = { width: "100%", background: "#0f172a", border: "1px solid #334155", borderRadius: 6, color: "#f1f5f9", fontSize: 13, padding: "8px 10px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" };
-const iconBtn = { background: "#3b82f6", border: "none", borderRadius: 6, color: "#fff", fontSize: 11, fontWeight: 700, padding: "4px 10px", cursor: "pointer" };
-const fieldInput = { width: "100%", background: "#1e293b", border: "1px solid #334155", borderRadius: 5, color: "#f1f5f9", fontSize: 12, padding: "5px 8px", boxSizing: "border-box" };

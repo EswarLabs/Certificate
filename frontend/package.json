@@ -13,8 +13,10 @@
     "@react-oauth/google": "^0.13.5",
     "axios": "^1.16.1",
     "konva": "^10.3.0",
+    "lucide-react": "^1.18.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "react-hot-toast": "^2.6.0",
     "react-konva": "^19.2.5",
     "react-router-dom": "^7.16.0",
     "use-image": "^1.1.4"

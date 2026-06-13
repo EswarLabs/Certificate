@@ -84,7 +84,6 @@ const OrgProvider = ({ children }) => {
         setError(null);
         try {
             const res = await listOrg(page, limit);
-            console.log("listOrg response:", res);
             if (res.success) {
                 // Backend returns: { success, organizations: { organizations: [...] } }
                 const orgList = res.organizations?.organizations || [];
@@ -98,6 +97,22 @@ const OrgProvider = ({ children }) => {
             setLoading(false);
         }
     }
+
+    const refreshOrg = async () => {
+        if (!selectedOrg?.id) return;
+        setLoading(true);
+        try {
+            const res = await getOrg(selectedOrg.id);
+            if (res.success && res.organization) {
+                setSelectedOrg(res.organization);
+                localStorage.setItem("org", JSON.stringify(res.organization));
+            }
+        } catch (err) {
+            console.error("Failed to refresh org", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         // Fetch organizations on provider mount
@@ -126,6 +141,7 @@ const OrgProvider = ({ children }) => {
         deleteOrganization,
         listOrganization,
         selectOrganization,
+        refreshOrg,
     }
     return (
         <OrgContext.Provider value={value}>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { createCredential } from "../services/credentialServices";
 import { listTemplates } from "../services/templateServices";
+import { ArrowLeft } from "lucide-react";
 
 export default function CredentialCreate() {
   const { selectedOrg } = useOrg();
@@ -74,58 +75,85 @@ export default function CredentialCreate() {
   };
 
   if (!selectedOrg || !selectedWorkspace) {
-    return <div><p>Please select an organization and workspace first.</p></div>;
+    return (
+      <div className="page-container">
+        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+          <p style={{ color: "var(--text-secondary)" }}>Please select an organization and workspace first.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h1>Create Credential</h1>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <div className="page-container">
+      <div className="page-header" style={{ marginBottom: "32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <Link to="/credentials" style={{ textDecoration: "none" }}>
+            <button className="btn-icon">
+              <ArrowLeft size={20} />
+            </button>
+          </Link>
+          <h1 className="page-title">Issue New Credential</h1>
+        </div>
+      </div>
 
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "600px" }}>
-        <label>
-          Template *
-          <select value={form.templateId} onChange={(e) => handleTemplateChange(e.target.value)} required style={{ display: "block", width: "100%" }}>
-            <option value="">Select a template</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        </label>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(400px, 1fr))", gap: "32px", maxWidth: "1200px" }}>
+        <div className="card">
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+            {error && <div style={{ backgroundColor: "var(--danger-light)", color: "var(--danger)", padding: "12px", borderRadius: "6px", fontSize: "13px", fontWeight: 500 }}>{error}</div>}
 
-        <label>
-          Recipient Name *
-          <input type="text" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} required style={{ display: "block", width: "100%" }} />
-        </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Template <span style={{ color: "var(--danger)" }}>*</span></label>
+              <select className="input" value={form.templateId} onChange={(e) => handleTemplateChange(e.target.value)} required>
+                <option value="">Select a template</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
 
-        <label>
-          Recipient Email *
-          <input type="email" value={form.recipientEmail} onChange={(e) => setForm({ ...form, recipientEmail: e.target.value })} required style={{ display: "block", width: "100%" }} />
-        </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Recipient Name <span style={{ color: "var(--danger)" }}>*</span></label>
+              <input className="input" type="text" value={form.recipientName} onChange={(e) => setForm({ ...form, recipientName: e.target.value })} required />
+            </div>
 
-        <label>
-          Expires At (optional)
-          <input type="datetime-local" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} style={{ display: "block", width: "100%" }} />
-        </label>
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Recipient Email <span style={{ color: "var(--danger)" }}>*</span></label>
+              <input className="input" type="email" value={form.recipientEmail} onChange={(e) => setForm({ ...form, recipientEmail: e.target.value })} required />
+            </div>
 
-        {/* Dynamic fields from template schema */}
-        {selectedTemplate?.schemaDefinition?.map((s) => (
-          <label key={s.key}>
-            {s.label || s.key} {s.required && "*"}
-            <input
-              type={s.type === "number" ? "number" : s.type === "date" ? "date" : "text"}
-              value={credentialData[s.key] || ""}
-              onChange={(e) => setCredentialData({ ...credentialData, [s.key]: e.target.value })}
-              required={s.required}
-              style={{ display: "block", width: "100%" }}
-            />
-          </label>
-        ))}
+            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Expires At (optional)</label>
+              <input className="input" type="datetime-local" value={form.expiresAt} onChange={(e) => setForm({ ...form, expiresAt: e.target.value })} />
+            </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creating..." : "Create Credential"}
-        </button>
-      </form>
+            {/* Dynamic fields from template schema */}
+            {selectedTemplate?.schemaDefinition?.length > 0 && (
+              <div style={{ marginTop: "16px", paddingTop: "24px", borderTop: "1px solid var(--border-color)", display: "flex", flexDirection: "column", gap: "24px" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, margin: 0 }}>Template Variables</h3>
+                {selectedTemplate.schemaDefinition.map((s) => (
+                  <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                    <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
+                      {s.label || s.key} {s.required && <span style={{ color: "var(--danger)" }}>*</span>}
+                    </label>
+                    <input
+                      className="input"
+                      type={s.type === "number" ? "number" : s.type === "date" ? "date" : "text"}
+                      value={credentialData[s.key] || ""}
+                      onChange={(e) => setCredentialData({ ...credentialData, [s.key]: e.target.value })}
+                      required={s.required}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button type="submit" disabled={loading} className="btn btn-primary" style={{ marginTop: "16px", alignSelf: "flex-start" }}>
+              {loading ? "Creating..." : "Issue Credential"}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

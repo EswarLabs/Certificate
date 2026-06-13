@@ -5,26 +5,13 @@ import useWorkspace from "../hooks/useWorkspace";
 import { getTemplate, updateTemplate, deleteTemplate, publishTemplate } from "../services/templateServices";
 import { uploadImage } from "../services/uploadServices";
 import CanvasEditor from "../components/editor/CanvasEditor";
+import { ArrowLeft, Edit2, Trash2, Check, Copy } from "lucide-react";
 
-const ACCENT = "#3b82f6";
-const BG = "#0f172a";
-const SURFACE = "#1e293b";
-const BORDER = "#334155";
-const TEXT = "#f1f5f9";
-const MUTED = "#94a3b8";
-
-// Status badge
 function Badge({ status }) {
-  const colors = {
-    true: { bg: "#14532d", text: "#86efac", label: "Published" },
-    false: { bg: "#1c1917", text: "#a8a29e", label: "Draft" },
-  };
-  const c = colors[String(status)] || colors["false"];
-  return (
-    <span style={{ background: c.bg, color: c.text, fontSize: 11, fontWeight: 700, padding: "2px 10px", borderRadius: 20, letterSpacing: 0.5 }}>
-      {c.label}
-    </span>
-  );
+  if (status) {
+    return <span style={{ padding: "2px 8px", backgroundColor: "var(--success-light)", color: "var(--success)", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>Published</span>;
+  }
+  return <span style={{ padding: "2px 8px", backgroundColor: "var(--bg-hover)", color: "var(--text-secondary)", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>Draft</span>;
 }
 
 export default function TemplateDetail() {
@@ -131,7 +118,7 @@ export default function TemplateDetail() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("Delete this template? This cannot be undone.")) return;
+    if (!window.confirm("Delete this template? This cannot be undone.")) return;
     try {
       await deleteTemplate(selectedOrg.id, selectedWorkspace.id, id);
       navigate("/templates");
@@ -140,43 +127,46 @@ export default function TemplateDetail() {
     }
   };
 
-  if (loading) return <div style={{ padding: 40, color: MUTED, textAlign: "center" }}>Loading…</div>;
-  if (error) return <div style={{ padding: 40, color: "#f87171" }}>Error: {error}</div>;
-  if (!template) return <div style={{ padding: 40, color: MUTED }}>Template not found</div>;
+  if (loading) return <div className="page-container" style={{ color: "var(--text-secondary)", textAlign: "center" }}>Loading…</div>;
+  if (error) return <div className="page-container" style={{ color: "var(--danger)", textAlign: "center" }}>Error: {error}</div>;
+  if (!template) return <div className="page-container" style={{ color: "var(--text-secondary)", textAlign: "center" }}>Template not found</div>;
 
   const schema = template.schemaDefinition || [];
 
   if (editing) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", height: "100vh", background: BG, color: TEXT }}>
+      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)", backgroundColor: "var(--bg-primary)", color: "var(--text-primary)" }}>
         {/* Edit top bar */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderBottom: `1px solid ${BORDER}`, background: SURFACE, flexShrink: 0, gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)", flexShrink: 0, gap: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-            <button onClick={() => setEditing(false)} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 22, lineHeight: 1 }}>←</button>
+            <button onClick={() => setEditing(false)} className="btn-icon">
+              <ArrowLeft size={20} />
+            </button>
             <div>
-              <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>EDITING TEMPLATE</div>
+              <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "2px", fontWeight: 600, letterSpacing: "0.5px" }}>EDITING TEMPLATE</div>
               <input
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
-                style={{ background: "transparent", border: "none", borderBottom: `1px solid ${BORDER}`, color: TEXT, fontSize: 18, fontWeight: 700, outline: "none", width: 320, padding: "2px 0" }}
+                style={{ background: "transparent", border: "none", borderBottom: "1px solid var(--border-color)", color: "var(--text-primary)", fontSize: "16px", fontWeight: 600, outline: "none", width: "320px", padding: "4px 0" }}
               />
             </div>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 8, overflow: "hidden" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <div style={{ display: "flex", backgroundColor: "var(--bg-primary)", border: "1px solid var(--border-color)", borderRadius: "6px", padding: "4px" }}>
               {["LANDSCAPE", "PORTRAIT"].map((o) => (
                 <button
                   key={o}
                   onClick={() => setEditedOrientation(o)}
                   style={{
-                    background: editedOrientation === o ? ACCENT : "transparent",
+                    backgroundColor: editedOrientation === o ? "var(--bg-hover)" : "transparent",
                     border: "none",
-                    color: editedOrientation === o ? "#fff" : MUTED,
-                    fontSize: 12,
-                    padding: "6px 14px",
+                    color: editedOrientation === o ? "var(--text-primary)" : "var(--text-secondary)",
+                    borderRadius: "4px",
+                    fontSize: "12px",
+                    padding: "6px 12px",
                     cursor: "pointer",
-                    fontWeight: 600,
+                    fontWeight: 500,
                   }}
                 >{o[0] + o.slice(1).toLowerCase()}</button>
               ))}
@@ -184,42 +174,43 @@ export default function TemplateDetail() {
             <button
               onClick={handleSave}
               disabled={saving}
-              style={{ background: saving ? "#1e3a5f" : ACCENT, border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 20px", cursor: saving ? "not-allowed" : "pointer" }}
+              className="btn btn-primary"
             >
               {saving ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </div>
 
-        {error && <div style={{ background: "#450a0a", color: "#fca5a5", padding: "10px 24px", fontSize: 13 }}>⚠ {error}</div>}
+        {error && <div style={{ backgroundColor: "var(--danger-light)", color: "var(--danger)", padding: "12px 24px", fontSize: "13px", fontWeight: 500 }}>⚠ {error}</div>}
 
         {/* Sidebar + Canvas */}
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
           {/* Sidebar */}
-          <div style={{ width: 260, background: SURFACE, borderRight: `1px solid ${BORDER}`, overflowY: "auto", flexShrink: 0, padding: 16 }}>
-            <label style={labelStyle}>Description</label>
+          <div style={{ width: "280px", backgroundColor: "var(--bg-secondary)", borderRight: "1px solid var(--border-color)", overflowY: "auto", flexShrink: 0, padding: "20px" }}>
+            <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "8px", fontWeight: 500 }}>Description</label>
             <textarea
+              className="input"
               value={editedDescription}
               onChange={(e) => setEditedDescription(e.target.value)}
               rows={3}
-              style={textareaStyle}
+              style={{ width: "100%", resize: "vertical" }}
             />
 
-            <div style={{ marginTop: 16 }}>
-              <span style={sectionLabel}>Preview Values</span>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8 }}>
+            <div style={{ marginTop: "24px" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Preview Values</span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "12px" }}>
                 {[
                   { key: "recipientName", label: "Recipient Name" },
                   { key: "issuedAt", label: "Issued At" },
                   { key: "verificationUrl", label: "Verification URL" },
                   ...schema.filter(f => f.key),
                 ].map(({ key, label }) => (
-                  <label key={key} style={{ fontSize: 11, color: MUTED }}>
-                    <span style={{ color: ACCENT }}>{`{{${key}}}`}</span>
+                  <label key={key} style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                    <span style={{ color: "var(--brand-primary)", fontFamily: "var(--font-mono)" }}>{`{{${key}}}`}</span>
                     <input
+                      className="input"
                       value={testValues[key] || ""}
                       onChange={(e) => setTestValues(prev => ({ ...prev, [key]: e.target.value }))}
-                      style={{ ...fieldInput, marginTop: 3 }}
                     />
                   </label>
                 ))}
@@ -228,7 +219,7 @@ export default function TemplateDetail() {
           </div>
 
           {/* Canvas editor */}
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, backgroundColor: "var(--bg-primary)" }}>
             {editedData ? (
               <CanvasEditor
                 key={editedOrientation}
@@ -238,7 +229,7 @@ export default function TemplateDetail() {
                 onChange={setEditedData}
               />
             ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: MUTED }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-secondary)" }}>
                 No canvas data. Start adding elements from the toolbar.
               </div>
             )}
@@ -248,59 +239,58 @@ export default function TemplateDetail() {
     );
   }
 
-  // ── Read-only view ────────────────────────────────────────────
+  // Read-only view
   return (
-    <div style={{ background: BG, color: TEXT, minHeight: "100vh", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div className="page-container">
       {/* Header */}
-      <div style={{ background: SURFACE, borderBottom: `1px solid ${BORDER}`, padding: "20px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <button onClick={() => navigate("/templates")} style={{ background: "none", border: "none", color: MUTED, cursor: "pointer", fontSize: 22 }}>←</button>
+      <div className="page-header" style={{ marginBottom: "32px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <button onClick={() => navigate("/templates")} className="btn-icon">
+            <ArrowLeft size={20} />
+          </button>
           <div>
-            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>{template.name}</h1>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
+            <h1 className="page-title">{template.name}</h1>
+            <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "4px" }}>
               <Badge status={template.isPublished} />
-              <span style={{ fontSize: 12, color: MUTED }}>v{template.templateVersion}</span>
-              <span style={{ fontSize: 12, color: MUTED }}>·</span>
-              <span style={{ fontSize: 12, color: MUTED }}>{template.orientation}</span>
+              <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>v{template.templateVersion}</span>
+              <span style={{ fontSize: "13px", color: "var(--border-color)" }}>|</span>
+              <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>{template.orientation}</span>
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            onClick={() => setEditing(true)}
-            style={{ background: ACCENT, border: "none", borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 700, padding: "8px 20px", cursor: "pointer" }}
-          >Edit Template</button>
-          <button
-            onClick={handleDelete}
-            style={{ background: "#450a0a", border: "none", borderRadius: 8, color: "#f87171", fontSize: 13, fontWeight: 700, padding: "8px 16px", cursor: "pointer" }}
-          >Delete</button>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button onClick={() => setEditing(true)} className="btn btn-secondary">
+            <Edit2 size={16} /> Edit Template
+          </button>
+          <button onClick={handleDelete} className="btn btn-secondary" style={{ color: "var(--danger)", borderColor: "var(--danger-light)" }}>
+            <Trash2 size={16} />
+          </button>
         </div>
       </div>
 
-      <div style={{ padding: "32px", display: "grid", gridTemplateColumns: "1fr 2fr", gap: 32, maxWidth: 1400, margin: "0 auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "32px" }}>
 
         {/* Left info column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {/* Metadata card */}
           <InfoCard title="Template Info">
-            <InfoRow label="ID" value={<code style={{ fontSize: 11, color: MUTED }}>{template.id}</code>} />
+            <InfoRow label="ID" value={<code style={{ fontSize: "12px", color: "var(--text-secondary)", fontFamily: "var(--font-mono)" }}>{template.id}</code>} />
             <InfoRow label="Description" value={template.description || "—"} />
             <InfoRow label="Version" value={`v${template.templateVersion}`} />
             <InfoRow label="Orientation" value={template.orientation} />
-            <InfoRow label="Published" value={template.isPublished ? `Yes — ${new Date(template.publishedAt).toLocaleDateString()}` : "No"} />
-            <InfoRow label="Created" value={new Date(template.createdAt).toLocaleString()} />
-            <InfoRow label="Updated" value={new Date(template.updatedAt).toLocaleString()} />
+            <InfoRow label="Published" value={template.isPublished ? `Yes (${new Date(template.publishedAt).toLocaleDateString()})` : "No"} />
+            <InfoRow label="Created" value={new Date(template.createdAt).toLocaleDateString()} />
           </InfoCard>
 
           {/* Schema definition card */}
           {schema.length > 0 && (
             <InfoCard title="Schema Fields">
               {schema.map((f, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", borderBottom: i < schema.length - 1 ? `1px solid ${BORDER}` : "none" }}>
-                  <code style={{ color: ACCENT, fontSize: 12 }}>{`{{${f.key}}}`}</code>
-                  <span style={{ color: MUTED, fontSize: 12 }}>{f.label}</span>
-                  <span style={{ marginLeft: "auto", fontSize: 11, color: "#64748b", background: "#1e293b", padding: "1px 6px", borderRadius: 4 }}>{f.type}</span>
-                  {f.required && <span style={{ fontSize: 11, color: "#f59e0b" }}>req</span>}
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "12px", padding: "8px 0", borderBottom: i < schema.length - 1 ? "1px solid var(--border-color)" : "none" }}>
+                  <code style={{ color: "var(--brand-primary)", fontSize: "13px", fontFamily: "var(--font-mono)" }}>{`{{${f.key}}}`}</code>
+                  <span style={{ color: "var(--text-primary)", fontSize: "13px" }}>{f.label}</span>
+                  <span style={{ marginLeft: "auto", fontSize: "11px", color: "var(--text-secondary)", backgroundColor: "var(--bg-hover)", padding: "2px 8px", borderRadius: "12px" }}>{f.type}</span>
+                  {f.required && <span style={{ fontSize: "11px", color: "var(--warning)" }}>Req</span>}
                 </div>
               ))}
             </InfoCard>
@@ -308,19 +298,19 @@ export default function TemplateDetail() {
 
           {/* Preview values */}
           <InfoCard title="Preview Variable Values">
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               {[
                 { key: "recipientName" },
                 { key: "issuedAt" },
                 { key: "verificationUrl" },
                 ...schema.filter(f => f.key),
               ].map(({ key }) => (
-                <label key={key} style={{ fontSize: 11, color: MUTED }}>
-                  <span style={{ color: ACCENT }}>{`{{${key}}}`}</span>
+                <label key={key} style={{ display: "flex", flexDirection: "column", gap: "4px", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  <span style={{ color: "var(--brand-primary)", fontFamily: "var(--font-mono)" }}>{`{{${key}}}`}</span>
                   <input
+                    className="input"
                     value={testValues[key] || ""}
                     onChange={(e) => setTestValues(prev => ({ ...prev, [key]: e.target.value }))}
-                    style={{ ...fieldInput, marginTop: 3, display: "block" }}
                   />
                 </label>
               ))}
@@ -330,21 +320,23 @@ export default function TemplateDetail() {
 
         {/* Right: Canvas preview */}
         <div>
-          <h3 style={{ margin: "0 0 16px", color: MUTED, fontSize: 12, textTransform: "uppercase", letterSpacing: 1, fontWeight: 700 }}>Canvas Preview</h3>
-          <div style={{ borderRadius: 12, overflow: "auto", border: `1px solid ${BORDER}`, maxHeight: 800, width: "100%", maxWidth: "100%" }}>
-            {template.editorData ? (
-              <CanvasEditor
-                key={`${id}-${template.orientation}`}
-                initialData={template.editorData}
-                orientation={template.orientation}
-                variables={testValues}
-                onChange={() => {}} // read-only — suppress saves
-              />
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: MUTED, background: SURFACE }}>
-                No canvas data for this template.
-              </div>
-            )}
+          <h3 style={{ margin: "0 0 16px", color: "var(--text-primary)", fontSize: "14px", fontWeight: 600 }}>Canvas Preview</h3>
+          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ maxHeight: "800px", width: "100%", overflow: "auto", backgroundColor: "var(--bg-secondary)" }}>
+              {template.editorData ? (
+                <CanvasEditor
+                  key={`${id}-${template.orientation}`}
+                  initialData={template.editorData}
+                  orientation={template.orientation}
+                  variables={testValues}
+                  onChange={() => {}} // read-only
+                />
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "400px", color: "var(--text-secondary)" }}>
+                  No canvas data for this template.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -352,11 +344,10 @@ export default function TemplateDetail() {
   );
 }
 
-// ─── micro-components ───────────────────────────────────────
 function InfoCard({ title, children }) {
   return (
-    <div style={{ background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 20 }}>
-      <h3 style={{ margin: "0 0 16px", fontSize: 12, color: MUTED, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>{title}</h3>
+    <div className="card">
+      <h3 style={{ margin: "0 0 16px", fontSize: "14px", color: "var(--text-primary)", fontWeight: 600 }}>{title}</h3>
       {children}
     </div>
   );
@@ -364,14 +355,9 @@ function InfoCard({ title, children }) {
 
 function InfoRow({ label, value }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "6px 0", borderBottom: `1px solid #1e293b`, fontSize: 13 }}>
-      <span style={{ color: MUTED, flexShrink: 0, marginRight: 12 }}>{label}</span>
-      <span style={{ color: TEXT, textAlign: "right" }}>{value}</span>
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "8px 0", borderBottom: "1px solid var(--border-color)", fontSize: "13px" }}>
+      <span style={{ color: "var(--text-secondary)", flexShrink: 0, marginRight: "12px", fontWeight: 500 }}>{label}</span>
+      <span style={{ color: "var(--text-primary)", textAlign: "right" }}>{value}</span>
     </div>
   );
 }
-
-const labelStyle = { fontSize: 12, color: MUTED, display: "block", marginBottom: 6, fontWeight: 600 };
-const sectionLabel = { fontSize: 12, fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 1 };
-const textareaStyle = { width: "100%", background: "#0f172a", border: `1px solid ${BORDER}`, borderRadius: 6, color: TEXT, fontSize: 13, padding: "8px 10px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" };
-const fieldInput = { width: "100%", background: "#1e293b", border: `1px solid ${BORDER}`, borderRadius: 5, color: TEXT, fontSize: 12, padding: "5px 8px", boxSizing: "border-box" };

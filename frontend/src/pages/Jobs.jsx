@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listJobs, getJob } from "../services/jobServices";
+import { RefreshCw, Eye, X, Activity, AlertCircle } from "lucide-react";
 
 export default function Jobs() {
   const { selectedOrg } = useOrg();
@@ -51,143 +52,197 @@ export default function Jobs() {
     }
   };
 
-  const statusColor = (status) => {
+  const StatusBadge = ({ status }) => {
+    let colorClass = "";
+    let bgClass = "";
     switch (status) {
-      case "pending": return "#f59e0b";
-      case "in_progress": return "#3b82f6";
-      case "completed": return "#22c55e";
-      case "failed": return "#ef4444";
-      default: return "#6b7280";
+      case "pending": colorClass = "var(--warning)"; bgClass = "var(--warning-light)"; break;
+      case "in_progress": colorClass = "var(--brand-primary)"; bgClass = "var(--brand-primary-light)"; break;
+      case "completed": colorClass = "var(--success)"; bgClass = "var(--success-light)"; break;
+      case "failed": colorClass = "var(--danger)"; bgClass = "var(--danger-light)"; break;
+      default: colorClass = "var(--text-secondary)"; bgClass = "var(--bg-hover)"; break;
+    }
+    return (
+      <span style={{ backgroundColor: bgClass, color: colorClass, padding: "2px 8px", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>
+        {status}
+      </span>
+    );
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "pending": return "var(--warning)";
+      case "in_progress": return "var(--brand-primary)";
+      case "completed": return "var(--success)";
+      case "failed": return "var(--danger)";
+      default: return "var(--text-secondary)";
     }
   };
 
   if (!selectedOrg || !selectedWorkspace) {
-    return <div><p>Please select an organization and workspace first.</p></div>;
+    return (
+      <div className="page-container">
+        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
+          <p style={{ color: "var(--text-secondary)" }}>Please select an organization and workspace first.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <h1>Background Jobs</h1>
-
-      {/* Filters */}
-      <div style={{ display: "flex", gap: "12px", margin: "12px 0" }}>
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-        </select>
-        <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
-          <option value="">All Types</option>
-          <option value="batch_credentials">Batch Credentials</option>
-          <option value="bulk_issue">Bulk Issue</option>
-        </select>
-        <button onClick={fetchJobs}>Refresh</button>
+    <div className="page-container">
+      <div className="page-header" style={{ marginBottom: "24px" }}>
+        <div>
+          <h1 className="page-title">Background Jobs</h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", marginTop: "4px" }}>Monitor asynchronous tasks and batch operations</p>
+        </div>
+        <div style={{ display: "flex", gap: "12px" }}>
+          <button onClick={fetchJobs} className="btn btn-secondary" disabled={loading}>
+            <RefreshCw size={16} className={loading ? "spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
-      {loading && <p>Loading...</p>}
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Job ID</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Type</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Status</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Progress</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Created</th>
-            <th style={{ textAlign: "left", padding: "8px", borderBottom: "2px solid #e5e7eb" }}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {jobs.map((job) => (
-            <tr key={job.id} style={{ borderBottom: "1px solid #f3f4f6" }}>
-              <td style={{ padding: "8px", fontFamily: "monospace", fontSize: "0.8rem" }}>{job.id}</td>
-              <td style={{ padding: "8px" }}>{job.type}</td>
-              <td style={{ padding: "8px" }}>
-                <span style={{ color: "#fff", backgroundColor: statusColor(job.status), padding: "2px 8px", borderRadius: "9999px", fontSize: "0.8rem" }}>
-                  {job.status}
-                </span>
-              </td>
-              <td style={{ padding: "8px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <div style={{ width: "100px", height: "8px", backgroundColor: "#e5e7eb", borderRadius: "4px" }}>
-                    <div style={{ width: `${job.progress}%`, height: "100%", backgroundColor: statusColor(job.status), borderRadius: "4px" }} />
-                  </div>
-                  <span style={{ fontSize: "0.85rem" }}>{job.progress}%</span>
-                </div>
-              </td>
-              <td style={{ padding: "8px" }}>{new Date(job.createdAt).toLocaleString()}</td>
-              <td style={{ padding: "8px" }}>
-                <button onClick={() => handleViewJob(job.id)}>Details</button>
-              </td>
-            </tr>
-          ))}
-          {jobs.length === 0 && !loading && (
-            <tr>
-              <td colSpan={6} style={{ padding: "24px", textAlign: "center", color: "#9ca3af" }}>
-                No jobs found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {total > limit && (
-        <div style={{ display: "flex", gap: "8px", marginTop: "16px" }}>
-          <button disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span>Page {page} of {Math.ceil(total / limit)}</span>
-          <button disabled={page * limit >= total} onClick={() => setPage(page + 1)}>Next</button>
+      <div className="card" style={{ padding: 0 }}>
+        {/* Filters */}
+        <div style={{ display: "flex", gap: "16px", padding: "16px 24px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)" }}>
+          <select className="input" style={{ width: "200px" }} value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+          </select>
+          <select className="input" style={{ width: "200px" }} value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
+            <option value="">All Types</option>
+            <option value="batch_credentials">Batch Credentials</option>
+            <option value="bulk_issue">Bulk Issue</option>
+          </select>
         </div>
-      )}
 
-      {/* Job Detail Modal */}
-      {selectedJob && (
-        <div style={{ marginTop: "24px", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "16px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h2>Job Detail</h2>
-            <button onClick={() => setSelectedJob(null)}>Close</button>
-          </div>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        {error && <div style={{ backgroundColor: "var(--danger-light)", color: "var(--danger)", padding: "12px 24px", fontSize: "13px", fontWeight: 500, borderBottom: "1px solid var(--border-color)" }}>{error}</div>}
+
+        <div style={{ overflowX: "auto" }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Created</th>
+                <th style={{ width: "80px", textAlign: "right" }}>Actions</th>
+              </tr>
+            </thead>
             <tbody>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>ID</td><td style={{ padding: "6px", fontFamily: "monospace" }}>{selectedJob.id}</td></tr>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Type</td><td style={{ padding: "6px" }}>{selectedJob.type}</td></tr>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Status</td><td style={{ padding: "6px" }}>{selectedJob.status}</td></tr>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Progress</td><td style={{ padding: "6px" }}>{selectedJob.progress}%</td></tr>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Created</td><td style={{ padding: "6px" }}>{new Date(selectedJob.createdAt).toLocaleString()}</td></tr>
-              <tr><td style={{ padding: "6px", fontWeight: "bold" }}>Updated</td><td style={{ padding: "6px" }}>{new Date(selectedJob.updatedAt).toLocaleString()}</td></tr>
+              {jobs.map((job) => (
+                <tr key={job.id}>
+                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>{job.id}</td>
+                  <td style={{ fontWeight: 500, color: "var(--text-primary)" }}>{job.type}</td>
+                  <td><StatusBadge status={job.status} /></td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{ width: "120px", height: "6px", backgroundColor: "var(--bg-hover)", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ width: `${job.progress}%`, height: "100%", backgroundColor: getStatusColor(job.status), borderRadius: "3px", transition: "width 0.3s ease" }} />
+                      </div>
+                      <span style={{ fontSize: "12px", color: "var(--text-secondary)", minWidth: "32px" }}>{job.progress}%</span>
+                    </div>
+                  </td>
+                  <td style={{ color: "var(--text-secondary)", fontSize: "13px" }}>{new Date(job.createdAt).toLocaleString()}</td>
+                  <td style={{ textAlign: "right" }}>
+                    <button onClick={() => handleViewJob(job.id)} className="btn-icon">
+                      <Eye size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {jobs.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={6} style={{ padding: "48px 24px", textAlign: "center", color: "var(--text-secondary)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+                      <Activity size={32} style={{ color: "var(--border-color)" }} />
+                      <p>No jobs found.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
+        </div>
 
-          {selectedJob.payload && (
-            <div style={{ marginTop: "12px" }}>
-              <h3>Payload</h3>
-              <pre style={{ background: "#f9fafb", padding: "12px", borderRadius: "8px", fontSize: "0.85rem", overflow: "auto" }}>
-                {JSON.stringify(selectedJob.payload, null, 2)}
-              </pre>
+        {total > limit && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 24px", borderTop: "1px solid var(--border-color)" }}>
+            <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} jobs</span>
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button className="btn btn-secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
+              <button className="btn btn-secondary" disabled={page * limit >= total} onClick={() => setPage(page + 1)}>Next</button>
             </div>
-          )}
+          </div>
+        )}
+      </div>
 
-          {selectedJob.result && (
-            <div style={{ marginTop: "12px" }}>
-              <h3>Result</h3>
-              <pre style={{ background: "#f0fdf4", padding: "12px", borderRadius: "8px", fontSize: "0.85rem", overflow: "auto" }}>
-                {JSON.stringify(selectedJob.result, null, 2)}
-              </pre>
+      {/* Job Detail Modal Overlay */}
+      {selectedJob && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.5)", zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px" }} onClick={() => setSelectedJob(null)}>
+          <div className="card" style={{ width: "100%", maxWidth: "800px", maxHeight: "90vh", overflowY: "auto", padding: 0 }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)", position: "sticky", top: 0, zIndex: 10 }}>
+              <h2 style={{ fontSize: "16px", fontWeight: 600, margin: 0, color: "var(--text-primary)" }}>Job Details</h2>
+              <button onClick={() => setSelectedJob(null)} className="btn-icon">
+                <X size={20} />
+              </button>
             </div>
-          )}
+            
+            <div style={{ padding: "24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "32px" }}>
+                <InfoRow label="Job ID" value={<span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>{selectedJob.id}</span>} />
+                <InfoRow label="Type" value={selectedJob.type} />
+                <InfoRow label="Status" value={<StatusBadge status={selectedJob.status} />} />
+                <InfoRow label="Progress" value={`${selectedJob.progress}%`} />
+                <InfoRow label="Created At" value={new Date(selectedJob.createdAt).toLocaleString()} />
+                <InfoRow label="Updated At" value={new Date(selectedJob.updatedAt).toLocaleString()} />
+              </div>
 
-          {selectedJob.error && (
-            <div style={{ marginTop: "12px" }}>
-              <h3>Error</h3>
-              <pre style={{ background: "#fef2f2", padding: "12px", borderRadius: "8px", fontSize: "0.85rem", color: "#ef4444" }}>
-                {selectedJob.error}
-              </pre>
+              {selectedJob.payload && (
+                <div style={{ marginBottom: "24px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px" }}>Payload</h3>
+                  <pre style={{ backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-color)", padding: "16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--text-secondary)", overflowX: "auto" }}>
+                    {JSON.stringify(selectedJob.payload, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedJob.result && (
+                <div style={{ marginBottom: "24px" }}>
+                  <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px" }}>Result</h3>
+                  <pre style={{ backgroundColor: "var(--success-light)", border: "1px solid var(--success)", padding: "16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--success)", overflowX: "auto" }}>
+                    {JSON.stringify(selectedJob.result, null, 2)}
+                  </pre>
+                </div>
+              )}
+
+              {selectedJob.error && (
+                <div>
+                  <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <AlertCircle size={16} color="var(--danger)" /> Error
+                  </h3>
+                  <pre style={{ backgroundColor: "var(--danger-light)", border: "1px solid var(--danger)", padding: "16px", borderRadius: "8px", fontSize: "12px", fontFamily: "var(--font-mono)", color: "var(--danger)", overflowX: "auto", whiteSpace: "pre-wrap" }}>
+                    {selectedJob.error}
+                  </pre>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+      <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-secondary)" }}>{label}</span>
+      <span style={{ fontSize: "14px", color: "var(--text-primary)" }}>{value}</span>
     </div>
   );
 }

@@ -94,6 +94,22 @@ const WorkspaceProvider = ({ children }) => {
         }
     };
 
+    const refreshWorkspace = async () => {
+        if (!selectedWorkspace?.id || !selectedWorkspace?.organizationId) return;
+        setLoading(true);
+        try {
+            const res = await getWorkspace(selectedWorkspace.organizationId, selectedWorkspace.id);
+            if (res.id) {
+                setSelectedWorkspace(res);
+                localStorage.setItem("workspace", JSON.stringify(res));
+            }
+        } catch (err) {
+            console.error("Failed to refresh workspace", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateCurrentWorkspace = async (organizationId, workspaceId, data) => {
         setLoading(true);
         setError(null);
@@ -225,6 +241,7 @@ const WorkspaceProvider = ({ children }) => {
         fetchWorkspaces,
         createNewWorkspace,
         fetchWorkspace,
+        refreshWorkspace,
         updateCurrentWorkspace,
         deleteCurrentWorkspace,
         selectWorkspace,
