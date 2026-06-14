@@ -32,12 +32,11 @@ export default function CredentialBatch() {
     const fetchData = async () => {
       if (!selectedOrg?.id || !selectedWorkspace?.id) return;
       try {
-        const [tmplRes, fileRes] = await Promise.all([
-          listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 100),
-          listFiles(selectedOrg.id, selectedWorkspace.id, 1, 100),
-        ]);
-        if (tmplRes.success) setTemplates(tmplRes.templates || []);
-        if (fileRes.success) setFiles(fileRes.files || []);
+        const tmplRes = await listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 100);
+        const fileRes = await listFiles(selectedOrg.id, selectedWorkspace.id, 1, 100);
+        setTemplates(tmplRes.templates || []);
+        // Only allow CSV files for batch import
+        setFiles((fileRes.files || []).filter(f => f.mimeType === 'text/csv' || f.fileName.endsWith('.csv')));
       } catch (err) {
         console.error(err);
       }
@@ -180,9 +179,9 @@ export default function CredentialBatch() {
 
                 <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
                   <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>
-                    Recipient Email Column <span style={{ color: "var(--danger)" }}>*</span>
+                    Recipient Email Column (Optional)
                   </label>
-                  <input className="input" type="text" value={form.recipientEmailColumn} onChange={(e) => setForm({ ...form, recipientEmailColumn: e.target.value })} required placeholder="e.g. email" />
+                  <input className="input" type="text" value={form.recipientEmailColumn} onChange={(e) => setForm({ ...form, recipientEmailColumn: e.target.value })} placeholder="e.g. email" />
                 </div>
               </div>
 

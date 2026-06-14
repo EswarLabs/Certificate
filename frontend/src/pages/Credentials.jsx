@@ -4,6 +4,7 @@ import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listCredentials, bulkIssueCredentials } from "../services/credentialServices";
 import { Plus, Upload, Play, Inbox } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function Credentials() {
   const { selectedOrg } = useOrg();
@@ -64,11 +65,17 @@ export default function Credentials() {
     if (selected.length === 0) return;
     if (!window.confirm(`Issue ${selected.length} credentials?`)) return;
     try {
-      await bulkIssueCredentials(selectedOrg.id, selectedWorkspace.id, selected);
-      setSelected([]);
-      fetchCredentials();
+      const res = await bulkIssueCredentials(selectedOrg.id, selectedWorkspace.id, selected);
+      if (res.success || res.job) {
+        toast.success("Bulk issue job started. They will be issued shortly.");
+        setSelected([]);
+        // Fetch credentials again to refresh UI, though they may take a moment to update
+        setTimeout(() => fetchCredentials(), 1500);
+      } else {
+        toast.error(res.message || "Failed to bulk issue credentials");
+      }
     } catch (err) {
-      alert(err.message);
+      toast.error(err.message);
     }
   };
 
