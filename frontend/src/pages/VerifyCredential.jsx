@@ -58,11 +58,19 @@ export default function VerifyCredential() {
   const compileTemplate = (editorData, data, recipientName, issuedAt) => {
     if (!editorData) return "";
 
+    const issuedDateStr = issuedAt ? new Date(issuedAt).toLocaleDateString() : "";
+    
     const replacements = {
       recipientName: recipientName || "",
-      issuedAt: issuedAt ? new Date(issuedAt).toLocaleDateString() : "",
+      recipient_name: recipientName || "",
+      issuedAt: issuedDateStr,
+      issuedDate: issuedDateStr,
+      issued_date: issuedDateStr,
+      "issued date": issuedDateStr,
       verificationCode: credential.verificationCode,
+      verification_code: credential.verificationCode,
       verificationUrl: `${window.location.origin}/verify/${credential.verificationCode}`,
+      verification_url: `${window.location.origin}/verify/${credential.verificationCode}`,
       ...(data && typeof data === "object" ? data : {}),
     };
 
@@ -222,23 +230,44 @@ export default function VerifyCredential() {
             {/* Live Certificate Preview Frame */}
             {credential.template && (
               <div>
-                <h3>Certificate Preview</h3>
-                <iframe
-                  title="Certificate Preview"
-                  srcDoc={compileTemplate(
-                    credential.template.editorData,
-                    credential.credentialData,
-                    credential.recipientName,
-                    credential.issuedAt
-                  )}
-                  style={{
-                    width: "100%",
-                    height: "700px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "6px",
-                    boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.06)",
-                  }}
-                />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                   <h3>Certificate Preview</h3>
+                   {credential.pdfUrl && (
+                     <a href={credential.pdfUrl} target="_blank" rel="noreferrer" style={{ padding: "6px 12px", backgroundColor: "#2563eb", color: "white", textDecoration: "none", borderRadius: "4px", fontSize: "0.9rem" }}>
+                       Download PDF
+                     </a>
+                   )}
+                </div>
+                {credential.imageUrl ? (
+                  <img
+                    src={credential.imageUrl}
+                    alt="Certificate"
+                    style={{
+                      width: "100%",
+                      height: "auto",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      boxShadow: "0 2px 4px 0 rgba(0,0,0,0.06)",
+                    }}
+                  />
+                ) : (
+                  <iframe
+                    title="Certificate Preview"
+                    srcDoc={compileTemplate(
+                      credential.template.editorData,
+                      credential.credentialData,
+                      credential.recipientName,
+                      credential.issuedAt
+                    )}
+                    style={{
+                      width: "100%",
+                      height: "700px",
+                      border: "1px solid #e5e7eb",
+                      borderRadius: "6px",
+                      boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.06)",
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>

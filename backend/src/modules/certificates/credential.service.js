@@ -1,10 +1,13 @@
 import { prisma } from "../../lib/prisma.js";
 import { createCredentialSchema, createBatchCredentialSchema, issueBatchCredentialsSchema } from "./credential.validation.js";
-import { sendCredentialEmail } from "../email/email.service.js";
+import { emailQueue } from "../../queues/email.queue.js";
+import { jobQueue } from "../../queues/job.queue.js";
+import { imageQueue } from "../../queues/image.queue.js";
+import { pdfQueue } from "../../queues/pdf.queue.js";
 import crypto from "crypto";
 
 // Helper to generate verification code
-const generateVerificationCode = () => {
+export const generateVerificationCode = () => {
   return "CERT-" + crypto.randomBytes(8).toString("hex").toUpperCase();
 };
 
@@ -16,7 +19,7 @@ class ValidationError extends Error {
 }
 
 // Helper to validate credential data against template schema definition
-const validateCredentialData = (template, credentialData) => {
+export const validateCredentialData = (template, credentialData) => {
   const schema = template.schemaDefinition;
   if (!schema || !Array.isArray(schema)) return;
 
@@ -121,6 +124,10 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
     where: { id: orgId },
     data: { credentialsUsed: { increment: 1 } }
   });
+
+  // Trigger image and pdf generation
+  await imageQueue.add("generateImage", { credentialId: credential.id });
+  await pdfQueue.add("generatePdf", { credentialId: credential.id });
 
   return credential;
 };
@@ -234,10 +241,11 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
     },
   });
 
-  // Trigger email sending asynchronously in the background
+  // Trigger email sending via BullMQ queue
   if (updated.recipientEmail) {
-    sendCredentialEmail(updated.id, userId).catch((err) => {
-      console.error(`Automatic email sending failed for credential ${id}:`, err);
+    await emailQueue.add("sendEmail", {
+      credentialId: updated.id,
+      userId
     });
   }
 
@@ -289,7 +297,7 @@ export const revokeCredential = async (id, orgId, workspaceId, userId) => {
 };
 
 // Simple CSV parser
-function parseCSV(csvText) {
+export function parseCSV(csvText) {
   const lines = csvText.split(/\r?\n/).filter((line) => line.trim() !== "");
   if (lines.length === 0) return [];
 
@@ -307,7 +315,7 @@ function parseCSV(csvText) {
   return records;
 }
 
-function parseCSVLine(line) {
+export function parseCSVLine(line) {
   const result = [];
   let current = "";
   let inQuotes = false;
@@ -381,130 +389,18 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
     },
   });
 
-  // Run processing in background
-  setImmediate(async () => {
-    try {
-      await prisma.job.update({
-        where: { id: job.id },
-        data: { status: "RUNNING", startedAt: new Date(), progress: 10 },
-      });
-
-      // Load CSV data
-      let csvContent = "";
-      if (file.metadata && typeof file.metadata === "object" && file.metadata.testCsvContent) {
-        csvContent = file.metadata.testCsvContent;
-      } else if (file.publicUrl && file.publicUrl.startsWith("http")) {
-        try {
-          const response = await fetch(file.publicUrl);
-          if (response.ok) {
-            csvContent = await response.text();
-          } else {
-            throw new Error(`Failed to fetch file content: ${response.statusText}`);
-          }
-        } catch (fetchErr) {
-          console.error("Fetch CSV error, fallback to mock data:", fetchErr);
-          csvContent = `name,email,course,date\n"Mock User","mock@example.com","Batch Course","2026-02-01"`;
-        }
-      } else {
-        csvContent = `name,email,course,date\n"Mock User","mock@example.com","Batch Course","2026-02-01"`;
-      }
-
-      await prisma.job.update({ where: { id: job.id }, data: { progress: 40 } });
-
-      const records = parseCSV(csvContent);
-      if (records.length === 0) {
-        throw new Error("CSV file is empty or invalid");
-      }
-
-      const createdCredentials = [];
-      const totalRecords = records.length;
-
-      for (let i = 0; i < totalRecords; i++) {
-        const record = records[i];
-        const recipientName = record[validated.recipientNameColumn];
-        const recipientEmail = validated.recipientEmailColumn ? record[validated.recipientEmailColumn] : null;
-
-        if (!recipientName) continue;
-
-        const credentialData = {};
-        for (const [destKey, srcColumn] of Object.entries(validated.dataMapping)) {
-          credentialData[destKey] = record[srcColumn] || "";
-        }
-
-        validateCredentialData(template, credentialData);
-
-        let verificationCode = generateVerificationCode();
-        let isUnique = false;
-        while (!isUnique) {
-          const existing = await prisma.credential.findUnique({ where: { verificationCode } });
-          if (!existing) {
-            isUnique = true;
-          } else {
-            verificationCode = generateVerificationCode();
-          }
-        }
-
-        const cred = await prisma.credential.create({
-          data: {
-            workspaceId,
-            organizationId: orgId,
-            templateId: validated.templateId,
-            recipientName,
-            recipientEmail,
-            credentialData,
-            verificationCode,
-            status: "DRAFT",
-            expiresAt: validated.expiresAt,
-            createdById: userId,
-          },
-        });
-
-        // Log CREATED event
-        await prisma.credentialEvent.create({
-          data: {
-            credentialId: cred.id,
-            eventType: "CREATED",
-            metadata: { viaJobId: job.id },
-          },
-        });
-
-        createdCredentials.push(cred.id);
-
-        const progressPercent = Math.min(40 + Math.floor((i / totalRecords) * 50), 90);
-        await prisma.job.update({ where: { id: job.id }, data: { progress: progressPercent } });
-      }
-
-      if (createdCredentials.length > 0) {
-        await prisma.organization.update({
-          where: { id: orgId },
-          data: { credentialsUsed: { increment: createdCredentials.length } },
-        });
-      }
-
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          status: "COMPLETED",
-          progress: 100,
-          completedAt: new Date(),
-          result: {
-            totalProcessed: totalRecords,
-            createdCount: createdCredentials.length,
-            credentialIds: createdCredentials,
-          },
-        },
-      });
-    } catch (jobErr) {
-      console.error("Batch Job Failed:", jobErr);
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          status: "FAILED",
-          errorMessage: jobErr.message,
-          completedAt: new Date(),
-        },
-      });
-    }
+  // Queue job in background instead of setImmediate
+  await jobQueue.add("csvImport", {
+    jobId: job.id,
+    workspaceId,
+    orgId,
+    userId,
+    fileId: validated.fileId,
+    templateId: validated.templateId,
+    recipientNameColumn: validated.recipientNameColumn,
+    recipientEmailColumn: validated.recipientEmailColumn,
+    dataMapping: validated.dataMapping,
+    expiresAt: validated.expiresAt
   });
 
   return job;
@@ -536,80 +432,12 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
     },
   });
 
-  // Run processing in background
-  setImmediate(async () => {
-    try {
-      await prisma.job.update({
-        where: { id: job.id },
-        data: { status: "RUNNING", startedAt: new Date(), progress: 10 },
-      });
-
-      const { credentialIds } = validated;
-      const total = credentialIds.length;
-      let issuedCount = 0;
-
-      for (let i = 0; i < total; i++) {
-        const credId = credentialIds[i];
-
-        try {
-          const credential = await prisma.credential.findFirst({
-            where: { id: credId, workspaceId },
-          });
-
-          if (credential && credential.status !== "ISSUED") {
-            const updated = await prisma.credential.update({
-              where: { id: credId },
-              data: {
-                status: "ISSUED",
-                issuedAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
-
-            await prisma.credentialEvent.create({
-              data: {
-                credentialId: credId,
-                eventType: "ISSUED",
-                metadata: { issuedBy: userId, viaJobId: job.id },
-              },
-            });
-
-            if (updated.recipientEmail) {
-              await sendCredentialEmail(updated.id, userId).catch((emailErr) => {
-                console.error(`Automatic email sending failed for credential ${credId} in batch:`, emailErr);
-              });
-            }
-
-            issuedCount++;
-          }
-        } catch (credErr) {
-          console.error(`Failed to issue credential ${credId} in batch:`, credErr);
-        }
-
-        const progressPercent = Math.min(10 + Math.floor((i / total) * 85), 95);
-        await prisma.job.update({ where: { id: job.id }, data: { progress: progressPercent } });
-      }
-
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          status: "COMPLETED",
-          progress: 100,
-          completedAt: new Date(),
-          result: { totalRequested: total, issuedCount },
-        },
-      });
-    } catch (jobErr) {
-      console.error("Bulk Issue Job Failed:", jobErr);
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          status: "FAILED",
-          errorMessage: jobErr.message,
-          completedAt: new Date(),
-        },
-      });
-    }
+  // Queue job in background instead of setImmediate
+  await jobQueue.add("bulkIssue", {
+    jobId: job.id,
+    credentialIds: validated.credentialIds,
+    userId,
+    workspaceId
   });
 
   return job;

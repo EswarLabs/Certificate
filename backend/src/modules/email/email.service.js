@@ -1,6 +1,7 @@
 import nodemailer from "nodemailer";
 import { prisma } from "../../lib/prisma.js";
 import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
+import { emailQueue } from "../../queues/email.queue.js";
 
 // ─── Factory: get Nodemailer transporter ─────────────────────────────────────
 
@@ -108,15 +109,23 @@ export const sendCredentialEmail = async (credentialId, userId) => {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const verificationUrl = `${frontendUrl}/verify/${credential.verificationCode}`;
 
-  // Build variable replacement map
+  const issuedDateStr = credential.issuedAt
+    ? new Date(credential.issuedAt).toLocaleDateString()
+    : "";
+
   const replacements = {
     recipientName: credential.recipientName,
+    recipient_name: credential.recipientName,
     recipientEmail: credential.recipientEmail,
+    recipient_email: credential.recipientEmail,
     verificationCode: credential.verificationCode,
+    verification_code: credential.verificationCode,
     verificationUrl,
-    issuedAt: credential.issuedAt
-      ? new Date(credential.issuedAt).toLocaleDateString()
-      : "",
+    verification_url: verificationUrl,
+    issuedAt: issuedDateStr,
+    issuedDate: issuedDateStr,
+    issued_date: issuedDateStr,
+    "issued date": issuedDateStr,
     ...(typeof credential.credentialData === "object" ? credential.credentialData : {}),
   };
 
@@ -204,6 +213,17 @@ function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl,
       </p>
     `;
 
+  const certImageBlock = credential.imageUrl
+    ? `<img src="${credential.imageUrl}" alt="Certificate Preview" style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 30px 0;" />`
+    : `<div class="cert-preview-card">
+        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">Certificate Recipient</div>
+        <div style="font-size: 22px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">${credential.recipientName}</div>
+      </div>`;
+
+  const pdfDownloadBlock = credential.pdfUrl
+    ? `<div style="margin-top: 15px;"><a href="${rewriteUrl(credential.pdfUrl)}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: bold; font-size: 15px;">📥 Download PDF Certificate</a></div>`
+    : '';
+
   // Open tracking pixel appended at the end (after all href rewrites are already done inline)
   const trackingPixel = `<img src="${backendUrl}/api/email/track/open/${emailLogId}" width="1" height="1" alt="" style="display:none;" />`;
 
@@ -234,13 +254,11 @@ function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl,
 
           ${courseTitleBlock}
 
-          <div class="cert-preview-card">
-            <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">Certificate Recipient</div>
-            <div style="font-size: 22px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">${credential.recipientName}</div>
-          </div>
+          ${certImageBlock}
 
           <div style="margin: 35px 0;">
             <a class="btn-view" href="${trackedVerificationUrl}" target="_blank">View Certificate &amp; Credentials</a>
+            ${pdfDownloadBlock}
           </div>
 
           <div class="verification-info">

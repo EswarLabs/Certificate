@@ -191,6 +191,26 @@ export default function CredentialDetail() {
               </div>
             </div>
           )}
+
+          {(credential.imageUrl || credential.pdfUrl) && (
+            <div className="card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Certificate Preview</h3>
+                {credential.pdfUrl && (
+                  <a href={credential.pdfUrl} target="_blank" rel="noreferrer" style={{ fontSize: "13px", color: "var(--brand-primary)", textDecoration: "none", fontWeight: 500 }}>
+                    Download PDF
+                  </a>
+                )}
+              </div>
+              {credential.imageUrl ? (
+                <img src={credential.imageUrl} alt="Certificate" style={{ width: "100%", height: "auto", borderRadius: "6px", border: "1px solid var(--border-color)", display: "block" }} />
+              ) : (
+                <div style={{ padding: "24px", textAlign: "center", color: "var(--text-secondary)", fontSize: "13px", backgroundColor: "var(--bg-secondary)", borderRadius: "6px" }}>
+                  Generating image...
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right Column */}

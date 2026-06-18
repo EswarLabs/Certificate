@@ -16,6 +16,7 @@ import Jobs from "./pages/Jobs";
 import EmailLogs from "./pages/EmailLogs";
 import Settings from "./pages/Settings";
 import VerifyCredential from "./pages/VerifyCredential";
+import Landing from "./pages/Landing";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -61,6 +62,9 @@ function App() {
               }
             />
 
+            {/* Public Landing Page Route */}
+            <Route path="/" element={<Landing />} />
+
             {/* Public Verification Route */}
             <Route path="/verify/:code?" element={<VerifyCredential />} />
 
@@ -93,12 +97,12 @@ function App() {
               <Route path="/email-logs" element={<EmailLogs />} />
               <Route path="/settings" element={<Settings />} />
 
-              {/* Root Redirect to Dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" />} />
+              {/* Redirect any other protected routes to Dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" />} />
             </Route>
 
-            {/* Fallback Catch-all */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            {/* Fallback Catch-all for non-logged-in users */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
       </WorkspaceProvider>

@@ -17,6 +17,7 @@ import userRoutes from "./modules/users/user.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import fileRoutes from "./modules/files/files.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+// import { registerLimiter, loginLimiter, emailLimiter, rateLimit } from "./middlewares/rateLimit.middleware.js";
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ BigInt.prototype.toJSON = function () {
 
 const app = express();
 
-const allowedOrigins = process.env.CORS_ORIGIN 
+const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
   : ["http://localhost:5173", "http://localhost:5174", "http://localhost:8000"];
 
@@ -50,6 +51,7 @@ app.use(cookieParser());
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use("/api/auth", authRoutes);
+// app.use("/api/auth", loginLimiter, authRoutes);
 app.use("/api/organizations", orgRoutes);
 app.use("/api/organizations/:organizationId/members", membershipRoutes);
 app.use("/api/organizations/:organizationId/workspaces", workspaceRoutes);
