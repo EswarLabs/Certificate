@@ -3,26 +3,31 @@ import { Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listCredentials, bulkIssueCredentials } from "../services/credentialServices";
-import { Plus, Upload, Play, Inbox } from "lucide-react";
+import { Plus, Upload, Play, Inbox, Search, Filter } from "lucide-react";
 import toast from "react-hot-toast";
+
+const STATUS_BADGE = {
+  ISSUED:  "badge badge-success",
+  DRAFT:   "badge badge-warning",
+  REVOKED: "badge badge-danger",
+};
 
 export default function Credentials() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
+
   const [credentials, setCredentials] = useState([]);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
-  const [emailFilter, setEmailFilter] = useState("");
-  const [selected, setSelected] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const limit = 10;
+  const [emailFilter, setEmailFilter]   = useState("");
+  const [selected, setSelected]         = useState([]);
+  const [loading, setLoading]           = useState(false);
+  const limit = 15;
 
   const fetchCredentials = async () => {
     if (!selectedOrg?.id || !selectedWorkspace?.id) return;
     setLoading(true);
-    setError(null);
     try {
       const res = await listCredentials(
         selectedOrg.id, selectedWorkspace.id, page, limit,
@@ -31,11 +36,9 @@ export default function Credentials() {
       if (res.success) {
         setCredentials(res.credentials || []);
         setTotal(res.total || 0);
-      } else {
-        setError(res.message || "Failed to fetch credentials");
       }
     } catch (err) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
@@ -46,33 +49,25 @@ export default function Credentials() {
     setSelected([]);
   }, [selectedOrg?.id, selectedWorkspace?.id, page, statusFilter, emailFilter]);
 
-  const toggleSelect = (id) => {
-    setSelected((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
-  };
+  const toggleSelect = (id) =>
+    setSelected(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
 
   const toggleAll = () => {
-    const draftIds = credentials.filter((c) => c.status === "DRAFT" || c.status === "draft").map((c) => c.id);
-    if (selected.length === draftIds.length) {
-      setSelected([]);
-    } else {
-      setSelected(draftIds);
-    }
+    const draftIds = credentials.filter(c => c.status === "DRAFT").map(c => c.id);
+    setSelected(selected.length === draftIds.length ? [] : draftIds);
   };
 
   const handleBulkIssue = async () => {
-    if (selected.length === 0) return;
-    if (!window.confirm(`Issue ${selected.length} credentials?`)) return;
+    if (!selected.length) return;
+    if (!window.confirm(`Issue ${selected.length} credential(s)?`)) return;
     try {
       const res = await bulkIssueCredentials(selectedOrg.id, selectedWorkspace.id, selected);
       if (res.success || res.job) {
-        toast.success("Bulk issue job started. They will be issued shortly.");
+        toast.success("Bulk issue job started!");
         setSelected([]);
-        // Fetch credentials again to refresh UI, though they may take a moment to update
-        setTimeout(() => fetchCredentials(), 1500);
+        setTimeout(fetchCredentials, 1500);
       } else {
-        toast.error(res.message || "Failed to bulk issue credentials");
+        toast.error(res.message || "Failed");
       }
     } catch (err) {
       toast.error(err.message);
@@ -82,122 +77,148 @@ export default function Credentials() {
   if (!selectedOrg || !selectedWorkspace) {
     return (
       <div className="page-container">
-        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
-          <p style={{ color: "var(--text-secondary)" }}>Please select an organization and workspace first.</p>
+        <div className="empty-state">
+          <Inbox size={40} />
+          <h3>No workspace selected</h3>
+          <p>Please select an organization and workspace first.</p>
         </div>
       </div>
     );
   }
 
+  const draftCount = credentials.filter(c => c.status === "DRAFT").length;
+
   return (
     <div className="page-container">
+      {/* Header */}
       <div className="page-header">
-        <h1 className="page-title">Credentials</h1>
-        <div style={{ display: "flex", gap: "12px" }}>
-          <Link to="/credentials/batch" style={{ textDecoration: "none" }}>
-            <button className="btn btn-secondary">
-              <Upload size={16} /> Batch Import
-            </button>
+        <div>
+          <h1 className="page-title">Credentials</h1>
+          <p className="page-subtitle">{total} total · {selectedWorkspace.name}</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link to="/credentials/batch" className="btn btn-secondary">
+            <Upload size={14} /> Batch Import
           </Link>
-          <Link to="/credentials/create" style={{ textDecoration: "none" }}>
-            <button className="btn btn-primary">
-              <Plus size={16} /> New Credential
-            </button>
+          <Link to="/credentials/create" className="btn btn-primary">
+            <Plus size={14} /> New Credential
           </Link>
         </div>
       </div>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "12px", marginBottom: "24px", alignItems: "center", flexWrap: "wrap" }}>
-        <select 
-          className="input" 
-          style={{ width: "auto" }}
-          value={statusFilter} 
-          onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-        >
-          <option value="">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="ISSUED">Issued</option>
-          <option value="REVOKED">Revoked</option>
-        </select>
-        <input
-          className="input"
-          style={{ width: "240px" }}
-          placeholder="Filter by email..."
-          value={emailFilter}
-          onChange={(e) => { setEmailFilter(e.target.value); setPage(1); }}
-        />
+      <div className="card" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180 }}>
+          <Search size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+          <input
+            className="input"
+            style={{ border: "none", outline: "none", boxShadow: "none", padding: "4px 0", background: "transparent" }}
+            placeholder="Filter by email..."
+            value={emailFilter}
+            onChange={e => { setEmailFilter(e.target.value); setPage(1); }}
+          />
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {["", "DRAFT", "ISSUED", "REVOKED"].map(s => (
+            <button
+              key={s}
+              className={`btn btn-sm ${statusFilter === s ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => { setStatusFilter(s); setPage(1); }}
+            >
+              {s || "All"}
+            </button>
+          ))}
+        </div>
         {selected.length > 0 && (
-          <button className="btn btn-primary" onClick={handleBulkIssue}>
-            <Play size={16} /> Issue {selected.length} Selected
+          <button className="btn btn-success btn-sm" onClick={handleBulkIssue}>
+            <Play size={13} /> Issue {selected.length} selected
           </button>
         )}
       </div>
 
-      {loading && <p style={{ color: "var(--text-secondary)", marginBottom: "16px" }}>Loading...</p>}
-      {error && <p style={{ color: "var(--danger)", marginBottom: "16px" }}>{error}</p>}
-
+      {/* Table */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-          <thead>
-            <tr style={{ borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)" }}>
-              <th style={{ padding: "12px 16px", width: "40px" }}>
-                <input type="checkbox" onChange={toggleAll} checked={selected.length > 0 && selected.length === credentials.filter((c) => c.status === "DRAFT" || c.status === "draft").length} />
-              </th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Recipient</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Email</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Template</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Status</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Verification Code</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontWeight: 500, color: "var(--text-secondary)" }}>Issued At</th>
-            </tr>
-          </thead>
-          <tbody>
-            {credentials.map((c, idx) => (
-              <tr key={c.id} style={{ borderBottom: idx === credentials.length - 1 ? "none" : "1px solid var(--border-color)" }}>
-                <td style={{ padding: "12px 16px" }}>
-                  {(c.status === "DRAFT" || c.status === "draft") && (
-                    <input type="checkbox" checked={selected.includes(c.id)} onChange={() => toggleSelect(c.id)} />
-                  )}
-                </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <Link to={`/credentials/${c.id}`} style={{ fontWeight: 500, color: "var(--text-primary)" }}>{c.recipientName}</Link>
-                </td>
-                <td style={{ padding: "12px 16px" }}>{c.recipientEmail || "—"}</td>
-                <td style={{ padding: "12px 16px" }}>{c.template?.name || c.templateId}</td>
-                <td style={{ padding: "12px 16px" }}>
-                  <span style={{ 
-                    padding: "2px 8px", 
-                    borderRadius: "12px", 
-                    fontSize: "11px", 
-                    fontWeight: 500,
-                    backgroundColor: (c.status === "ISSUED" || c.status === "issued") ? "var(--success-light)" : "var(--bg-hover)",
-                    color: (c.status === "ISSUED" || c.status === "issued") ? "var(--success)" : "var(--text-secondary)"
-                  }}>
-                    {c.status}
-                  </span>
-                </td>
-                <td style={{ padding: "12px 16px", fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>{c.verificationCode}</td>
-                <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>{c.issuedAt ? new Date(c.issuedAt).toLocaleString() : "—"}</td>
-              </tr>
-            ))}
-            {credentials.length === 0 && !loading && (
-              <tr>
-                <td colSpan={7} style={{ padding: "48px 24px", textAlign: "center", color: "var(--text-secondary)" }}>
-                  <Inbox size={32} style={{ margin: "0 auto 12px", color: "var(--text-tertiary)" }} />
-                  <p>No credentials found.</p>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {loading ? (
+          <div style={{ padding: 48, textAlign: "center" }}><span className="spinner" /></div>
+        ) : credentials.length === 0 ? (
+          <div className="empty-state">
+            <Inbox size={36} />
+            <h3>No credentials found</h3>
+            <p>Try adjusting your filters or create a new credential.</p>
+          </div>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}>
+                    <input
+                      type="checkbox"
+                      onChange={toggleAll}
+                      checked={selected.length === draftCount && draftCount > 0}
+                      style={{ cursor: "pointer" }}
+                    />
+                  </th>
+                  <th>Recipient</th>
+                  <th>Template</th>
+                  <th>Status</th>
+                  <th>Preview</th>
+                  <th>Code</th>
+                  <th>Issued</th>
+                </tr>
+              </thead>
+              <tbody>
+                {credentials.map(c => (
+                  <tr key={c.id}>
+                    <td>
+                      {c.status === "DRAFT" && (
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(c.id)}
+                          onChange={() => toggleSelect(c.id)}
+                          style={{ cursor: "pointer" }}
+                        />
+                      )}
+                    </td>
+                    <td>
+                      <Link to={`/credentials/${c.id}`} style={{ fontWeight: 500, color: "var(--text-primary)" }}>
+                        {c.recipientName}
+                      </Link>
+                      <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{c.recipientEmail || "—"}</div>
+                    </td>
+                    <td style={{ color: "var(--text-secondary)" }}>{c.template?.name || c.templateId}</td>
+                    <td>
+                      <span className={STATUS_BADGE[c.status] || "badge badge-neutral"}>{c.status}</span>
+                    </td>
+                    <td>
+                      {c.imageUrl ? (
+                        <img src={c.imageUrl} alt="" style={{ width: 64, height: 40, objectFit: "cover", borderRadius: 4, border: "1px solid var(--border-color)" }} />
+                      ) : (
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>Generating…</span>
+                      )}
+                    </td>
+                    <td>
+                      <code style={{ fontSize: 11, color: "var(--brand-primary)", fontFamily: "var(--font-mono)", background: "var(--brand-primary-light)", padding: "2px 6px", borderRadius: 4 }}>
+                        {c.verificationCode}
+                      </code>
+                    </td>
+                    <td style={{ fontSize: 12, color: "var(--text-tertiary)" }}>
+                      {c.issuedAt ? new Date(c.issuedAt).toLocaleDateString() : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
+      {/* Pagination */}
       {total > limit && (
-        <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "24px", justifyContent: "flex-end" }}>
-          <button className="btn btn-secondary" disabled={page === 1} onClick={() => setPage(page - 1)}>Previous</button>
-          <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Page {page} of {Math.ceil(total / limit)}</span>
-          <button className="btn btn-secondary" disabled={page * limit >= total} onClick={() => setPage(page + 1)}>Next</button>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 20 }}>
+          <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+          <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Page {page} of {Math.ceil(total / limit)}</span>
+          <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>Next</button>
         </div>
       )}
     </div>

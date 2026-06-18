@@ -1,161 +1,163 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listCredentials } from "../services/credentialServices";
 import { listTemplates } from "../services/templateServices";
 import { listJobs } from "../services/jobServices";
-import { FileText, GraduationCap, Settings2, Activity } from "lucide-react";
+import { FileText, GraduationCap, Settings2, ArrowRight, PlusCircle, Activity } from "lucide-react";
 
 export default function Dashboard() {
-  const { user, logoutUser } = useAuth();
+  const { user } = useAuth();
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
-  const navigate = useNavigate();
 
-  const [stats, setStats] = useState({
-    credentials: 0,
-    templates: 0,
-    jobs: 0
-  });
+  const [stats, setStats] = useState({ credentials: 0, templates: 0, jobs: 0 });
   const [recentCreds, setRecentCreds] = useState([]);
-  const [loadingStats, setLoadingStats] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    async function fetchStats() {
-      if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-      setLoadingStats(true);
-      try {
-        const [credRes, tempRes, jobRes] = await Promise.all([
-          listCredentials(selectedOrg.id, selectedWorkspace.id, 1, 5),
-          listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 1),
-          listJobs(selectedOrg.id, selectedWorkspace.id, 1, 1)
-        ]);
-
-        setStats({
-          credentials: credRes.total || 0,
-          templates: tempRes.total || 0,
-          jobs: jobRes.total || 0
-        });
-
-        if (credRes.credentials) {
-          setRecentCreds(credRes.credentials);
-        }
-      } catch (err) {
-        console.error("Failed to fetch dashboard stats", err);
-      } finally {
-        setLoadingStats(false);
-      }
-    }
-    fetchStats();
+    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
+    setLoading(true);
+    Promise.all([
+      listCredentials(selectedOrg.id, selectedWorkspace.id, 1, 5),
+      listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 1),
+      listJobs(selectedOrg.id, selectedWorkspace.id, 1, 1),
+    ]).then(([credRes, tempRes, jobRes]) => {
+      setStats({
+        credentials: credRes.total || 0,
+        templates: tempRes.total || 0,
+        jobs: jobRes.total || 0,
+      });
+      setRecentCreds(credRes.credentials || []);
+    }).catch(console.error)
+      .finally(() => setLoading(false));
   }, [selectedOrg?.id, selectedWorkspace?.id]);
 
-  const handleLogout = async () => {
-    await logoutUser();
-    navigate("/login");
+  const statusBadge = (status) => {
+    const map = {
+      ISSUED: "badge badge-success",
+      DRAFT: "badge badge-warning",
+      REVOKED: "badge badge-danger",
+    };
+    return <span className={map[status] || "badge badge-neutral"}>{status}</span>;
   };
+
+  if (!selectedWorkspace) {
+    return (
+      <div className="page-container">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-subtitle">Welcome back, {user?.firstName || user?.email}</p>
+          </div>
+        </div>
+        <div className="card" style={{ textAlign: "center", padding: "64px 24px" }}>
+          <div className="empty-state">
+            <Activity size={40} />
+            <h3>No Workspace Selected</h3>
+            <p>Select an organization and workspace from the sidebar to get started.</p>
+            <Link to="/organizations" className="btn btn-primary" style={{ marginTop: 8 }}>
+              Set Up Organization <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: "32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      {/* Header */}
+      <div className="page-header">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
+            <img src={user.avatarUrl} alt="" style={{ width: 40, height: 40, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-color)" }} />
           ) : (
-            <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "var(--bg-secondary)", display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)" }}>
+            <div style={{ width: 40, height: 40, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 15 }}>
               {user?.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
             </div>
           )}
           <div>
-            <h1 className="page-title">Overview</h1>
-            <span style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Welcome back, {user?.firstName || user?.email}</span>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-subtitle">Welcome back, {user?.firstName || user?.email}</p>
           </div>
         </div>
-        <button onClick={handleLogout} className="btn btn-secondary">
-          Logout
-        </button>
+        <Link to="/credentials/create" className="btn btn-primary">
+          <PlusCircle size={15} /> New Credential
+        </Link>
       </div>
-      
-      {!selectedWorkspace ? (
-        <div className="card" style={{ textAlign: "center", padding: "48px 24px" }}>
-          <Activity size={32} style={{ margin: "0 auto 16px", color: "var(--text-tertiary)" }} />
-          <h3 style={{ marginBottom: "8px" }}>No Workspace Selected</h3>
-          <p style={{ color: "var(--text-secondary)" }}>Please select or create an organization and workspace to view analytics.</p>
+
+      {/* Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+        <div className="stat-card">
+          <div className="stat-label"><GraduationCap size={14} /> Credentials</div>
+          <div className="stat-value">{loading ? "—" : stats.credentials}</div>
+          <Link to="/credentials" style={{ fontSize: 12, color: "var(--brand-primary)", display: "flex", alignItems: "center", gap: 4 }}>
+            View all <ArrowRight size={11} />
+          </Link>
         </div>
-      ) : (
-        <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px", marginBottom: "32px" }}>
-            <div className="card" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)" }}>
-                <GraduationCap size={16} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>Total Credentials</span>
-              </div>
-              <div style={{ fontSize: "24px", fontWeight: 600 }}>{loadingStats ? "-" : stats.credentials}</div>
-            </div>
-            
-            <div className="card" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)" }}>
-                <FileText size={16} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>Active Templates</span>
-              </div>
-              <div style={{ fontSize: "24px", fontWeight: 600 }}>{loadingStats ? "-" : stats.templates}</div>
-            </div>
+        <div className="stat-card">
+          <div className="stat-label"><FileText size={14} /> Templates</div>
+          <div className="stat-value">{loading ? "—" : stats.templates}</div>
+          <Link to="/templates" style={{ fontSize: 12, color: "var(--brand-primary)", display: "flex", alignItems: "center", gap: 4 }}>
+            View all <ArrowRight size={11} />
+          </Link>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label"><Settings2 size={14} /> Jobs Processed</div>
+          <div className="stat-value">{loading ? "—" : stats.jobs}</div>
+          <Link to="/jobs" style={{ fontSize: 12, color: "var(--brand-primary)", display: "flex", alignItems: "center", gap: 4 }}>
+            View all <ArrowRight size={11} />
+          </Link>
+        </div>
+      </div>
 
-            <div className="card" style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--text-secondary)" }}>
-                <Settings2 size={16} />
-                <span style={{ fontSize: "13px", fontWeight: 500 }}>Jobs Processed</span>
-              </div>
-              <div style={{ fontSize: "24px", fontWeight: 600 }}>{loadingStats ? "-" : stats.jobs}</div>
-            </div>
+      {/* Recent credentials */}
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="card-header">
+          <span className="card-title">Recent Credentials</span>
+          <Link to="/credentials" className="btn btn-ghost btn-sm">View all <ArrowRight size={12} /></Link>
+        </div>
+        {loading ? (
+          <div style={{ padding: 32, textAlign: "center" }}><span className="spinner" /></div>
+        ) : recentCreds.length === 0 ? (
+          <div className="empty-state">
+            <GraduationCap size={32} />
+            <h3>No credentials yet</h3>
+            <p>Create your first credential to get started.</p>
           </div>
-
-          <h2 style={{ fontSize: "16px", fontWeight: 600, marginBottom: "16px" }}>Recent Activity</h2>
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            {recentCreds.length === 0 ? (
-              <div style={{ padding: "24px", textAlign: "center", color: "var(--text-secondary)", fontSize: "13px" }}>
-                {loadingStats ? "Loading..." : "No recent credentials issued."}
-              </div>
-            ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border-color)", backgroundColor: "var(--bg-secondary)" }}>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500, color: "var(--text-secondary)" }}>Recipient</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500, color: "var(--text-secondary)" }}>Status</th>
-                    <th style={{ padding: "12px 16px", textAlign: "left", fontWeight: 500, color: "var(--text-secondary)" }}>Date</th>
+        ) : (
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Recipient</th>
+                  <th>Template</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentCreds.map(cred => (
+                  <tr key={cred.id}>
+                    <td>
+                      <Link to={`/credentials/${cred.id}`} style={{ color: "var(--text-primary)", fontWeight: 500 }}>
+                        {cred.recipientName}
+                      </Link>
+                      <div style={{ fontSize: 11, color: "var(--text-tertiary)" }}>{cred.recipientEmail || "—"}</div>
+                    </td>
+                    <td style={{ color: "var(--text-secondary)" }}>{cred.template?.name || "—"}</td>
+                    <td>{statusBadge(cred.status)}</td>
+                    <td style={{ color: "var(--text-tertiary)", fontSize: 12 }}>{new Date(cred.createdAt).toLocaleDateString()}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {recentCreds.map((cred, idx) => (
-                    <tr key={cred.id} style={{ borderBottom: idx === recentCreds.length - 1 ? "none" : "1px solid var(--border-color)" }}>
-                      <td style={{ padding: "12px 16px" }}>
-                        <div style={{ fontWeight: 500 }}>{cred.recipientName}</div>
-                        <div style={{ color: "var(--text-secondary)", fontSize: "12px" }}>{cred.recipientEmail || "—"}</div>
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        <span style={{ 
-                          padding: "2px 8px", 
-                          borderRadius: "12px", 
-                          fontSize: "11px", 
-                          fontWeight: 500,
-                          backgroundColor: cred.status === "ISSUED" ? "var(--success-light)" : "var(--bg-hover)",
-                          color: cred.status === "ISSUED" ? "var(--success)" : "var(--text-secondary)"
-                        }}>
-                          {cred.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: "12px 16px", color: "var(--text-secondary)" }}>
-                        {new Date(cred.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                ))}
+              </tbody>
+            </table>
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   );
 }

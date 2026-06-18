@@ -2,464 +2,268 @@ import React, { useEffect, useState } from 'react';
 import useWorkspace from '../hooks/useWorkspace';
 import useOrg from '../hooks/useOrg';
 import { listUsers } from '../services/userServices';
+import { Folder, Plus, Check, Trash2, UserPlus, UserMinus, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
 
-function Workspaces() {
+export default function Workspaces() {
   const {
-    workspaces,
-    selectedWorkspace,
-    members,
-    loading,
-    error,
-    fetchWorkspaces,
-    selectWorkspace,
-    createNewWorkspace,
-    deleteCurrentWorkspace,
-    fetchMembers,
-    addNewMember,
-    removeMemberFromOrg,
-    updateRole,
+    workspaces, selectedWorkspace, members, loading, error,
+    fetchWorkspaces, selectWorkspace, createNewWorkspace,
+    deleteCurrentWorkspace, fetchMembers, addNewMember,
+    removeMemberFromOrg, updateRole,
   } = useWorkspace();
 
   const { selectedOrg } = useOrg();
 
-  // Local state
-  const [newWsName, setNewWsName] = useState('');
-  const [wsActionLoading, setWsActionLoading] = useState(false);
-  
-  // Member invite search
-  const [searchEmail, setSearchEmail] = useState('');
-  const [foundUser, setFoundUser] = useState(null);
+  const [newWsName, setNewWsName]         = useState('');
+  const [wsActionLoading, setWsAction]    = useState(false);
+  const [searchEmail, setSearchEmail]     = useState('');
+  const [foundUser, setFoundUser]         = useState(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState(null);
-  const [inviteRole, setInviteRole] = useState('MEMBER');
-  const [memberActionLoading, setMemberActionLoading] = useState(false);
+  const [searchError, setSearchError]     = useState(null);
+  const [inviteRole, setInviteRole]       = useState('MEMBER');
+  const [memberAction, setMemberAction]   = useState(false);
+  const [showCreate, setShowCreate]       = useState(false);
 
-  // Fetch workspaces when selected org changes
   useEffect(() => {
-    if (selectedOrg?.id) {
-      fetchWorkspaces(selectedOrg.id);
-    }
+    if (selectedOrg?.id) { fetchWorkspaces(selectedOrg.id); fetchMembers(selectedOrg.id); }
   }, [selectedOrg?.id]);
 
-  // Fetch members when selected org changes
   useEffect(() => {
-    if (selectedOrg?.id) {
-      fetchMembers(selectedOrg.id);
-    }
-  }, [selectedOrg?.id]);
-
-  // Auto-select first workspace if none selected
-  useEffect(() => {
-    if (!selectedWorkspace && workspaces.length > 0) {
-      selectWorkspace(workspaces[0]);
-    }
+    if (!selectedWorkspace && workspaces.length > 0) selectWorkspace(workspaces[0]);
   }, [workspaces, selectedWorkspace]);
 
   const handleCreateWorkspace = async (e) => {
     e.preventDefault();
     if (!newWsName.trim() || !selectedOrg?.id) return;
-    setWsActionLoading(true);
+    setWsAction(true);
     try {
       await createNewWorkspace(selectedOrg.id, newWsName.trim());
-      setNewWsName('');
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setWsActionLoading(false);
-    }
+      setNewWsName(''); setShowCreate(false);
+      toast.success('Workspace created!');
+    } catch (err) { toast.error(err.message); }
+    finally { setWsAction(false); }
   };
 
   const handleDeleteWorkspace = async (wsId) => {
     if (!selectedOrg?.id) return;
-    if (!confirm("Are you sure you want to delete this workspace? This action is irreversible.")) return;
-    setWsActionLoading(true);
-    try {
-      await deleteCurrentWorkspace(selectedOrg.id, wsId);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setWsActionLoading(false);
-    }
+    if (!window.confirm("Delete this workspace? This is irreversible.")) return;
+    setWsAction(true);
+    try { await deleteCurrentWorkspace(selectedOrg.id, wsId); toast.success('Workspace deleted'); }
+    catch (err) { toast.error(err.message); }
+    finally { setWsAction(false); }
   };
 
-  // Search user by email to prepare membership invite
   const handleSearchUser = async (e) => {
     e.preventDefault();
     if (!searchEmail.trim()) return;
-    setSearchLoading(true);
-    setSearchError(null);
-    setFoundUser(null);
+    setSearchLoading(true); setSearchError(null); setFoundUser(null);
     try {
       const res = await listUsers(searchEmail.trim());
-      if (res.success && res.users && res.users.length > 0) {
-        setFoundUser(res.users[0]);
-      } else {
-        setSearchError("No user found with this email address");
-      }
-    } catch (err) {
-      setSearchError(err.message);
-    } finally {
-      setSearchLoading(false);
-    }
+      if (res.success && res.users?.length > 0) setFoundUser(res.users[0]);
+      else setSearchError("No user found with this email");
+    } catch (err) { setSearchError(err.message); }
+    finally { setSearchLoading(false); }
   };
 
-  // Add the found user as a member
   const handleAddMember = async () => {
     if (!selectedOrg?.id || !selectedWorkspace?.id || !foundUser) return;
-    setMemberActionLoading(true);
+    setMemberAction(true);
     try {
       const res = await addNewMember(selectedOrg.id, foundUser.id, selectedWorkspace.id, inviteRole);
-      if (res && res.success) {
-        alert("Member added successfully!");
-        setFoundUser(null);
-        setSearchEmail('');
-      } else {
-        alert(res?.message || "Failed to add member");
-      }
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setMemberActionLoading(false);
-    }
+      if (res?.success) { toast.success('Member added!'); setFoundUser(null); setSearchEmail(''); }
+      else toast.error(res?.message || 'Failed to add member');
+    } catch (err) { toast.error(err.message); }
+    finally { setMemberAction(false); }
   };
 
   const handleRemoveMember = async (memberId) => {
-    if (!selectedOrg?.id) return;
-    if (!confirm("Remove this member from the organization?")) return;
-    setMemberActionLoading(true);
-    try {
-      await removeMemberFromOrg(selectedOrg.id, memberId);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setMemberActionLoading(false);
-    }
+    if (!window.confirm("Remove this member?")) return;
+    setMemberAction(true);
+    try { await removeMemberFromOrg(selectedOrg.id, memberId); toast.success('Member removed'); }
+    catch (err) { toast.error(err.message); }
+    finally { setMemberAction(false); }
   };
 
   const handleRoleChange = async (memberId, newRole) => {
-    if (!selectedOrg?.id) return;
-    setMemberActionLoading(true);
-    try {
-      await updateRole(selectedOrg.id, memberId, newRole);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setMemberActionLoading(false);
-    }
+    setMemberAction(true);
+    try { await updateRole(selectedOrg.id, memberId, newRole); toast.success('Role updated'); }
+    catch (err) { toast.error(err.message); }
+    finally { setMemberAction(false); }
   };
 
   if (!selectedOrg) {
     return (
-      <div style={styles.emptyState}>
-        <h2>No Organization Selected</h2>
-        <p>Please select an organization first from the Organizations page.</p>
+      <div className="page-container">
+        <div className="empty-state card">
+          <Folder size={36} />
+          <h3>No Organization Selected</h3>
+          <p>Please select an organization first.</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={styles.title}>Workspaces</h1>
-      <p style={styles.subtitle}>Organization: <strong>{selectedOrg.name}</strong></p>
-
-      {loading && <div style={styles.loading}>Loading...</div>}
-      {error && <div style={styles.error}>Error: {error}</div>}
-
-      {/* Create Workspace Section */}
-      <form onSubmit={handleCreateWorkspace} style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
-        <input
-          type="text"
-          placeholder="New Workspace Name"
-          value={newWsName}
-          onChange={(e) => setNewWsName(e.target.value)}
-          disabled={wsActionLoading}
-          style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db' }}
-          required
-        />
-        <button type="submit" disabled={wsActionLoading}>
-          {wsActionLoading ? 'Creating...' : '+ Create Workspace'}
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Workspaces</h1>
+          <p className="page-subtitle">{selectedOrg.name}</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => setShowCreate(!showCreate)}>
+          <Plus size={14} /> New Workspace
         </button>
-      </form>
-
-      {/* Workspace Cards */}
-      <div style={styles.grid}>
-        {workspaces.map((ws) => {
-          const isSelected = selectedWorkspace?.id === ws.id;
-          return (
-            <div
-              key={ws.id}
-              style={{
-                ...styles.card,
-                ...(isSelected ? styles.cardSelected : {}),
-              }}
-              onClick={() => selectWorkspace(ws)}
-            >
-              <h3 style={styles.cardTitle}>{ws.name}</h3>
-              <p style={styles.cardDetail}><strong>ID:</strong> {ws.id}</p>
-              <p style={styles.cardDetail}><strong>Slug:</strong> {ws.slug}</p>
-              {ws.customDomain && (
-                <p style={styles.cardDetail}><strong>Domain:</strong> {ws.customDomain}</p>
-              )}
-              <p style={styles.cardDetail}>
-                <strong>SMTP:</strong> {ws.smtpEnabled ? 'Enabled' : 'Disabled'}
-              </p>
-              <p style={styles.cardDetail}>
-                <strong>Created:</strong> {new Date(ws.createdAt).toLocaleDateString()}
-              </p>
-              
-              {isSelected && <span style={styles.badge}>Selected</span>}
-
-              {/* Delete Workspace Button */}
-              {isSelected && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
-                  disabled={wsActionLoading}
-                  style={{
-                    marginTop: '12px',
-                    padding: '4px 8px',
-                    fontSize: '0.8rem',
-                    color: '#ef4444',
-                    backgroundColor: '#fef2f2',
-                    border: '1px solid #fee2e2',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    width: '100%',
-                  }}
-                >
-                  Delete Workspace
-                </button>
-              )}
-            </div>
-          );
-        })}
       </div>
 
-      {workspaces.length === 0 && !loading && (
-        <div style={styles.emptyState}>
-          <p>No workspaces found for this organization.</p>
+      {error && <div className="alert alert-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+      {showCreate && (
+        <div className="card" style={{ marginBottom: 20, maxWidth: 480 }}>
+          <form onSubmit={handleCreateWorkspace} style={{ display: 'flex', gap: 10 }}>
+            <input className="input" placeholder="Workspace name" value={newWsName} onChange={e => setNewWsName(e.target.value)} required />
+            <button type="submit" disabled={wsActionLoading} className="btn btn-primary">{wsActionLoading ? 'Creating…' : 'Create'}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+          </form>
         </div>
       )}
 
-      {/* Members Section */}
+      {/* Workspace Cards */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 48 }}><span className="spinner" /></div>
+      ) : workspaces.length === 0 ? (
+        <div className="card"><div className="empty-state"><Folder size={36} /><h3>No workspaces found</h3></div></div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+          {workspaces.map(ws => {
+            const isSelected = selectedWorkspace?.id === ws.id;
+            return (
+              <div
+                key={ws.id}
+                className="card"
+                style={{ cursor: 'pointer', border: isSelected ? '2px solid var(--brand-primary)' : '1px solid var(--border-color)', background: isSelected ? 'var(--brand-primary-light)' : 'var(--bg-card)', position: 'relative' }}
+                onClick={() => selectWorkspace(ws)}
+              >
+                {isSelected && (
+                  <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--brand-primary)', borderRadius: '50%', width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Check size={12} style={{ color: '#fff' }} />
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Folder size={16} style={{ color: '#fff' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 14 }}>{ws.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>/{ws.slug}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {ws.customDomain && <span>🌐 {ws.customDomain}</span>}
+                  <span>SMTP: {ws.smtpEnabled ? '✅ Enabled' : '—'}</span>
+                  <span>Created {new Date(ws.createdAt).toLocaleDateString()}</span>
+                </div>
+                {isSelected && (
+                  <button
+                    className="btn btn-danger btn-sm"
+                    style={{ marginTop: 12, width: '100%' }}
+                    onClick={e => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
+                    disabled={wsActionLoading}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Members */}
       {selectedWorkspace && (
-        <div style={styles.membersSection}>
-          <h2>Members of {selectedOrg.name}</h2>
-          
-          {/* Invite Member Section */}
-          <div style={{
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            padding: '16px',
-            marginBottom: '20px',
-            backgroundColor: '#f9fafb'
-          }}>
-            <h3>Invite Member to Organization</h3>
-            <form onSubmit={handleSearchUser} style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <input
-                type="email"
-                placeholder="Search user by email"
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-                disabled={searchLoading || memberActionLoading}
-                style={{ flex: 1, padding: '6px 12px', borderRadius: '4px', border: '1px solid #d1d5db' }}
-                required
-              />
-              <button type="submit" disabled={searchLoading || memberActionLoading}>
-                {searchLoading ? 'Searching...' : 'Search'}
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="card-header">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Users size={15} />
+              <span className="card-title">Members — {selectedOrg.name}</span>
+            </div>
+          </div>
+
+          {/* Invite */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
+            <form onSubmit={handleSearchUser} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input className="input" type="email" placeholder="Search user by email…" value={searchEmail}
+                onChange={e => setSearchEmail(e.target.value)} disabled={searchLoading} required />
+              <button type="submit" disabled={searchLoading} className="btn btn-secondary btn-sm">
+                {searchLoading ? 'Searching…' : 'Search'}
               </button>
             </form>
-            {searchError && <p style={{ color: '#ef4444', fontSize: '0.9rem', margin: 0 }}>{searchError}</p>}
-            
+            {searchError && <div className="alert alert-error" style={{ padding: '6px 12px', fontSize: 12 }}>{searchError}</div>}
             {foundUser && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '12px', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
                 <div>
-                  <strong style={{ display: 'block' }}>{foundUser.firstName} {foundUser.lastName}</strong>
-                  <span style={{ fontSize: '0.85rem', color: '#6b7280' }}>{foundUser.email}</span>
+                  <div style={{ fontWeight: 600, fontSize: 13 }}>{foundUser.firstName} {foundUser.lastName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{foundUser.email}</div>
                 </div>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <select className="input" style={{ width: 120, padding: '4px 8px' }} value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
                     <option value="MEMBER">MEMBER</option>
                     <option value="ADMIN">ADMIN</option>
                     <option value="OWNER">OWNER</option>
                   </select>
-                  <button onClick={handleAddMember} disabled={memberActionLoading}>
-                    {memberActionLoading ? 'Adding...' : 'Add Member'}
+                  <button className="btn btn-primary btn-sm" onClick={handleAddMember} disabled={memberAction}>
+                    <UserPlus size={12} /> {memberAction ? 'Adding…' : 'Add'}
                   </button>
                 </div>
               </div>
             )}
           </div>
 
+          {/* Members table */}
           {members.length === 0 ? (
-            <p style={styles.noMembers}>No members found.</p>
+            <div style={{ padding: '24px 20px', fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center' }}>No members found</div>
           ) : (
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Name</th>
-                  <th style={styles.th}>Email</th>
-                  <th style={styles.th}>Role</th>
-                  <th style={styles.th}>Joined</th>
-                  <th style={styles.th}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((m) => (
-                  <tr key={m.id} style={styles.tr}>
-                    <td style={styles.td}>
-                      {m.user?.firstName} {m.user?.lastName}
-                    </td>
-                    <td style={styles.td}>{m.user?.email}</td>
-                    <td style={styles.td}>
-                      <select
-                        value={m.role}
-                        onChange={(e) => handleRoleChange(m.id, e.target.value)}
-                        disabled={memberActionLoading}
-                        style={{
-                          padding: '2px 8px',
-                          borderRadius: '4px',
-                          border: '1px solid #d1d5db',
-                          backgroundColor: m.role === 'OWNER' ? '#f5f3ff' : m.role === 'ADMIN' ? '#ecfeff' : '#fff',
-                          color: m.role === 'OWNER' ? '#4f46e5' : m.role === 'ADMIN' ? '#0891b2' : '#374151',
-                          fontWeight: '600'
-                        }}
-                      >
-                        <option value="OWNER">OWNER</option>
-                        <option value="ADMIN">ADMIN</option>
-                        <option value="MEMBER">MEMBER</option>
-                      </select>
-                    </td>
-                    <td style={styles.td}>
-                      {new Date(m.joinedAt).toLocaleDateString()}
-                    </td>
-                    <td style={styles.td}>
-                      <button
-                        onClick={() => handleRemoveMember(m.id)}
-                        disabled={memberActionLoading}
-                        style={{
-                          padding: '2px 8px',
-                          fontSize: '0.8rem',
-                          color: '#ef4444',
-                          backgroundColor: '#fef2f2',
-                          border: '1px solid #fee2e2',
-                          borderRadius: '4px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </td>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {members.map(m => (
+                    <tr key={m.id}>
+                      <td>
+                        <div style={{ fontWeight: 500 }}>{m.user?.firstName} {m.user?.lastName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{m.user?.email}</div>
+                      </td>
+                      <td>
+                        <select className="input" style={{ width: 110, padding: '3px 8px', fontSize: 12 }}
+                          value={m.role} onChange={e => handleRoleChange(m.id, e.target.value)} disabled={memberAction}>
+                          <option value="OWNER">OWNER</option>
+                          <option value="ADMIN">ADMIN</option>
+                          <option value="MEMBER">MEMBER</option>
+                          <option value="VIEWER">VIEWER</option>
+                        </select>
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{new Date(m.joinedAt).toLocaleDateString()}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button className="btn-icon" style={{ color: 'var(--danger)' }}
+                          onClick={() => handleRemoveMember(m.id)} disabled={memberAction}>
+                          <UserMinus size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
     </div>
   );
 }
-
-const styles = {
-  page: {
-    maxWidth: '900px',
-    margin: '0 auto',
-    padding: '2rem 1rem',
-  },
-  title: {
-    fontSize: '1.8rem',
-    fontWeight: '700',
-    marginBottom: '0.25rem',
-  },
-  subtitle: {
-    color: '#6b7280',
-    marginBottom: '1.5rem',
-  },
-  loading: {
-    color: '#22c55e',
-    marginBottom: '1rem',
-  },
-  error: {
-    color: '#ef4444',
-    marginBottom: '1rem',
-    padding: '0.75rem',
-    backgroundColor: '#fef2f2',
-    borderRadius: '8px',
-  },
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-    gap: '1rem',
-    marginBottom: '2rem',
-  },
-  card: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '12px',
-    padding: '1.25rem',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    position: 'relative',
-    backgroundColor: '#fff',
-  },
-  cardSelected: {
-    borderColor: '#4f46e5',
-    boxShadow: '0 0 0 2px rgba(79, 70, 229, 0.3)',
-    backgroundColor: '#f5f3ff',
-  },
-  cardTitle: {
-    fontSize: '1.1rem',
-    fontWeight: '600',
-    marginBottom: '0.5rem',
-  },
-  cardDetail: {
-    fontSize: '0.85rem',
-    color: '#4b5563',
-    margin: '0.2rem 0',
-  },
-  badge: {
-    position: 'absolute',
-    top: '12px',
-    right: '12px',
-    backgroundColor: '#4f46e5',
-    color: '#fff',
-    fontSize: '0.7rem',
-    fontWeight: '600',
-    padding: '2px 8px',
-    borderRadius: '9999px',
-  },
-  emptyState: {
-    textAlign: 'center',
-    padding: '3rem 1rem',
-    color: '#6b7280',
-  },
-  membersSection: {
-    marginTop: '1rem',
-    borderTop: '1px solid #e5e7eb',
-    paddingTop: '1.5rem',
-  },
-  noMembers: {
-    color: '#9ca3af',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  th: {
-    textAlign: 'left',
-    padding: '0.75rem',
-    borderBottom: '2px solid #e5e7eb',
-    fontSize: '0.85rem',
-    fontWeight: '600',
-    color: '#374151',
-  },
-  tr: {
-    borderBottom: '1px solid #f3f4f6',
-  },
-  td: {
-    padding: '0.75rem',
-    fontSize: '0.9rem',
-    color: '#4b5563',
-  },
-};
-
-export default Workspaces;

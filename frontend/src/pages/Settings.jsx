@@ -1,49 +1,30 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { updateUser } from "../services/userServices";
-import { Building2, Folder, Files as FilesIcon, Settings2, Mail, User, Palette } from "lucide-react";
+import { User, Mail, Palette, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Settings() {
   const { user } = useAuth();
   const { selectedOrg } = useOrg();
   const { selectedWorkspace, updateCurrentWorkspace } = useWorkspace();
-  
-  const [activeTab, setActiveTab] = useState("administration");
 
-  // Profile state
-  const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    avatarUrl: "",
-  });
+  const [activeTab, setActiveTab] = useState("profile");
+
+  const [profile, setProfile] = useState({ firstName: "", lastName: "", avatarUrl: "" });
   const [profileLoading, setProfileLoading] = useState(false);
 
-  // Workspace state
   const [wsForm, setWsForm] = useState({
-    name: "",
-    customDomain: "",
-    smtpEnabled: false,
-    smtpHost: "",
-    smtpPort: "",
-    smtpUsername: "",
-    smtpPassword: "",
-    brandingPrimaryColor: "",
-    brandingLogo: "",
+    name: "", customDomain: "", smtpEnabled: false,
+    smtpHost: "", smtpPort: "", smtpUsername: "", smtpPassword: "",
+    brandingPrimaryColor: "", brandingLogo: "",
   });
   const [wsLoading, setWsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      setProfile({
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        avatarUrl: user.avatarUrl || "",
-      });
-    }
+    if (user) setProfile({ firstName: user.firstName || "", lastName: user.lastName || "", avatarUrl: user.avatarUrl || "" });
   }, [user]);
 
   useEffect(() => {
@@ -68,9 +49,8 @@ export default function Settings() {
     setProfileLoading(true);
     try {
       await updateUser(user.id, profile);
-      toast.success("Profile updated successfully");
+      toast.success("Profile updated");
     } catch (err) {
-      console.error(err);
       toast.error("Failed to update profile");
     } finally {
       setProfileLoading(false);
@@ -100,210 +80,154 @@ export default function Settings() {
         };
       }
       await updateCurrentWorkspace(selectedOrg.id, selectedWorkspace.id, data);
-      toast.success("Workspace updated successfully");
+      toast.success("Workspace updated");
     } catch (err) {
-      console.error(err);
       toast.error("Failed to update workspace");
     } finally {
       setWsLoading(false);
     }
   };
 
-  const adminLinks = [
-    { to: "/organizations", label: "Organizations", description: "Manage your organizations and switch contexts.", icon: Building2 },
-    { to: "/workspaces", label: "Workspaces", description: "Manage workspaces within the current organization.", icon: Folder },
-    { to: "/files", label: "Files", description: "View and manage uploaded files and assets.", icon: FilesIcon },
-    { to: "/jobs", label: "Jobs", description: "Monitor background jobs and bulk operations.", icon: Settings2 },
-    { to: "/email-logs", label: "Email Logs", description: "Track email delivery status and bounces.", icon: Mail },
-  ];
-
   return (
     <div className="page-container">
-      <div className="page-header" style={{ marginBottom: "16px" }}>
-        <h1 className="page-title">Settings</h1>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-subtitle">Manage your profile and workspace configuration</p>
+        </div>
       </div>
-      
-      <div style={{ display: "flex", gap: "24px", borderBottom: "1px solid var(--border-color)", marginBottom: "32px" }}>
-        <button 
-          onClick={() => setActiveTab("administration")}
-          style={{ 
-            background: "none", 
-            border: "none", 
-            padding: "8px 0", 
-            marginRight: "24px", 
-            cursor: "pointer", 
-            fontSize: "14px", 
-            fontWeight: 500, 
-            color: activeTab === "administration" ? "var(--text-primary)" : "var(--text-secondary)",
-            borderBottom: activeTab === "administration" ? "2px solid var(--text-primary)" : "2px solid transparent"
-          }}>
-          Administration
-        </button>
-        <button 
-          onClick={() => setActiveTab("profile")}
-          style={{ 
-            background: "none", 
-            border: "none", 
-            padding: "8px 0", 
-            marginRight: "24px", 
-            cursor: "pointer", 
-            fontSize: "14px", 
-            fontWeight: 500, 
-            color: activeTab === "profile" ? "var(--text-primary)" : "var(--text-secondary)",
-            borderBottom: activeTab === "profile" ? "2px solid var(--text-primary)" : "2px solid transparent"
-          }}>
-          Profile
+
+      <div className="tabs">
+        <button className={`tab-btn ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>
+          <User size={13} style={{ marginRight: 5 }} />Profile
         </button>
         {selectedWorkspace && (
-          <button 
-            onClick={() => setActiveTab("workspace")}
-            style={{ 
-              background: "none", 
-              border: "none", 
-              padding: "8px 0", 
-              cursor: "pointer", 
-              fontSize: "14px", 
-              fontWeight: 500, 
-              color: activeTab === "workspace" ? "var(--text-primary)" : "var(--text-secondary)",
-              borderBottom: activeTab === "workspace" ? "2px solid var(--text-primary)" : "2px solid transparent"
-            }}>
-            Workspace Configuration
+          <button className={`tab-btn ${activeTab === "workspace" ? "active" : ""}`} onClick={() => setActiveTab("workspace")}>
+            <Palette size={13} style={{ marginRight: 5 }} />Workspace
           </button>
         )}
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
-        {/* Navigation Hub */}
-        {activeTab === "administration" && (
-          <section>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
-              {adminLinks.map(link => {
-                const Icon = link.icon;
-                return (
-                  <Link key={link.to} to={link.to} style={{ textDecoration: "none" }}>
-                    <div className="card" style={{ display: "flex", gap: "16px", alignItems: "flex-start", cursor: "pointer", height: "100%" }}>
-                      <div style={{ padding: "8px", borderRadius: "6px", backgroundColor: "var(--bg-hover)", color: "var(--text-secondary)" }}>
-                        <Icon size={20} />
-                      </div>
-                      <div>
-                        <h3 style={{ fontSize: "14px", fontWeight: 500, margin: "0 0 4px 0", color: "var(--text-primary)" }}>{link.label}</h3>
-                        <p style={{ margin: 0, fontSize: "13px", color: "var(--text-secondary)" }}>{link.description}</p>
-                      </div>
-                    </div>
-                  </Link>
-                );
-              })}
+      {/* ── Profile Tab ── */}
+      {activeTab === "profile" && (
+        <div style={{ maxWidth: 540 }}>
+          <div className="card">
+            {/* Avatar preview row */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border-color)" }}>
+              {profile.avatarUrl ? (
+                <img src={profile.avatarUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-color)" }} />
+              ) : (
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 20 }}>
+                  {profile.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
+                </div>
+              )}
+              <div>
+                <div style={{ fontWeight: 600, fontSize: 15 }}>{profile.firstName} {profile.lastName}</div>
+                <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>{user?.email}</div>
+              </div>
             </div>
-          </section>
-        )}
 
-        {activeTab === "profile" && (
-          <section style={{ maxWidth: "600px" }}>
-            <div className="card">
-              <form onSubmit={handleProfileUpdate} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Email</label>
-                  <input type="text" value={user?.email || ""} disabled className="input" style={{ opacity: 0.7 }} />
+            <form onSubmit={handleProfileUpdate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <div className="form-group">
+                <label className="label">Email</label>
+                <input className="input" value={user?.email || ""} disabled />
+              </div>
+              <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                <div className="form-group">
+                  <label className="label">First Name</label>
+                  <input className="input" value={profile.firstName} onChange={e => setProfile({ ...profile, firstName: e.target.value })} />
                 </div>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>First Name</label>
-                    <input type="text" value={profile.firstName} onChange={(e) => setProfile({ ...profile, firstName: e.target.value })} className="input" />
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Last Name</label>
-                    <input type="text" value={profile.lastName} onChange={(e) => setProfile({ ...profile, lastName: e.target.value })} className="input" />
-                  </div>
+                <div className="form-group">
+                  <label className="label">Last Name</label>
+                  <input className="input" value={profile.lastName} onChange={e => setProfile({ ...profile, lastName: e.target.value })} />
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                  <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Avatar URL</label>
-                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                    {profile.avatarUrl ? (
-                      <img src={profile.avatarUrl} alt="Avatar" style={{ width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover" }} />
-                    ) : (
-                      <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "var(--bg-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}><User size={16} color="var(--text-secondary)" /></div>
-                    )}
-                    <input type="url" value={profile.avatarUrl} onChange={(e) => setProfile({ ...profile, avatarUrl: e.target.value })} className="input" placeholder="https://..." />
-                  </div>
-                </div>
-                <button type="submit" disabled={profileLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
-                  {profileLoading ? "Saving..." : "Save Profile"}
-                </button>
-              </form>
-            </div>
-          </section>
-        )}
+              </div>
+              <div className="form-group">
+                <label className="label">Avatar URL</label>
+                <input className="input" type="url" value={profile.avatarUrl} onChange={e => setProfile({ ...profile, avatarUrl: e.target.value })} placeholder="https://..." />
+              </div>
+              <button type="submit" disabled={profileLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                <Save size={14} /> {profileLoading ? "Saving…" : "Save Profile"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
-        {/* Workspace Form */}
-        {activeTab === "workspace" && selectedWorkspace && (
-          <section style={{ maxWidth: "800px" }}>
-            <div className="card">
-              <form onSubmit={handleWsUpdate} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-                
-                {/* General */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Workspace Name</label>
-                    <input type="text" value={wsForm.name} onChange={(e) => setWsForm({ ...wsForm, name: e.target.value })} className="input" />
+      {/* ── Workspace Tab ── */}
+      {activeTab === "workspace" && selectedWorkspace && (
+        <div style={{ maxWidth: 680 }}>
+          <div className="card">
+            <form onSubmit={handleWsUpdate} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+              {/* General */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>General</h3>
+                <div className="form-group">
+                  <label className="label">Workspace Name</label>
+                  <input className="input" value={wsForm.name} onChange={e => setWsForm({ ...wsForm, name: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="label">Custom Domain</label>
+                  <input className="input" value={wsForm.customDomain} onChange={e => setWsForm({ ...wsForm, customDomain: e.target.value })} placeholder="certs.yourdomain.com" />
+                </div>
+              </div>
+
+              <div className="divider" />
+
+              {/* Branding */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Branding</h3>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+                  <div className="form-group" style={{ flex: "0 0 auto" }}>
+                    <label className="label">Primary Color</label>
+                    <input type="color" value={wsForm.brandingPrimaryColor || "#6366f1"} onChange={e => setWsForm({ ...wsForm, brandingPrimaryColor: e.target.value })}
+                      style={{ height: 36, width: 72, padding: "2px 4px", cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius-md)" }} />
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                    <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)" }}>Custom Domain</label>
-                    <input type="text" value={wsForm.customDomain} onChange={(e) => setWsForm({ ...wsForm, customDomain: e.target.value })} className="input" placeholder="certs.yourdomain.com" />
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="label">Logo URL</label>
+                    <input className="input" type="url" value={wsForm.brandingLogo} onChange={e => setWsForm({ ...wsForm, brandingLogo: e.target.value })} placeholder="https://..." />
                   </div>
                 </div>
+              </div>
 
-                {/* Branding */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px", borderTop: "1px solid var(--border-color)" }}>
-                  <h3 style={{ fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}><Palette size={14} /> Branding</h3>
-                  <div style={{ display: "flex", gap: "16px" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                      <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Primary Color</label>
-                      <input type="color" value={wsForm.brandingPrimaryColor || "#000000"} onChange={(e) => setWsForm({ ...wsForm, brandingPrimaryColor: e.target.value })} style={{ height: "32px", width: "64px", padding: "0", cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "4px" }} />
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1 }}>
-                      <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Logo URL</label>
-                      <input type="url" value={wsForm.brandingLogo} onChange={(e) => setWsForm({ ...wsForm, brandingLogo: e.target.value })} className="input" placeholder="https://..." />
-                    </div>
-                  </div>
-                </div>
+              <div className="divider" />
 
-                {/* SMTP */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px", paddingTop: "16px", borderTop: "1px solid var(--border-color)" }}>
-                  <h3 style={{ fontSize: "13px", fontWeight: 600, display: "flex", alignItems: "center", gap: "8px" }}><Mail size={14} /> Custom SMTP</h3>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "13px", cursor: "pointer" }}>
-                    <input type="checkbox" checked={wsForm.smtpEnabled} onChange={(e) => setWsForm({ ...wsForm, smtpEnabled: e.target.checked })} style={{ width: "16px", height: "16px", cursor: "pointer" }} />
-                    Enable Custom SMTP Server
-                  </label>
-                  {wsForm.smtpEnabled && (
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Host</label>
-                        <input type="text" value={wsForm.smtpHost} onChange={(e) => setWsForm({ ...wsForm, smtpHost: e.target.value })} className="input" placeholder="smtp.mailgun.org" />
+              {/* SMTP */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <h3 style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
+                  <Mail size={13} /> Custom SMTP
+                </h3>
+                <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", userSelect: "none" }}>
+                  <input type="checkbox" checked={wsForm.smtpEnabled} onChange={e => setWsForm({ ...wsForm, smtpEnabled: e.target.checked })}
+                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--brand-primary)" }} />
+                  Enable custom SMTP server
+                </label>
+                {wsForm.smtpEnabled && (
+                  <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                    {[
+                      { key: "smtpHost", label: "Host", placeholder: "smtp.mailgun.org", type: "text" },
+                      { key: "smtpPort", label: "Port", placeholder: "587", type: "number" },
+                      { key: "smtpUsername", label: "Username", placeholder: "", type: "text" },
+                      { key: "smtpPassword", label: "Password", placeholder: "••••••••", type: "password" },
+                    ].map(f => (
+                      <div key={f.key} className="form-group">
+                        <label className="label">{f.label}</label>
+                        <input className="input" type={f.type} value={wsForm[f.key]} placeholder={f.placeholder}
+                          onChange={e => setWsForm({ ...wsForm, [f.key]: e.target.value })} />
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Port</label>
-                        <input type="number" value={wsForm.smtpPort} onChange={(e) => setWsForm({ ...wsForm, smtpPort: e.target.value })} className="input" placeholder="587" />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Username</label>
-                        <input type="text" value={wsForm.smtpUsername} onChange={(e) => setWsForm({ ...wsForm, smtpUsername: e.target.value })} className="input" />
-                      </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                        <label style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Password</label>
-                        <input type="password" value={wsForm.smtpPassword} onChange={(e) => setWsForm({ ...wsForm, smtpPassword: e.target.value })} className="input" />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                <button type="submit" disabled={wsLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
-                  {wsLoading ? "Saving..." : "Save Configuration"}
-                </button>
-              </form>
-            </div>
-          </section>
-        )}
-      </div>
+              <button type="submit" disabled={wsLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
+                <Save size={14} /> {wsLoading ? "Saving…" : "Save Configuration"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
