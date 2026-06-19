@@ -62,7 +62,7 @@ export const pdfWorker = new Worker(
             data: { pdfUrl: uploadResult.secure_url }
         });
     },
-    { connection: redis }
+    { connection: redis, concurrency: 5 }
 );
 
 pdfWorker.on("completed", (job) => {

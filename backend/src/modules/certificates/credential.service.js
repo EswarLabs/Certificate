@@ -125,6 +125,15 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
     data: { credentialsUsed: { increment: 1 } }
   });
 
+  const activeJobs = await imageQueue.getJobCounts();
+  if (activeJobs.waiting > 1000) {
+    throw new Error("Queue is busy. Please try later.");
+  }
+  const activeJobs1 = await pdfQueue.getJobCounts();
+  if (activeJobs1.waiting > 1000) {
+    throw new Error("Queue is busy. Please try later.");
+  }
+
   // Trigger image and pdf generation
   await imageQueue.add("generateImage", { credentialId: credential.id });
   await pdfQueue.add("generatePdf", { credentialId: credential.id });
@@ -243,6 +252,10 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
 
   // Trigger email sending via BullMQ queue
   if (updated.recipientEmail) {
+    const activeJobs = await emailQueue.getJobCounts();
+    if (activeJobs.waiting > 1000) {
+      throw new Error("Queue is busy. Please try later.");
+    }
     await emailQueue.add("sendEmail", {
       credentialId: updated.id,
       userId
@@ -389,6 +402,11 @@ export const createBatchCredentials = async (data, orgId, workspaceId, userId) =
     },
   });
 
+  const activeJobs = await jobQueue.getJobCounts();
+  if (activeJobs.waiting > 500) {
+    throw new Error("Queue is busy. Please try later.");
+  }
+
   // Queue job in background instead of setImmediate
   await jobQueue.add("csvImport", {
     jobId: job.id,
@@ -431,6 +449,11 @@ export const issueBatchCredentials = async (data, orgId, workspaceId, userId) =>
       payload: { credentialIds: validated.credentialIds },
     },
   });
+
+  const activeJobs = await jobQueue.getJobCounts();
+  if (activeJobs.waiting > 500) {
+    throw new Error("Queue is busy. Please try later.");
+  }
 
   // Queue job in background instead of setImmediate
   await jobQueue.add("bulkIssue", {

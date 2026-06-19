@@ -1,6 +1,6 @@
 import {
   addMemberToOrganization,
-  listOrganizationMembers,
+  listWorkspaceMembers,
   updateMemberRole,
   removeMember,
   getMemberById,
@@ -9,9 +9,9 @@ import { addMemberSchema, updateMemberRoleSchema } from "./membership.validation
 
 export const addMemberController = async (req, res, next) => {
   try {
-    const { organizationId } = req.params;
+    const { organizationId, workspaceId } = req.params;
     const userId = req.user.userId;
-    const { newUserId, workspaceId, role } = req.body;
+    const { newUserId, role } = req.body;
 
     // Validate input
     const parsed = addMemberSchema.safeParse({
@@ -48,12 +48,13 @@ export const addMemberController = async (req, res, next) => {
 
 export const listMembersController = async (req, res, next) => {
   try {
-    const { organizationId } = req.params;
+    const { organizationId, workspaceId } = req.params;
     const userId = req.user.userId;
     const query = req.query;
 
-    const result = await listOrganizationMembers(
+    const result = await listWorkspaceMembers(
       organizationId,
+      workspaceId,
       userId,
       query
     );
@@ -66,11 +67,12 @@ export const listMembersController = async (req, res, next) => {
 
 export const getMemberController = async (req, res, next) => {
   try {
-    const { organizationId, memberId } = req.params;
+    const { organizationId, workspaceId, memberId } = req.params;
     const userId = req.user.userId;
 
     const membership = await getMemberById(
       organizationId,
+      workspaceId,
       memberId,
       userId
     );
@@ -86,7 +88,7 @@ export const getMemberController = async (req, res, next) => {
 
 export const updateMemberRoleController = async (req, res, next) => {
   try {
-    const { organizationId, memberId } = req.params;
+    const { organizationId, memberId, workspaceId } = req.params;
     const userId = req.user.userId;
     const { role } = req.body;
 
@@ -100,9 +102,29 @@ export const updateMemberRoleController = async (req, res, next) => {
         details: parsed.error.issues,
       });
     }
+    const membership = await getMemberById(organizationId, workspaceId, memberId, userId);
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        error: "Member not found",
+      });
+    }
+    if (membership.userId === memberId) {
+      return res.status(403).json({
+        success: false,
+        error: "Cannot update your own role",
+      });
+    }
 
+    if (membership.role === "OWNER" && req.user.userId !== memberId) {
+      return res.status(403).json({
+        success: false,
+        error: "Cannot update the role of an organization owner",
+      });
+    }
     const updated = await updateMemberRole(
       organizationId,
+      workspaceId,
       memberId,
       userId,
       role
@@ -120,10 +142,10 @@ export const updateMemberRoleController = async (req, res, next) => {
 
 export const removeMemberController = async (req, res, next) => {
   try {
-    const { organizationId, memberId } = req.params;
+    const { organizationId, memberId, workspaceId } = req.params;
     const userId = req.user.userId;
 
-    const result = await removeMember(organizationId, memberId, userId);
+    const result = await removeMember(organizationId, workspaceId, memberId, userId);
 
     return res.status(200).json(result);
   } catch (error) {

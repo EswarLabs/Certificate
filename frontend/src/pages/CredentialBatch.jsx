@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { createBatchCredentials } from "../services/credentialServices";
 import { listTemplates } from "../services/templateServices";
 import { listFiles } from "../services/fileServices";
-import { ArrowLeft, Upload, CheckCircle, FileText, Settings2 } from "lucide-react";
+import { uploadFile } from "../services/uploadServices";
+import { getQueueStats } from "../services/jobServices";
+import { ArrowLeft, Upload, CheckCircle, FileText, Settings2, Plus, Activity } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function CredentialBatch() {
@@ -27,6 +29,9 @@ export default function CredentialBatch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [jobResult, setJobResult] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [queueStats, setQueueStats] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,9 +39,15 @@ export default function CredentialBatch() {
       try {
         const tmplRes = await listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 100);
         const fileRes = await listFiles(selectedOrg.id, selectedWorkspace.id, 1, 100);
+        const statsRes = await getQueueStats(selectedOrg.id, selectedWorkspace.id);
+        
         setTemplates(tmplRes.templates || []);
         // Only allow CSV files for batch import
         setFiles((fileRes.files || []).filter(f => f.mimeType === 'text/csv' || f.fileName.endsWith('.csv')));
+        
+        if (statsRes.success) {
+          setQueueStats(statsRes);
+        }
       } catch (err) {
         console.error(err);
       }
@@ -54,6 +65,31 @@ export default function CredentialBatch() {
       setDataMapping(mapping);
     } else {
       setDataMapping({});
+    }
+  };
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const res = await uploadFile(file, selectedWorkspace.id);
+      if (res.url || res.dbEntry) {
+        toast.success("File uploaded successfully");
+        const fileRes = await listFiles(selectedOrg.id, selectedWorkspace.id, 1, 100);
+        const csvFiles = (fileRes.files || []).filter(f => f.mimeType === 'text/csv' || f.fileName.endsWith('.csv'));
+        setFiles(csvFiles);
+        if (res.dbEntry?.id) {
+          setForm(prev => ({ ...prev, fileId: res.dbEntry.id }));
+        }
+      } else {
+        toast.error(res.message || "Upload failed");
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -111,6 +147,16 @@ export default function CredentialBatch() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(450px, 1fr))", gap: "32px", maxWidth: "1200px" }}>
+        {queueStats?.isBusy && !jobResult && (
+          <div style={{ gridColumn: "1 / -1", backgroundColor: "var(--warning-light)", color: "var(--warning-dark, #854d0e)", padding: "16px", borderRadius: "8px", display: "flex", gap: "12px", alignItems: "center", border: "1px solid var(--warning)" }}>
+            <Activity size={20} />
+            <div>
+              <strong style={{ display: "block", marginBottom: "4px" }}>High System Load</strong>
+              The system is currently processing {queueStats.totalWaiting} background tasks in the queue. Your batch import may experience delays before it starts.
+            </div>
+          </div>
+        )}
+        
         {jobResult ? (
           <div className="card" style={{ display: "flex", flexDirection: "column", gap: "16px", alignItems: "center", textAlign: "center", padding: "48px 24px" }}>
             <div style={{ width: "48px", height: "48px", borderRadius: "50%", backgroundColor: "var(--success-light)", color: "var(--success)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "8px" }}>
@@ -156,15 +202,22 @@ export default function CredentialBatch() {
                 <label style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "6px" }}>
                   <Upload size={14} /> CSV File <span style={{ color: "var(--danger)" }}>*</span>
                 </label>
-                <select className="input" value={form.fileId} onChange={(e) => setForm({ ...form, fileId: e.target.value })} required>
-                  <option value="">Select an uploaded file</option>
-                  {files.map((f) => (
-                    <option key={f.id} value={f.id}>{f.fileName} ({(f.fileSize / 1024).toFixed(1)} KB)</option>
-                  ))}
-                </select>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  <select className="input" style={{ flex: 1 }} value={form.fileId} onChange={(e) => setForm({ ...form, fileId: e.target.value })} required>
+                    <option value="">Select an uploaded file</option>
+                    {files.map((f) => (
+                      <option key={f.id} value={f.id}>{f.fileName} ({(f.fileSize / 1024).toFixed(1)} KB)</option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>or</span>
+                  <input type="file" accept=".csv,text/csv" ref={fileInputRef} onChange={handleUpload} style={{ display: "none" }} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="btn btn-secondary">
+                    {uploading ? "Uploading..." : "Upload New CSV"}
+                  </button>
+                </div>
                 {files.length === 0 && (
                   <span style={{ fontSize: "12px", color: "var(--warning)", marginTop: "4px" }}>
-                    No files found. Please upload a CSV file in the Files page first.
+                    No files found. Please upload a CSV file.
                   </span>
                 )}
               </div>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
@@ -9,23 +10,21 @@ import toast from "react-hot-toast";
 export default function Templates() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
-  const [templates, setTemplates] = useState([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
   const limit = 12;
 
-  const fetchTemplates = async () => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    try {
-      const res = await listTemplates(selectedOrg.id, selectedWorkspace.id, page, limit);
-      if (res.success) { setTemplates(res.templates || []); setTotal(res.total || 0); }
-    } catch (err) { toast.error(err.message); }
-    finally { setLoading(false); }
-  };
+  const { data, isLoading, mutate } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id
+      ? ['templates', selectedOrg.id, selectedWorkspace.id, page]
+      : null,
+    ([_, orgId, wsId, p]) => listTemplates(orgId, wsId, p, limit)
+  );
 
-  useEffect(() => { fetchTemplates(); }, [selectedOrg?.id, selectedWorkspace?.id, page]);
+  const templates = data?.templates || [];
+  const total = data?.total || 0;
+  const loading = isLoading && !data;
+
+  const fetchTemplates = () => { mutate(); };
 
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this template?")) return;

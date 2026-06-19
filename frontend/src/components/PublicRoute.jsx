@@ -12,8 +12,8 @@ export default function PublicRoute({ children }) {
 
   if (loading) {
     return (
-      <div>
-        <p>Loading...</p>
+      <div style={{ height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg-primary)" }}>
+        <span className="spinner" />
       </div>
     );
   }

@@ -82,15 +82,17 @@ export const addMemberToOrganization = async (
   return membership;
 };
 
-export const listOrganizationMembers = async (
+export const listWorkspaceMembers = async (
   organizationId,
+  workspaceId,
   userId,
   query = {}
 ) => {
-  // Check if user is a member of the organization
+  // Check if user is a member of the organization and workspace
   const userMembership = await prisma.membership.findFirst({
     where: {
       organizationId,
+      workspaceId,
       userId,
     },
   });
@@ -108,6 +110,7 @@ export const listOrganizationMembers = async (
     take: limit,
     where: {
       organizationId,
+      workspaceId,
     },
     include: {
       user: {
@@ -128,6 +131,7 @@ export const listOrganizationMembers = async (
   const total = await prisma.membership.count({
     where: {
       organizationId,
+      workspaceId,
     },
   });
 
@@ -142,6 +146,7 @@ export const listOrganizationMembers = async (
 
 export const updateMemberRole = async (
   organizationId,
+  workspaceId,
   memberId,
   userId,
   newRole
@@ -150,6 +155,7 @@ export const updateMemberRole = async (
   const requester = await prisma.membership.findFirst({
     where: {
       organizationId,
+      workspaceId,
       userId,
       role: "OWNER",
     },
@@ -164,6 +170,7 @@ export const updateMemberRole = async (
     where: {
       id: memberId,
       organizationId,
+      workspaceId,
     },
   });
 
@@ -176,6 +183,7 @@ export const updateMemberRole = async (
     const ownerCount = await prisma.membership.count({
       where: {
         organizationId,
+        workspaceId,
         role: "OWNER",
       },
     });
@@ -188,7 +196,7 @@ export const updateMemberRole = async (
   }
 
   const updated = await prisma.membership.update({
-    where: { id: memberId },
+    where: { id: memberId, workspaceId },
     data: {
       role: newRole,
     },
@@ -209,6 +217,7 @@ export const updateMemberRole = async (
 
 export const removeMember = async (
   organizationId,
+  workspaceId,
   memberId,
   userId
 ) => {
@@ -216,6 +225,7 @@ export const removeMember = async (
   const requester = await prisma.membership.findFirst({
     where: {
       organizationId,
+      workspaceId,
       userId,
       role: "OWNER",
     },
@@ -230,6 +240,7 @@ export const removeMember = async (
     where: {
       id: memberId,
       organizationId,
+      workspaceId,
     },
   });
 
@@ -242,6 +253,7 @@ export const removeMember = async (
     const ownerCount = await prisma.membership.count({
       where: {
         organizationId,
+        workspaceId,
         role: "OWNER",
       },
     });
@@ -252,7 +264,7 @@ export const removeMember = async (
   }
 
   await prisma.membership.delete({
-    where: { id: memberId },
+    where: { id: memberId, workspaceId },
   });
 
   return { success: true, message: "Member removed successfully" };
@@ -260,6 +272,7 @@ export const removeMember = async (
 
 export const getMemberById = async (
   organizationId,
+  workspaceId,
   memberId,
   userId
 ) => {
@@ -267,6 +280,7 @@ export const getMemberById = async (
   const userMembership = await prisma.membership.findFirst({
     where: {
       organizationId,
+      workspaceId,
       userId,
     },
   });
@@ -279,6 +293,7 @@ export const getMemberById = async (
     where: {
       id: memberId,
       organizationId,
+      workspaceId,
     },
     include: {
       user: {

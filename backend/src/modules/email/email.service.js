@@ -32,24 +32,12 @@ export const getTransporter = async (workspaceId) => {
     return { transport, fromEmail };
   }
 
-  // System-wide fallback SMTP
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
-  if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
-    const port = parseInt(SMTP_PORT) || 587;
-    const fromEmail = SMTP_FROM || (SMTP_USER.includes("@") ? SMTP_USER : "no-reply@eswarlabs.com");
-    return {
-      transport: nodemailer.createTransport({
-        host: SMTP_HOST,
-        port,
-        secure: port === 465,
-        auth: { user: SMTP_USER, pass: SMTP_PASS },
-      }),
-      fromEmail,
-    };
+  if (process.env.NODE_ENV !== "test") {
+    throw new Error("Workspace SMTP settings are not configured. You must configure email settings in your Workspace Settings before sending emails.");
   }
 
-  // Mock fallback — no SMTP configured
-  console.warn("No SMTP settings configured, using mock jsonTransport fallback");
+  // Mock fallback for tests
+  console.warn("No SMTP settings configured, using mock jsonTransport fallback (TEST MODE)");
   return {
     transport: nodemailer.createTransport({ jsonTransport: true }),
     fromEmail: "no-reply@eswarlabs.com",

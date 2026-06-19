@@ -9,7 +9,7 @@ import {
   issueBatchCredentialsController,
 } from "./credential.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
-
+import { bulkLimiter } from "../../middlewares/rateLimit.middleware.js";
 const router = express.Router({ mergeParams: true });
 
 /**
@@ -210,7 +210,7 @@ router.post("/", authMiddleware, createCredentialController);
  *         description: Internal server error
  */
 
-router.post("/batch", authMiddleware, createBatchCredentialsController);
+router.post("/batch", authMiddleware, bulkLimiter, createBatchCredentialsController);
 
 /**
  * @openapi
@@ -656,6 +656,6 @@ router.patch("/:id/revoke", authMiddleware, revokeCredentialController);
  *       403:
  *         description: Forbidden
  */
-router.post("/issue-batch", authMiddleware, issueBatchCredentialsController);
+router.post("/issue-batch", authMiddleware, bulkLimiter, issueBatchCredentialsController);
 
 export default router;

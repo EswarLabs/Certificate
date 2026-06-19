@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Link } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
@@ -13,27 +14,27 @@ export default function Dashboard() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
 
-  const [stats, setStats] = useState({ credentials: 0, templates: 0, jobs: 0 });
-  const [recentCreds, setRecentCreds] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { data, isLoading } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id
+      ? ['dashboard', selectedOrg.id, selectedWorkspace.id]
+      : null,
+    async ([_, orgId, wsId]) => {
+      const [credRes, tempRes, jobRes] = await Promise.all([
+        listCredentials(orgId, wsId, 1, 5),
+        listTemplates(orgId, wsId, 1, 1),
+        listJobs(orgId, wsId, 1, 1),
+      ]);
+      return { credRes, tempRes, jobRes };
+    }
+  );
 
-  useEffect(() => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    Promise.all([
-      listCredentials(selectedOrg.id, selectedWorkspace.id, 1, 5),
-      listTemplates(selectedOrg.id, selectedWorkspace.id, 1, 1),
-      listJobs(selectedOrg.id, selectedWorkspace.id, 1, 1),
-    ]).then(([credRes, tempRes, jobRes]) => {
-      setStats({
-        credentials: credRes.total || 0,
-        templates: tempRes.total || 0,
-        jobs: jobRes.total || 0,
-      });
-      setRecentCreds(credRes.credentials || []);
-    }).catch(console.error)
-      .finally(() => setLoading(false));
-  }, [selectedOrg?.id, selectedWorkspace?.id]);
+  const loading = isLoading && !data;
+  const stats = data ? {
+    credentials: data.credRes.total || 0,
+    templates: data.tempRes.total || 0,
+    jobs: data.jobRes.total || 0,
+  } : { credentials: 0, templates: 0, jobs: 0 };
+  const recentCreds = data?.credRes?.credentials || [];
 
   const statusBadge = (status) => {
     const map = {

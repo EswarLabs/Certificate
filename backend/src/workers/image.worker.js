@@ -60,7 +60,7 @@ export const imageWorker = new Worker(
             data: { imageUrl: uploadResult.secure_url }
         });
     },
-    { connection: redis }
+    { connection: redis, concurrency: 5 }
 );
 
 imageWorker.on("completed", (job) => {

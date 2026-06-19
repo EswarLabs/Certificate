@@ -86,10 +86,10 @@ export const deleteWorkspaceApi = async (organizationId, workspaceId) => {
     return res.json();
 };
 
-// List members of an organization (members are tied to workspaces)
-export const listMembers = async (organizationId, page = 1, limit = 10) => {
+// List members of a workspace
+export const listMembers = async (organizationId, workspaceId, page = 1, limit = 10) => {
     const res = await fetch(
-        `${API_URL}/api/organizations/${organizationId}/members?page=${page}&limit=${limit}`,
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}/members?page=${page}&limit=${limit}`,
         {
             method: "GET",
             credentials: "include",
@@ -102,24 +102,24 @@ export const listMembers = async (organizationId, page = 1, limit = 10) => {
     return res.json();
 };
 
-// Add a member to an organization & workspace
+// Add a member to a workspace
 export const addMember = async (organizationId, newUserId, workspaceId, role = "MEMBER") => {
-    const res = await fetch(`${API_URL}/api/organizations/${organizationId}/members`, {
+    const res = await fetch(`${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}/members`, {
         method: "POST",
         credentials: "include",
         headers: {
             ...getAuthHeader(),
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ newUserId, workspaceId, role }),
+        body: JSON.stringify({ newUserId, role }),
     });
     return res.json();
 };
 
 // Remove a member
-export const removeMember = async (organizationId, memberId) => {
+export const removeMember = async (organizationId, workspaceId, memberId) => {
     const res = await fetch(
-        `${API_URL}/api/organizations/${organizationId}/members/${memberId}`,
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}/members/${memberId}`,
         {
             method: "DELETE",
             credentials: "include",
@@ -133,9 +133,9 @@ export const removeMember = async (organizationId, memberId) => {
 };
 
 // Update a member's role
-export const updateMemberRole = async (organizationId, memberId, role) => {
+export const updateMemberRole = async (organizationId, workspaceId, memberId, role) => {
     const res = await fetch(
-        `${API_URL}/api/organizations/${organizationId}/members/${memberId}`,
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}/members/${memberId}`,
         {
             method: "PATCH",
             credentials: "include",

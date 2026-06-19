@@ -160,12 +160,12 @@ const WorkspaceProvider = ({ children }) => {
 
     // ---------- Members ----------
 
-    const fetchMembers = async (organizationId, page = 1, limit = 10) => {
-        if (!organizationId) return;
+    const fetchMembers = async (organizationId, workspaceId, page = 1, limit = 10) => {
+        if (!organizationId || !workspaceId) return;
         setLoading(true);
         setError(null);
         try {
-            const res = await listMembers(organizationId, page, limit);
+            const res = await listMembers(organizationId, workspaceId, page, limit);
             if (res.success) {
                 // Backend: { success, members: [...] }
                 setMembers(res.members || []);
@@ -186,7 +186,7 @@ const WorkspaceProvider = ({ children }) => {
             const res = await addMember(organizationId, newUserId, workspaceId, role);
             if (res.success) {
                 // Refresh members list
-                await fetchMembers(organizationId);
+                await fetchMembers(organizationId, workspaceId);
                 return res;
             } else {
                 setError(res.message || "Failed to add member");
@@ -198,13 +198,13 @@ const WorkspaceProvider = ({ children }) => {
         }
     };
 
-    const removeMemberFromOrg = async (organizationId, memberId) => {
+    const removeMemberFromOrg = async (organizationId, workspaceId, memberId) => {
         setLoading(true);
         setError(null);
         try {
-            const res = await removeMember(organizationId, memberId);
+            const res = await removeMember(organizationId, workspaceId, memberId);
             if (res.success) {
-                await fetchMembers(organizationId);
+                await fetchMembers(organizationId, workspaceId);
             } else {
                 setError(res.message || "Failed to remove member");
             }
@@ -215,13 +215,13 @@ const WorkspaceProvider = ({ children }) => {
         }
     };
 
-    const updateRole = async (organizationId, memberId, role) => {
+    const updateRole = async (organizationId, workspaceId, memberId, role) => {
         setLoading(true);
         setError(null);
         try {
-            const res = await updateMemberRole(organizationId, memberId, role);
+            const res = await updateMemberRole(organizationId, workspaceId, memberId, role);
             if (res.success) {
-                await fetchMembers(organizationId);
+                await fetchMembers(organizationId, workspaceId);
             } else {
                 setError(res.message || "Failed to update member role");
             }

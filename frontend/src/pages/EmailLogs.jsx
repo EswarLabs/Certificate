@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listEmailLogs } from "../services/emailServices";
@@ -7,35 +8,26 @@ import { RefreshCw, Activity, Mail } from "lucide-react";
 export default function EmailLogs() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
-  const [logs, setLogs] = useState([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const limit = 10;
 
-  const fetchLogs = async () => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await listEmailLogs(selectedOrg.id, selectedWorkspace.id, page, limit);
-      if (res.success) {
-        setLogs(res.logs || []);
-        setTotal(res.total || 0);
-      } else {
-        setError(res.message || "Failed to fetch email logs");
-      }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
+  const { data, isLoading, mutate, error: swrError } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id
+      ? ['email-logs', selectedOrg.id, selectedWorkspace.id, page]
+      : null,
+    async ([_, orgId, wsId, p]) => {
+      const res = await listEmailLogs(orgId, wsId, p, limit);
+      if (!res.success) throw new Error(res.message || "Failed to fetch email logs");
+      return res;
     }
-  };
+  );
 
-  useEffect(() => {
-    fetchLogs();
-  }, [selectedOrg?.id, selectedWorkspace?.id, page]);
+  const logs = data?.logs || [];
+  const total = data?.total || 0;
+  const loading = isLoading && !data;
+  const error = swrError?.message || null;
+
+  const fetchLogs = () => { mutate(); };
 
   const StatusBadge = ({ status }) => {
     let colorClass = "";

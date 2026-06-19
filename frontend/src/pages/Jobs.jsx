@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listJobs, getJob } from "../services/jobServices";
@@ -7,41 +8,36 @@ import { RefreshCw, Eye, X, Activity, AlertCircle } from "lucide-react";
 export default function Jobs() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
-  const [jobs, setJobs] = useState([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [selectedJob, setSelectedJob] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
   const limit = 10;
 
-  const fetchJobs = async () => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await listJobs(
-        selectedOrg.id, selectedWorkspace.id, page, limit,
-        statusFilter || undefined, typeFilter || undefined
-      );
-      if (res.success) {
-        setJobs(res.jobs || []);
-        setTotal(res.total || 0);
-      } else {
-        setError(res.message || "Failed to fetch jobs");
+  const { data, isLoading, mutate, error: swrError } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id
+      ? ['jobs', selectedOrg.id, selectedWorkspace.id, page, statusFilter, typeFilter]
+      : null,
+    async ([_, orgId, wsId, p, status, type]) => {
+      const res = await listJobs(orgId, wsId, p, limit, status || undefined, type || undefined);
+      if (!res.success) throw new Error(res.message || "Failed to fetch jobs");
+      return res;
+    },
+    {
+      refreshInterval: (data) => {
+        if (!data) return 0;
+        const hasActive = data.jobs.some(j => j.status === 'PENDING' || j.status === 'RUNNING');
+        return hasActive ? 3000 : 0;
       }
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  );
 
-  useEffect(() => {
-    fetchJobs();
-  }, [selectedOrg?.id, selectedWorkspace?.id, page, statusFilter, typeFilter]);
+  const jobs = data?.jobs || [];
+  const total = data?.total || 0;
+  const loading = isLoading && !data;
+  const error = swrError?.message || null;
+
+  const fetchJobs = () => { mutate(); };
 
   const handleViewJob = async (jobId) => {
     try {
@@ -56,10 +52,10 @@ export default function Jobs() {
     let colorClass = "";
     let bgClass = "";
     switch (status) {
-      case "pending": colorClass = "var(--warning)"; bgClass = "var(--warning-light)"; break;
-      case "in_progress": colorClass = "var(--brand-primary)"; bgClass = "var(--brand-primary-light)"; break;
-      case "completed": colorClass = "var(--success)"; bgClass = "var(--success-light)"; break;
-      case "failed": colorClass = "var(--danger)"; bgClass = "var(--danger-light)"; break;
+      case "PENDING": colorClass = "var(--warning)"; bgClass = "var(--warning-light)"; break;
+      case "RUNNING": colorClass = "var(--brand-primary)"; bgClass = "var(--brand-primary-light)"; break;
+      case "COMPLETED": colorClass = "var(--success)"; bgClass = "var(--success-light)"; break;
+      case "FAILED": colorClass = "var(--danger)"; bgClass = "var(--danger-light)"; break;
       default: colorClass = "var(--text-secondary)"; bgClass = "var(--bg-hover)"; break;
     }
     return (
@@ -71,10 +67,10 @@ export default function Jobs() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case "pending": return "var(--warning)";
-      case "in_progress": return "var(--brand-primary)";
-      case "completed": return "var(--success)";
-      case "failed": return "var(--danger)";
+      case "PENDING": return "var(--warning)";
+      case "RUNNING": return "var(--brand-primary)";
+      case "COMPLETED": return "var(--success)";
+      case "FAILED": return "var(--danger)";
       default: return "var(--text-secondary)";
     }
   };

@@ -17,7 +17,7 @@ import userRoutes from "./modules/users/user.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import fileRoutes from "./modules/files/files.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
-// import { registerLimiter, loginLimiter, emailLimiter, rateLimit } from "./middlewares/rateLimit.middleware.js";
+import { loginLimiter, apiLimiter, bulkLimiter, emailLimiter, registerLimiter } from "./middlewares/rateLimit.middleware.js";
 
 dotenv.config();
 
@@ -49,11 +49,11 @@ app.use(cookieParser());
 
 // Swagger documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
-
-app.use("/api/auth", authRoutes);
-// app.use("/api/auth", loginLimiter, authRoutes);
+app.use(apiLimiter);
+app.set("trust proxy", 1);
+app.use("/api/auth", loginLimiter, authRoutes);
 app.use("/api/organizations", orgRoutes);
-app.use("/api/organizations/:organizationId/members", membershipRoutes);
+app.use("/api/organizations/:organizationId/workspaces/:workspaceId/members", membershipRoutes);
 app.use("/api/organizations/:organizationId/workspaces", workspaceRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/users", userRoutes);
@@ -63,6 +63,9 @@ app.use("/api/organizations/:organizationId/workspaces/:workspaceId/jobs", jobRo
 app.use("/api/organizations/:organizationId/workspaces/:workspaceId/files", fileRoutes);
 app.use("/api", verificationRoutes);
 app.use("/api", emailRoutes);
+app.use("/api/health", (req, res) => {
+  res.json({ message: "Health check" });
+})
 
 // Centralized error handler
 app.use(errorHandler);

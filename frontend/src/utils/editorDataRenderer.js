@@ -563,13 +563,13 @@ export function renderEditorDataToHtml(editorData, variables = {}) {
   const renderedElements = sorted.map((el) => {
     try {
       switch (el.type) {
-        case "text":      return renderText(el, variables);
-        case "image":     return renderImage(el, variables);
+        case "text": return renderText(el, variables);
+        case "image": return renderImage(el, variables);
         case "signature": return renderSignature(el, variables);
-        case "qrcode":    return renderQrCode(el, variables);
-        case "shape":     return renderShape(el, variables);
-        case "line":      return renderLine(el, variables);
-        default:          return "";
+        case "qrcode": return renderQrCode(el, variables);
+        case "shape": return renderShape(el, variables);
+        case "line": return renderLine(el, variables);
+        default: return "";
       }
     } catch (err) {
       console.warn(`renderEditorData: failed to render element ${el.id} (${el.type}):`, err.message);

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import useSWR from "swr";
 import { Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
@@ -16,36 +17,36 @@ export default function Credentials() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
 
-  const [credentials, setCredentials] = useState([]);
   const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
   const [emailFilter, setEmailFilter]   = useState("");
   const [selected, setSelected]         = useState([]);
-  const [loading, setLoading]           = useState(false);
   const limit = 15;
 
-  const fetchCredentials = async () => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    try {
-      const res = await listCredentials(
-        selectedOrg.id, selectedWorkspace.id, page, limit,
-        statusFilter || undefined, emailFilter || undefined
-      );
-      if (res.success) {
-        setCredentials(res.credentials || []);
-        setTotal(res.total || 0);
+  const { data, isLoading, mutate } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id
+      ? ['credentials', selectedOrg.id, selectedWorkspace.id, page, statusFilter, emailFilter]
+      : null,
+    ([_, orgId, wsId, p, status, email]) => listCredentials(
+      orgId, wsId, p, limit,
+      status || undefined, email || undefined
+    ),
+    {
+      refreshInterval: (data) => {
+        if (!data) return 0;
+        const isProcessing = data.credentials.some(c => c.status === "ISSUED" && !c.imageUrl);
+        return isProcessing ? 3000 : 0;
       }
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setLoading(false);
     }
-  };
+  );
+
+  const credentials = data?.credentials || [];
+  const total = data?.total || 0;
+  const loading = isLoading && !data;
+
+  const fetchCredentials = () => { mutate(); };
 
   useEffect(() => {
-    fetchCredentials();
     setSelected([]);
   }, [selectedOrg?.id, selectedWorkspace?.id, page, statusFilter, emailFilter]);
 
@@ -59,6 +60,10 @@ export default function Credentials() {
 
   const handleBulkIssue = async () => {
     if (!selected.length) return;
+    if (!selectedWorkspace?.smtpEnabled) {
+      toast.error("You must configure Workspace SMTP settings before issuing credentials.");
+      return;
+    }
     if (!window.confirm(`Issue ${selected.length} credential(s)?`)) return;
     try {
       const res = await bulkIssueCredentials(selectedOrg.id, selectedWorkspace.id, selected);

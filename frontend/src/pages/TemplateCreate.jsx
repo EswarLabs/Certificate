@@ -21,7 +21,7 @@ export default function TemplateCreate() {
   const [schemaFields, setSchemaFields] = useState([
     { key: "courseTitle", label: "Course Title", type: "text", required: true },
   ]);
-  const [editorData, setEditorData] = useState(null);
+  const [editorData, setEditorData] = useState(() => createDefaultEditorData("LANDSCAPE"));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -32,11 +32,6 @@ export default function TemplateCreate() {
     courseTitle: "Advanced Full-Stack Development",
     verificationUrl: "https://example.com/verify/CERT-XXXX",
   });
-
-  // Initialise editorData when orientation changes
-  useEffect(() => {
-    setEditorData(createDefaultEditorData(orientation));
-  }, [orientation]);
 
   // Handle image upload for template thumbnail
   const handleThumbnailUpload = async (e) => {
@@ -178,7 +173,10 @@ export default function TemplateCreate() {
             {["LANDSCAPE", "PORTRAIT"].map((o) => (
               <button
                 key={o}
-                onClick={() => setOrientation(o)}
+                onClick={() => {
+                  setOrientation(o);
+                  setEditorData(createDefaultEditorData(o));
+                }}
                 style={{
                   backgroundColor: orientation === o ? "var(--bg-hover)" : "transparent",
                   border: "none",
@@ -214,7 +212,7 @@ export default function TemplateCreate() {
 
         {/* Left sidebar — Schema & settings */}
         <div style={{ width: "320px", backgroundColor: "var(--bg-secondary)", borderRight: "1px solid var(--border-color)", overflowY: "auto", flexShrink: 0, display: "flex", flexDirection: "column" }}>
-          
+
           {/* Description */}
           <div style={{ padding: "20px 20px 0" }}>
             <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "8px", fontWeight: 500 }}>Description</label>
@@ -318,6 +316,7 @@ export default function TemplateCreate() {
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, backgroundColor: "var(--bg-primary)" }}>
           {editorData ? (
             <CanvasEditor
+              key={orientation}
               initialData={editorData}
               orientation={orientation}
               variables={testValues}

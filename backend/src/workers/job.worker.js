@@ -215,7 +215,7 @@ export const jobWorker = new Worker(
       }
     }
   },
-  { connection: redis }
+  { connection: redis, concurrency: 10 }
 );
 
 jobWorker.on("completed", (job) => {

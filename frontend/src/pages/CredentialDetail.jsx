@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { useParams, Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
@@ -14,29 +15,34 @@ export default function CredentialDetail() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
 
-  const [credential, setCredential] = useState(null);
-  const [loading, setLoading]       = useState(true);
   const [actionLoading, setAction]  = useState(false);
-  const [error, setError]           = useState(null);
 
-  const fetch = async () => {
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setLoading(true);
-    try {
-      const res = await getCredential(selectedOrg.id, selectedWorkspace.id, id);
-      if (res.id) setCredential(res);
-      else setError(res.message || "Not found");
-    } catch (err) { setError(err.message); }
-    finally { setLoading(false); }
-  };
+  const { data: credential, isLoading, mutate: fetch, error: swrError } = useSWR(
+    selectedOrg?.id && selectedWorkspace?.id && id
+      ? ['credential', selectedOrg.id, selectedWorkspace.id, id]
+      : null,
+    async ([_, orgId, wsId, credId]) => {
+      const res = await getCredential(orgId, wsId, credId);
+      if (!res.id) throw new Error(res.message || "Not found");
+      return res;
+    },
+    {
+      refreshInterval: (data) => {
+        if (!data) return 0;
+        // If image is missing but it's issued, poll for image.
+        return (data.status === "ISSUED" && !data.imageUrl) ? 3000 : 0;
+      }
+    }
+  );
 
-  useEffect(() => { fetch(); }, [selectedOrg?.id, selectedWorkspace?.id, id]);
+  const loading = isLoading && !credential;
+  const error = swrError?.message || null;
 
   const handleIssue = async () => {
     setAction(true);
     try {
       const res = await issueCredential(selectedOrg.id, selectedWorkspace.id, id);
-      if (res.id) { setCredential(res); toast.success("Credential issued!"); }
+      if (res.id) { fetch(); toast.success("Credential issued!"); }
       else toast.error(res.message || "Failed");
     } catch (err) { toast.error(err.message); }
     finally { setAction(false); }
@@ -47,13 +53,17 @@ export default function CredentialDetail() {
     setAction(true);
     try {
       const res = await revokeCredential(selectedOrg.id, selectedWorkspace.id, id);
-      if (res.id) { setCredential(res); toast.success("Credential revoked"); }
+      if (res.id) { fetch(); toast.success("Credential revoked"); }
       else toast.error(res.message || "Failed");
     } catch (err) { toast.error(err.message); }
     finally { setAction(false); }
   };
 
   const handleSendEmail = async () => {
+    if (!selectedWorkspace?.smtpEnabled) {
+      toast.error("You must configure Workspace SMTP settings before sending emails.");
+      return;
+    }
     setAction(true);
     try {
       const res = await sendVerificationEmail(id);

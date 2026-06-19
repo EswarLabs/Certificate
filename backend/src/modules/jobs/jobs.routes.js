@@ -1,5 +1,5 @@
 import express from "express";
-import { getJobStatusController, listJobsController } from "./jobs.controller.js";
+import { getJobStatusController, listJobsController, getQueueStatsController } from "./jobs.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
 const router = express.Router({ mergeParams: true });
@@ -98,6 +98,49 @@ router.use(authMiddleware);
  *         description: Forbidden
  */
 router.get("/", listJobsController);
+
+/**
+ * @openapi
+ * /api/organizations/{organizationId}/workspaces/{workspaceId}/jobs/queue-stats:
+ *   get:
+ *     summary: Get current queue load statistics
+ *     tags:
+ *       - Jobs
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Queue stats retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 queues:
+ *                   type: object
+ *                 totalWaiting:
+ *                   type: integer
+ *                 isBusy:
+ *                   type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.get("/queue-stats", getQueueStatsController);
 
 /**
  * @openapi

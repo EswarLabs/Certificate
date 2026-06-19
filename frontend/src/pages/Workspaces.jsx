@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useWorkspace from '../hooks/useWorkspace';
 import useOrg from '../hooks/useOrg';
 import { listUsers } from '../services/userServices';
@@ -24,10 +25,17 @@ export default function Workspaces() {
   const [inviteRole, setInviteRole]       = useState('MEMBER');
   const [memberAction, setMemberAction]   = useState(false);
   const [showCreate, setShowCreate]       = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (selectedOrg?.id) { fetchWorkspaces(selectedOrg.id); fetchMembers(selectedOrg.id); }
+    if (selectedOrg?.id) { fetchWorkspaces(selectedOrg.id); }
   }, [selectedOrg?.id]);
+
+  useEffect(() => {
+    if (selectedOrg?.id && selectedWorkspace?.id) {
+      fetchMembers(selectedOrg.id, selectedWorkspace.id);
+    }
+  }, [selectedOrg?.id, selectedWorkspace?.id]);
 
   useEffect(() => {
     if (!selectedWorkspace && workspaces.length > 0) selectWorkspace(workspaces[0]);
@@ -40,7 +48,8 @@ export default function Workspaces() {
     try {
       await createNewWorkspace(selectedOrg.id, newWsName.trim());
       setNewWsName(''); setShowCreate(false);
-      toast.success('Workspace created!');
+      toast.success('Workspace created! Please configure your SMTP settings.');
+      navigate('/settings');
     } catch (err) { toast.error(err.message); }
     finally { setWsAction(false); }
   };
@@ -80,14 +89,14 @@ export default function Workspaces() {
   const handleRemoveMember = async (memberId) => {
     if (!window.confirm("Remove this member?")) return;
     setMemberAction(true);
-    try { await removeMemberFromOrg(selectedOrg.id, memberId); toast.success('Member removed'); }
+    try { await removeMemberFromOrg(selectedOrg.id, selectedWorkspace.id, memberId); toast.success('Member removed'); }
     catch (err) { toast.error(err.message); }
     finally { setMemberAction(false); }
   };
 
   const handleRoleChange = async (memberId, newRole) => {
     setMemberAction(true);
-    try { await updateRole(selectedOrg.id, memberId, newRole); toast.success('Role updated'); }
+    try { await updateRole(selectedOrg.id, selectedWorkspace.id, memberId, newRole); toast.success('Role updated'); }
     catch (err) { toast.error(err.message); }
     finally { setMemberAction(false); }
   };
@@ -185,7 +194,7 @@ export default function Workspaces() {
           <div className="card-header">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Users size={15} />
-              <span className="card-title">Members — {selectedOrg.name}</span>
+              <span className="card-title">Members — {selectedWorkspace.name}</span>
             </div>
           </div>
 

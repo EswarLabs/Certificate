@@ -26,3 +26,11 @@ export const getJob = async (orgId, wsId, jobId) => {
     });
     return res.json();
 };
+
+export const getQueueStats = async (orgId, wsId) => {
+    const res = await fetch(`${base(orgId, wsId)}/queue-stats`, {
+        credentials: "include",
+        headers: { ...getAuthHeader() },
+    });
+    return res.json();
+};

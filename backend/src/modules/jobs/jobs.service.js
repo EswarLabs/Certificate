@@ -1,4 +1,8 @@
 import { prisma } from "../../lib/prisma.js";
+import { jobQueue } from "../../queues/job.queue.js";
+import { imageQueue } from "../../queues/image.queue.js";
+import { pdfQueue } from "../../queues/pdf.queue.js";
+import { emailQueue } from "../../queues/email.queue.js";
 
 // Check workspace membership
 const checkWorkspaceMembership = async (orgId, workspaceId, userId) => {
@@ -54,5 +58,31 @@ export const listJobs = async (orgId, workspaceId, userId, filters = {}) => {
     limit,
     total,
     jobs,
+  };
+};
+
+// Get queue load statistics
+export const getQueueStats = async (orgId, workspaceId, userId) => {
+  await checkWorkspaceMembership(orgId, workspaceId, userId);
+
+  const [jobWait, imageWait, pdfWait, emailWait] = await Promise.all([
+    jobQueue.getWaitingCount(),
+    imageQueue.getWaitingCount(),
+    pdfQueue.getWaitingCount(),
+    emailQueue.getWaitingCount(),
+  ]);
+
+  const totalWaiting = jobWait + imageWait + pdfWait + emailWait;
+
+  return {
+    success: true,
+    queues: {
+      jobs: jobWait,
+      images: imageWait,
+      pdfs: pdfWait,
+      emails: emailWait,
+    },
+    totalWaiting,
+    isBusy: totalWaiting > 20, // Threshold for system busyness
   };
 };

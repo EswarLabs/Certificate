@@ -8,25 +8,25 @@ export const googleAuthController = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing token' });
     }
     const { user, accessToken } = await googleLogin(credential);
-    
+
 
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     return res.status(200).json({
       success: true,
       user,
-      accessToken, 
+      accessToken,
     });
   } catch (error) {
     console.error("Error in Google Auth Controller:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      message: "Internal server error" 
+      message: "Internal server error"
     });
   }
 };
@@ -56,7 +56,7 @@ export const registerController = async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -98,7 +98,7 @@ export const loginController = async (req, res) => {
     res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -160,7 +160,7 @@ export const getCurrentUserController = async (req, res) => {
       },
     })
 
-    if(!user){
+    if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",

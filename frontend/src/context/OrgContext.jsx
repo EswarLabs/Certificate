@@ -14,7 +14,9 @@ const OrgProvider = ({ children }) => {
         setLoading(true);
         setError(null);
         try {
-            const res = await createOrg(orgName);
+            // orgName may be a string or an object { name: "..." } from the UI
+            const name = typeof orgName === 'object' ? orgName.name : orgName;
+            const res = await createOrg(name);
             if (res.success) {
                 // Backend returns: { success, organization: { organization, workspace, membership } }
                 setSelectedOrg(res.organization?.organization || null);

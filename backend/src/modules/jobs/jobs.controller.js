@@ -1,4 +1,4 @@
-import { getJobStatus, listJobs } from "./jobs.service.js";
+import { getJobStatus, listJobs, getQueueStats } from "./jobs.service.js";
 
 export const getJobStatusController = async (req, res, next) => {
   try {
@@ -31,6 +31,19 @@ export const listJobsController = async (req, res, next) => {
       type,
     });
     res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getQueueStatsController = async (req, res, next) => {
+  try {
+    const orgId = req.params.organizationId;
+    const workspaceId = req.params.workspaceId;
+    const userId = req.user.userId;
+
+    const stats = await getQueueStats(orgId, workspaceId, userId);
+    res.status(200).json(stats);
   } catch (error) {
     next(error);
   }
