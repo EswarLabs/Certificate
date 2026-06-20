@@ -18,7 +18,7 @@ export default function Settings() {
 
   const [wsForm, setWsForm] = useState({
     name: "", customDomain: "", smtpEnabled: false,
-    smtpHost: "", smtpPort: "", smtpUsername: "", smtpPassword: "",
+    resendApiKey: "", fromEmail: "",
     brandingPrimaryColor: "", brandingLogo: "",
   });
   const [wsLoading, setWsLoading] = useState(false);
@@ -33,10 +33,8 @@ export default function Settings() {
         name: selectedWorkspace.name || "",
         customDomain: selectedWorkspace.customDomain || "",
         smtpEnabled: selectedWorkspace.smtpEnabled || false,
-        smtpHost: selectedWorkspace.smtpSettings?.host || "",
-        smtpPort: selectedWorkspace.smtpSettings?.port || "",
-        smtpUsername: selectedWorkspace.smtpSettings?.username || "",
-        smtpPassword: "",
+        resendApiKey: selectedWorkspace.smtpSettings?.apiKey || "",
+        fromEmail: selectedWorkspace.smtpSettings?.fromEmail || "",
         brandingPrimaryColor: selectedWorkspace.brandingSettings?.primaryColor || "",
         brandingLogo: selectedWorkspace.brandingSettings?.logo || "",
       });
@@ -73,10 +71,8 @@ export default function Settings() {
       };
       if (wsForm.smtpEnabled) {
         data.smtpSettings = {
-          host: wsForm.smtpHost,
-          port: parseInt(wsForm.smtpPort) || 587,
-          username: wsForm.smtpUsername,
-          password: wsForm.smtpPassword,
+          apiKey: wsForm.resendApiKey,
+          fromEmail: wsForm.fromEmail,
         };
       }
       await updateCurrentWorkspace(selectedOrg.id, selectedWorkspace.id, data);
@@ -196,27 +192,25 @@ export default function Settings() {
               {/* SMTP */}
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
-                  <Mail size={13} /> Custom SMTP
+                  <Mail size={13} /> Custom Email (Resend API)
                 </h3>
                 <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", userSelect: "none" }}>
                   <input type="checkbox" checked={wsForm.smtpEnabled} onChange={e => setWsForm({ ...wsForm, smtpEnabled: e.target.checked })}
                     style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--brand-primary)" }} />
-                  Enable custom SMTP server
+                  Enable custom emails via Resend
                 </label>
                 {wsForm.smtpEnabled && (
-                  <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                    {[
-                      { key: "smtpHost", label: "Host", placeholder: "smtp.mailgun.org", type: "text" },
-                      { key: "smtpPort", label: "Port", placeholder: "587", type: "number" },
-                      { key: "smtpUsername", label: "Username", placeholder: "", type: "text" },
-                      { key: "smtpPassword", label: "Password", placeholder: "••••••••", type: "password" },
-                    ].map(f => (
-                      <div key={f.key} className="form-group">
-                        <label className="label">{f.label}</label>
-                        <input className="input" type={f.type} value={wsForm[f.key]} placeholder={f.placeholder}
-                          onChange={e => setWsForm({ ...wsForm, [f.key]: e.target.value })} />
-                      </div>
-                    ))}
+                  <div className="form-row" style={{ gridTemplateColumns: "1fr" }}>
+                    <div className="form-group">
+                      <label className="label">Resend API Key</label>
+                      <input className="input" type="password" value={wsForm.resendApiKey} placeholder="re_..."
+                        onChange={e => setWsForm({ ...wsForm, resendApiKey: e.target.value })} />
+                    </div>
+                    <div className="form-group">
+                      <label className="label">From Email Address</label>
+                      <input className="input" type="email" value={wsForm.fromEmail} placeholder="hello@yourdomain.com"
+                        onChange={e => setWsForm({ ...wsForm, fromEmail: e.target.value })} />
+                    </div>
                   </div>
                 )}
               </div>

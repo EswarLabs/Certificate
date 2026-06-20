@@ -1,50 +1,43 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import dns from "dns";
 import { prisma } from "../../lib/prisma.js";
 import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
 import { emailQueue } from "../../queues/email.queue.js";
 
-// Force Node.js to use IPv4 first to prevent ENETUNREACH on IPv6 addresses
-dns.setDefaultResultOrder('ipv4first');
+// ─── Factory: get Resend Client ──────────────────────────────────────────────
 
-// ─── Factory: get Nodemailer transporter ─────────────────────────────────────
-
-export const getTransporter = async (workspaceId) => {
+export const getResendClient = async (workspaceId) => {
   if (process.env.NODE_ENV === "test") {
-    return { transport: nodemailer.createTransport({ jsonTransport: true }), fromEmail: "test@mock.com" };
+    return { resend: null, fromEmail: "test@mock.com" };
   }
 
   const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
 
-  // Workspace-level custom SMTP
+  // Workspace-level custom SMTP (now Resend API)
   if (workspace?.smtpEnabled && workspace?.smtpSettings) {
     const s = workspace.smtpSettings;
-    const parsedPort = parseInt(s.port) || 587;
-    const secure = parsedPort === 465 || s.secure === true || s.secure === "true";
-    const transport = nodemailer.createTransport({
-      host: s.host,
-      port: parsedPort,
-      secure,
-      auth: { user: s.username || s.user, pass: s.password || s.pass },
-    });
+    const apiKey = s.apiKey;
+    
+    if (!apiKey) {
+      throw new Error("Resend API Key is missing in Workspace Settings");
+    }
+
+    const resend = new Resend(apiKey);
 
     // Resolve fromEmail from workspace settings
-    let fromEmail = "no-reply@eswarlabs.com";
-    if (s.from) fromEmail = s.from;
-    else if (s.username?.includes("@")) fromEmail = s.username;
-    else if (s.user?.includes("@")) fromEmail = s.user;
+    let fromEmail = s.fromEmail || "no-reply@eswarlabs.com";
 
-    return { transport, fromEmail };
+    return { resend, fromEmail };
   }
 
   if (process.env.NODE_ENV !== "test") {
-    throw new Error("Workspace SMTP settings are not configured. You must configure email settings in your Workspace Settings before sending emails.");
+    throw new Error("Workspace Email settings are not configured. You must configure Resend API settings in your Workspace Settings before sending emails.");
   }
 
   // Mock fallback for tests
-  console.warn("No SMTP settings configured, using mock jsonTransport fallback (TEST MODE)");
+  console.warn("No Email settings configured (TEST MODE)");
   return {
-    transport: nodemailer.createTransport({ jsonTransport: true }),
+    resend: null,
     fromEmail: "no-reply@eswarlabs.com",
   };
 };
@@ -137,8 +130,7 @@ export const sendCredentialEmail = async (credentialId, userId) => {
   });
 
   try {
-    // ✅ FIX: getTransporter now returns { transport, fromEmail } — single DB call
-    const { transport, fromEmail } = await getTransporter(credential.workspaceId);
+    const { resend, fromEmail } = await getResendClient(credential.workspaceId);
 
     const mailOptions = {
       from: `"EswarLabs Certificates" <${fromEmail}>`,
@@ -147,14 +139,17 @@ export const sendCredentialEmail = async (credentialId, userId) => {
       html: fullHtml,
     };
 
-    console.log(`[SMTP] Attempting to send email via transport configuration: host=${transport.options.host}, port=${transport.options.port}, secure=${transport.options.secure}`);
+    console.log(`[RESEND] Attempting to send email via Resend API to ${credential.recipientEmail}`);
 
-    const info = await transport.sendMail(mailOptions);
+    let providerMessageId = "mock-msg-id";
 
-    const providerMessageId =
-      info.messageId ||
-      (info.message && info.message.messageId) ||
-      "mock-msg-id";
+    if (resend) {
+      const { data, error } = await resend.emails.send(mailOptions);
+      if (error) {
+        throw new Error(error.message || "Failed to send email via Resend API");
+      }
+      providerMessageId = data.id;
+    }
 
     await prisma.emailLog.update({
       where: { id: emailLog.id },
