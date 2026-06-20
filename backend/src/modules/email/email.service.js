@@ -1,7 +1,11 @@
 import nodemailer from "nodemailer";
+import dns from "dns";
 import { prisma } from "../../lib/prisma.js";
 import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
 import { emailQueue } from "../../queues/email.queue.js";
+
+// Force Node.js to use IPv4 first to prevent ENETUNREACH on IPv6 addresses
+dns.setDefaultResultOrder('ipv4first');
 
 // ─── Factory: get Nodemailer transporter ─────────────────────────────────────
 
@@ -15,10 +19,11 @@ export const getTransporter = async (workspaceId) => {
   // Workspace-level custom SMTP
   if (workspace?.smtpEnabled && workspace?.smtpSettings) {
     const s = workspace.smtpSettings;
-    const secure = s.port === 465 || s.secure === true;
+    const parsedPort = parseInt(s.port) || 587;
+    const secure = parsedPort === 465 || s.secure === true || s.secure === "true";
     const transport = nodemailer.createTransport({
       host: s.host,
-      port: parseInt(s.port) || 587,
+      port: parsedPort,
       secure,
       auth: { user: s.username || s.user, pass: s.password || s.pass },
     });
@@ -141,6 +146,8 @@ export const sendCredentialEmail = async (credentialId, userId) => {
       subject: `Your Certificate of Achievement - ${credential.recipientName}`,
       html: fullHtml,
     };
+
+    console.log(`[SMTP] Attempting to send email via transport configuration: host=${transport.options.host}, port=${transport.options.port}, secure=${transport.options.secure}`);
 
     const info = await transport.sendMail(mailOptions);
 
