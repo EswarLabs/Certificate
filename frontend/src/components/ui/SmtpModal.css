@@ -1,0 +1,114 @@
+/* ── SmtpModal.css ── */
+
+.smtp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: smtpFadeIn 0.18s ease;
+}
+
+@keyframes smtpFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.smtp-modal {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 36px 32px 28px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: var(--shadow-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  animation: smtpSlideUp 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes smtpSlideUp {
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
+  to   { transform: translateY(0)     scale(1);    opacity: 1; }
+}
+
+.smtp-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+.smtp-modal-close:hover {
+  background: var(--danger-light);
+  color: var(--danger);
+  border-color: var(--danger-light);
+}
+
+.smtp-modal-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--warning-light);
+  color: var(--warning);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+.smtp-modal-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.smtp-modal-body {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 360px;
+}
+
+.smtp-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.smtp-setup-btn {
+  width: 100%;
+  justify-content: center;
+  padding: 10px 18px;
+  font-size: 13.5px;
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .smtp-modal {
+    padding: 28px 20px 22px;
+  }
+}

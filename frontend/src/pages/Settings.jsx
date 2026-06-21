@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
@@ -10,6 +11,7 @@ export default function Settings() {
   const { user } = useAuth();
   const { selectedOrg } = useOrg();
   const { selectedWorkspace, updateCurrentWorkspace } = useWorkspace();
+  const [searchParams] = useSearchParams();
 
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -22,6 +24,13 @@ export default function Settings() {
     brandingPrimaryColor: "", brandingLogo: "",
   });
   const [wsLoading, setWsLoading] = useState(false);
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam === "workspace" && selectedWorkspace) {
+      setActiveTab("workspace");
+    }
+  }, [searchParams, selectedWorkspace]);
 
   useEffect(() => {
     if (user) setProfile({ firstName: user.firstName || "", lastName: user.lastName || "", avatarUrl: user.avatarUrl || "" });
@@ -106,20 +115,20 @@ export default function Settings() {
 
       {/* ── Profile Tab ── */}
       {activeTab === "profile" && (
-        <div style={{ maxWidth: 540 }}>
+        <div style={{ maxWidth: 540, width: "100%" }}>
           <div className="card">
             {/* Avatar preview row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border-color)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border-color)", flexWrap: "wrap" }}>
               {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-color)" }} />
+                <img src={profile.avatarUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-color)", flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 20 }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 20, flexShrink: 0 }}>
                   {profile.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
                 </div>
               )}
-              <div>
-                <div style={{ fontWeight: 600, fontSize: 15 }}>{profile.firstName} {profile.lastName}</div>
-                <div style={{ fontSize: 13, color: "var(--text-tertiary)" }}>{user?.email}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15, wordBreak: "break-word" }}>{profile.firstName} {profile.lastName}</div>
+                <div style={{ fontSize: 13, color: "var(--text-tertiary)", wordBreak: "break-all" }}>{user?.email}</div>
               </div>
             </div>
 
@@ -152,7 +161,7 @@ export default function Settings() {
 
       {/* ── Workspace Tab ── */}
       {activeTab === "workspace" && selectedWorkspace && (
-        <div style={{ maxWidth: 680 }}>
+        <div style={{ maxWidth: 680, width: "100%" }}>
           <div className="card">
             <form onSubmit={handleWsUpdate} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
@@ -174,13 +183,13 @@ export default function Settings() {
               {/* Branding */}
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Branding</h3>
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
                   <div className="form-group" style={{ flex: "0 0 auto" }}>
                     <label className="label">Primary Color</label>
                     <input type="color" value={wsForm.brandingPrimaryColor || "#6366f1"} onChange={e => setWsForm({ ...wsForm, brandingPrimaryColor: e.target.value })}
                       style={{ height: 36, width: 72, padding: "2px 4px", cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius-md)" }} />
                   </div>
-                  <div className="form-group" style={{ flex: 1 }}>
+                  <div className="form-group" style={{ flex: "1 1 180px" }}>
                     <label className="label">Logo URL</label>
                     <input className="input" type="url" value={wsForm.brandingLogo} onChange={e => setWsForm({ ...wsForm, brandingLogo: e.target.value })} placeholder="https://..." />
                   </div>

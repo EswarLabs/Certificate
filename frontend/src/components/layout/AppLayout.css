@@ -261,9 +261,52 @@
     position: fixed;
     height: 100%;
     transform: translateX(-100%);
+    z-index: 50;
   }
   .sidebar.open { transform: translateX(0); }
   .mobile-menu-btn { display: flex; }
   .mobile-overlay.open { display: block; }
-  .page-container { padding: 20px 16px; }
+
+  /* Header: reduce padding on mobile */
+  .top-header {
+    padding: 0 12px;
+  }
+
+  /* Page container overridden by global index.css breakpoints */
+  .page-container { padding: 16px 14px; }
+
+  /* Header left: truncate breadcrumb */
+  .header-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .breadcrumb {
+    overflow: hidden;
+    max-width: calc(100vw - 120px);
+  }
+  /* Hide middle breadcrumb segments on very small screens */
+  .breadcrumb .breadcrumb-sep,
+  .breadcrumb > span:not(.breadcrumb-current):not(:first-child) {
+    display: none;
+  }
+
+  /* Main wrapper: ensure it spans full width */
+  .main-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* Footer user: truncate on mobile */
+  .sidebar-user-name {
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-header {
+    padding: 0 10px;
+  }
+  .header-right {
+    gap: 4px;
+  }
 }

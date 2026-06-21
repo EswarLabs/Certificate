@@ -91,7 +91,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, marginBottom: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 32 }}>
         <div className="stat-card">
           <div className="stat-label"><GraduationCap size={14} /> Credentials</div>
           <div className="stat-value">{loading ? "—" : stats.credentials}</div>

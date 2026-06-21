@@ -143,7 +143,7 @@ export default function Workspaces() {
       ) : workspaces.length === 0 ? (
         <div className="card"><div className="empty-state"><Folder size={36} /><h3>No workspaces found</h3></div></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 32 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
           {workspaces.map(ws => {
             const isSelected = selectedWorkspace?.id === ws.id;
             return (
@@ -200,21 +200,22 @@ export default function Workspaces() {
 
           {/* Invite */}
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-secondary)' }}>
-            <form onSubmit={handleSearchUser} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+            <form onSubmit={handleSearchUser} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
               <input className="input" type="email" placeholder="Search user by email…" value={searchEmail}
-                onChange={e => setSearchEmail(e.target.value)} disabled={searchLoading} required />
-              <button type="submit" disabled={searchLoading} className="btn btn-secondary btn-sm">
+                onChange={e => setSearchEmail(e.target.value)} disabled={searchLoading} required
+                style={{ flex: '1 1 180px', minWidth: 0 }} />
+              <button type="submit" disabled={searchLoading} className="btn btn-secondary btn-sm" style={{ flexShrink: 0 }}>
                 {searchLoading ? 'Searching…' : 'Search'}
               </button>
             </form>
             {searchError && <div className="alert alert-error" style={{ padding: '6px 12px', fontSize: 12 }}>{searchError}</div>}
             {foundUser && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13 }}>{foundUser.firstName} {foundUser.lastName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{foundUser.email}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)', padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border-color)', flexWrap: 'wrap', gap: 10 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, wordBreak: 'break-word' }}>{foundUser.firstName} {foundUser.lastName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-tertiary)', wordBreak: 'break-all' }}>{foundUser.email}</div>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
                   <select className="input" style={{ width: 120, padding: '4px 8px' }} value={inviteRole} onChange={e => setInviteRole(e.target.value)}>
                     <option value="MEMBER">MEMBER</option>
                     <option value="ADMIN">ADMIN</option>

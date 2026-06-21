@@ -193,6 +193,14 @@ input, select, textarea { font-family: var(--font-sans); }
   gap: 12px;
 }
 
+/* ── Responsive action group (buttons that wrap on mobile) ── */
+.btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .page-title {
   font-size: 20px;
   font-weight: 700;
@@ -631,3 +639,135 @@ input, select, textarea { font-family: var(--font-sans); }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVE — TABLET (≤ 1024px)
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .page-container {
+    padding: 20px 20px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVE — MOBILE (≤ 768px)
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page-container {
+    padding: 16px 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 10px;
+  }
+
+  .page-header > *:last-child {
+    width: 100%;
+  }
+
+  .btn-group {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* Form: always single column on mobile */
+  .form-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Cards: reduce internal padding */
+  .card {
+    padding: 16px;
+  }
+
+  /* Stat cards: 2 per row on mobile */
+  .stat-value {
+    font-size: 22px;
+  }
+
+  /* Tables: horizontal scroll on mobile */
+  .table-wrap {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Table: compact cells */
+  .table th,
+  .table td {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Tabs: allow horizontal scroll */
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  /* Alert: smaller padding */
+  .alert {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  /* Breadcrumb: hide middle items if too long */
+  .breadcrumb {
+    font-size: 12px;
+    max-width: calc(100vw - 160px);
+    overflow: hidden;
+  }
+
+  /* Button group full width on mobile */
+  .page-header .btn-group .btn,
+  .page-header > .btn {
+    flex: 1;
+    justify-content: center;
+    min-width: 0;
+  }
+}
+
+/* ────────────────────────────────────────────────────────
+   RESPONSIVE — SMALL MOBILE (≤ 480px)
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .page-container {
+    padding: 12px 12px;
+  }
+
+  .page-title {
+    font-size: 17px;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .stat-value {
+    font-size: 20px;
+  }
+
+  /* Credential detail — responsive two-column grid */
+  .detail-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── Utility: responsive two-column grid for credential detail ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

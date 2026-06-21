@@ -4,8 +4,9 @@ import { Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listCredentials, bulkIssueCredentials } from "../services/credentialServices";
-import { Plus, Upload, Play, Inbox, Search, Filter } from "lucide-react";
+import { Plus, Upload, Play, Inbox, Search } from "lucide-react";
 import toast from "react-hot-toast";
+import SmtpModal from "../components/ui/SmtpModal";
 
 const STATUS_BADGE = {
   ISSUED:  "badge badge-success",
@@ -21,6 +22,8 @@ export default function Credentials() {
   const [statusFilter, setStatusFilter] = useState("");
   const [emailFilter, setEmailFilter]   = useState("");
   const [selected, setSelected]         = useState([]);
+  const [showSmtpModal, setShowSmtpModal] = useState(false);
+  const [smtpErrorMsg, setSmtpErrorMsg]   = useState("");
   const limit = 15;
 
   const { data, isLoading, mutate } = useSWR(
@@ -61,7 +64,8 @@ export default function Credentials() {
   const handleBulkIssue = async () => {
     if (!selected.length) return;
     if (!selectedWorkspace?.smtpEnabled) {
-      toast.error("You must configure Workspace SMTP settings before issuing credentials.");
+      setSmtpErrorMsg("Your workspace email (Resend API) settings are not configured. Please configure them in Workspace Settings before issuing credentials.");
+      setShowSmtpModal(true);
       return;
     }
     if (!window.confirm(`Issue ${selected.length} credential(s)?`)) return;
@@ -95,13 +99,21 @@ export default function Credentials() {
 
   return (
     <div className="page-container">
+      {/* SMTP Modal */}
+      {showSmtpModal && (
+        <SmtpModal
+          message={smtpErrorMsg}
+          onClose={() => setShowSmtpModal(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="page-header">
         <div>
           <h1 className="page-title">Credentials</h1>
           <p className="page-subtitle">{total} total · {selectedWorkspace.name}</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="btn-group">
           <Link to="/credentials/batch" className="btn btn-secondary">
             <Upload size={14} /> Batch Import
           </Link>
@@ -112,33 +124,35 @@ export default function Credentials() {
       </div>
 
       {/* Filters */}
-      <div className="card" style={{ padding: "12px 16px", marginBottom: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180 }}>
-          <Search size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
-          <input
-            className="input"
-            style={{ border: "none", outline: "none", boxShadow: "none", padding: "4px 0", background: "transparent" }}
-            placeholder="Filter by email..."
-            value={emailFilter}
-            onChange={e => { setEmailFilter(e.target.value); setPage(1); }}
-          />
-        </div>
-        <div style={{ display: "flex", gap: 4 }}>
-          {["", "DRAFT", "ISSUED", "REVOKED"].map(s => (
-            <button
-              key={s}
-              className={`btn btn-sm ${statusFilter === s ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => { setStatusFilter(s); setPage(1); }}
-            >
-              {s || "All"}
+      <div className="card" style={{ padding: "12px 14px", marginBottom: 16 }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 160px", minWidth: 0 }}>
+            <Search size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+            <input
+              className="input"
+              style={{ border: "none", outline: "none", boxShadow: "none", padding: "4px 0", background: "transparent" }}
+              placeholder="Filter by email..."
+              value={emailFilter}
+              onChange={e => { setEmailFilter(e.target.value); setPage(1); }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {["", "DRAFT", "ISSUED", "REVOKED"].map(s => (
+              <button
+                key={s}
+                className={`btn btn-sm ${statusFilter === s ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => { setStatusFilter(s); setPage(1); }}
+              >
+                {s || "All"}
+              </button>
+            ))}
+          </div>
+          {selected.length > 0 && (
+            <button className="btn btn-success btn-sm" onClick={handleBulkIssue}>
+              <Play size={13} /> Issue {selected.length} selected
             </button>
-          ))}
+          )}
         </div>
-        {selected.length > 0 && (
-          <button className="btn btn-success btn-sm" onClick={handleBulkIssue}>
-            <Play size={13} /> Issue {selected.length} selected
-          </button>
-        )}
       </div>
 
       {/* Table */}
@@ -220,10 +234,10 @@ export default function Credentials() {
 
       {/* Pagination */}
       {total > limit && (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 12, marginTop: 20 }}>
-          <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
+        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
+          <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Previous</button>
           <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Page {page} of {Math.ceil(total / limit)}</span>
-          <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>Next</button>
+          <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>Next →</button>
         </div>
       )}
     </div>

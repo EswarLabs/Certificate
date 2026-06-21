@@ -19,7 +19,9 @@ export const getResendClient = async (workspaceId) => {
     const apiKey = s.apiKey;
     
     if (!apiKey) {
-      throw new Error("Resend API Key is missing in Workspace Settings");
+      const err = new Error("Resend API Key is missing in Workspace Settings. Please configure your Resend API key in Workspace Settings before sending emails.");
+      err.code = "SMTP_NOT_CONFIGURED";
+      throw err;
     }
 
     const resend = new Resend(apiKey);
@@ -31,7 +33,11 @@ export const getResendClient = async (workspaceId) => {
   }
 
   if (process.env.NODE_ENV !== "test") {
-    throw new Error("Workspace Email settings are not configured. You must configure Resend API settings in your Workspace Settings before sending emails.");
+    const err = new Error(
+      "Workspace Email settings are not configured. You must configure Resend API settings in your Workspace Settings before sending emails."
+    );
+    err.code = "SMTP_NOT_CONFIGURED";
+    throw err;
   }
 
   // Mock fallback for tests

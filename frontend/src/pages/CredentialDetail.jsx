@@ -7,8 +7,13 @@ import { getCredential, issueCredential, revokeCredential } from "../services/cr
 import { sendVerificationEmail } from "../services/emailServices";
 import { ArrowLeft, Mail, Ban, CheckCircle, Download, ExternalLink, Clock } from "lucide-react";
 import toast from "react-hot-toast";
+import SmtpModal from "../components/ui/SmtpModal";
 
 const STATUS_CLASS = { ISSUED: "badge-success", DRAFT: "badge-warning", REVOKED: "badge-danger" };
+
+const isSmtpError = (msg = "", code = "") =>
+  code === "SMTP_NOT_CONFIGURED" ||
+  /smtp|email.*not.*configured|resend.*api|workspace.*email|api.*key.*missing/i.test(msg);
 
 export default function CredentialDetail() {
   const { id } = useParams();
@@ -16,6 +21,8 @@ export default function CredentialDetail() {
   const { selectedWorkspace } = useWorkspace();
 
   const [actionLoading, setAction]  = useState(false);
+  const [showSmtpModal, setShowSmtpModal] = useState(false);
+  const [smtpErrorMsg, setSmtpErrorMsg]   = useState("");
 
   const { data: credential, isLoading, mutate: fetch, error: swrError } = useSWR(
     selectedOrg?.id && selectedWorkspace?.id && id
@@ -60,16 +67,36 @@ export default function CredentialDetail() {
   };
 
   const handleSendEmail = async () => {
+    // Guard: check frontend state first for fast feedback
     if (!selectedWorkspace?.smtpEnabled) {
-      toast.error("You must configure Workspace SMTP settings before sending emails.");
+      setSmtpErrorMsg("Your workspace email (Resend API) settings are not configured. Please enable and configure them in Workspace Settings before sending emails.");
+      setShowSmtpModal(true);
       return;
     }
     setAction(true);
     try {
       const res = await sendVerificationEmail(id);
       if (res.success) { toast.success("Email sent!"); fetch(); }
-      else toast.error(res.message || "Failed");
-    } catch (err) { toast.error(err.message); }
+      else {
+        const msg = res.message || "Failed to send email";
+        const code = res.code || "";
+        if (isSmtpError(msg, code)) {
+          setSmtpErrorMsg(msg);
+          setShowSmtpModal(true);
+        } else {
+          toast.error(msg);
+        }
+      }
+    } catch (err) {
+      const msg = err.message || "Failed to send email";
+      const code = err.code || "";
+      if (isSmtpError(msg, code)) {
+        setSmtpErrorMsg(msg);
+        setShowSmtpModal(true);
+      } else {
+        toast.error(msg);
+      }
+    }
     finally { setAction(false); }
   };
 
@@ -81,19 +108,29 @@ export default function CredentialDetail() {
 
   return (
     <div className="page-container">
+      {/* SMTP Modal */}
+      {showSmtpModal && (
+        <SmtpModal
+          message={smtpErrorMsg}
+          onClose={() => setShowSmtpModal(false)}
+        />
+      )}
+
       {/* Header */}
       <div className="page-header">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link to="/credentials" className="btn-icon"><ArrowLeft size={16} /></Link>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <h1 className="page-title">{credential.recipientName}</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+          <Link to="/credentials" className="btn-icon" style={{ flexShrink: 0 }}>
+            <ArrowLeft size={16} />
+          </Link>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <h1 className="page-title" style={{ wordBreak: "break-word" }}>{credential.recipientName}</h1>
               <span className={`badge ${statusClass}`}>{credential.status}</span>
             </div>
-            <p className="page-subtitle">ID: {credential.id}</p>
+            <p className="page-subtitle" style={{ wordBreak: "break-all", fontSize: 11 }}>ID: {credential.id}</p>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="btn-group">
           {credential.status === "DRAFT" && (
             <button onClick={handleIssue} disabled={actionLoading} className="btn btn-primary">
               <CheckCircle size={14} /> Issue
@@ -115,7 +152,8 @@ export default function CredentialDetail() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24 }}>
+      {/* Responsive two-column grid */}
+      <div className="detail-grid">
         {/* Left — Certificate Preview */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Certificate image */}
@@ -151,9 +189,9 @@ export default function CredentialDetail() {
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>Credential Fields</h3>
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
                 {Object.entries(credential.credentialData).map(([k, v]) => (
-                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border-color)", fontSize: 13 }}>
-                    <span style={{ color: "var(--text-secondary)", fontWeight: 500, textTransform: "capitalize" }}>{k}</span>
-                    <span style={{ color: "var(--text-primary)", fontWeight: 400, textAlign: "right", maxWidth: "60%" }}>{String(v)}</span>
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid var(--border-color)", fontSize: 13, gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ color: "var(--text-secondary)", fontWeight: 500, textTransform: "capitalize", flexShrink: 0 }}>{k}</span>
+                    <span style={{ color: "var(--text-primary)", fontWeight: 400, textAlign: "right", wordBreak: "break-word", maxWidth: "60%" }}>{String(v)}</span>
                   </div>
                 ))}
               </div>
@@ -196,7 +234,7 @@ export default function CredentialDetail() {
               <div>
                 {credential.emailLogs.map(log => (
                   <div key={log.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid var(--border-color)", fontSize: 12 }}>
-                    <span className={`badge ${log.status === "SENT" ? "badge-success" : log.status === "FAILED" ? "badge-danger" : "badge-neutral"}`}>{log.status}</span>
+                    <span className={`badge ${log.status === "SENT" || log.status === "OPENED" ? "badge-success" : log.status === "FAILED" ? "badge-danger" : "badge-neutral"}`}>{log.status}</span>
                     <span style={{ color: "var(--text-tertiary)" }}>{new Date(log.createdAt).toLocaleDateString()}</span>
                   </div>
                 ))}
