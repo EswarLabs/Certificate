@@ -118,7 +118,11 @@ export const sendCredentialEmail = async (credentialId, userId) => {
   // Render certificate HTML
   renderEditorDataToHtml(credential.template.editorData, replacements);
 
-  const courseTitle = replacements.courseTitle || null;
+  // Ensure courseTitle is correctly null if empty, undefined, or 'undefined'
+  let courseTitle = replacements.courseTitle || replacements["course title"] || null;
+  if (courseTitle === "undefined" || courseTitle === "null" || (typeof courseTitle === 'string' && courseTitle.trim() === "")) {
+    courseTitle = null;
+  }
 
   const fullHtml = buildEmailHtml({
     credential,
@@ -132,10 +136,12 @@ export const sendCredentialEmail = async (credentialId, userId) => {
   try {
     const { resend, fromEmail } = await getResendClient(credential.workspaceId);
 
+    const subjectTitle = courseTitle ? `your certificate for ${courseTitle}` : "your certificate";
+
     const mailOptions = {
       from: `"EswarLabs Certificates" <${fromEmail}>`,
       to: credential.recipientEmail,
-      subject: `Your Certificate of Achievement - ${credential.recipientName}`,
+      subject: `${credential.recipientName}, ${subjectTitle} is ready`,
       html: fullHtml,
     };
 
@@ -178,7 +184,6 @@ export const sendCredentialEmail = async (credentialId, userId) => {
 // ─── Build email HTML (extracted for clarity) ────────────────────────────────
 
 function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl, emailLogId, courseTitle }) {
-  // ✅ FIX: Only rewrite <a href="..."> tags — not style blocks or src attributes
   const rewriteUrl = (url) => {
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return `${backendUrl}/api/email/track/click/${emailLogId}?url=${encodeURIComponent(url)}`;
@@ -188,33 +193,19 @@ function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl,
 
   const trackedVerificationUrl = rewriteUrl(verificationUrl);
 
-  // ✅ FIX: courseTitle block is conditionally rendered, not silently "Completion"
-  const courseTitleBlock = courseTitle
-    ? `
-      <p style="font-size: 15px; line-height: 1.5; color: #475569;">
-        We are pleased to inform you that your certificate for <strong>${courseTitle}</strong> has been successfully issued and verified.
-      </p>
-      <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 6px;">Course</div>
-      <div style="font-size: 16px; font-weight: bold; color: #1e3a8a;">${courseTitle}</div>
-    `
-    : `
-      <p style="font-size: 15px; line-height: 1.5; color: #475569;">
-        We are pleased to inform you that your certificate has been successfully issued and verified.
-      </p>
-    `;
+  const courseInfo = courseTitle
+    ? `your certificate for <strong>${courseTitle}</strong>`
+    : `your certificate`;
 
   const certImageBlock = credential.imageUrl
-    ? `<img src="${credential.imageUrl}" alt="Certificate Preview" style="max-width: 100%; height: auto; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin: 30px 0;" />`
-    : `<div class="cert-preview-card">
-        <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">Certificate Recipient</div>
-        <div style="font-size: 22px; font-weight: bold; color: #1e293b; margin-bottom: 20px;">${credential.recipientName}</div>
-      </div>`;
+    ? `<div style="margin: 20px 0;"><img src="${credential.imageUrl}" alt="Certificate Preview" style="max-width: 600px; width: 100%; height: auto; border: 1px solid #ddd; border-radius: 4px;" /></div>`
+    : ``;
 
-  const pdfDownloadBlock = credential.pdfUrl
-    ? `<div style="margin-top: 15px;"><a href="${rewriteUrl(credential.pdfUrl)}" target="_blank" style="color: #3b82f6; text-decoration: none; font-weight: bold; font-size: 15px;">📥 Download PDF Certificate</a></div>`
+  // Skip tracking for the PDF URL to prevent download issues on mobile devices (redirects can break downloads)
+  const pdfLink = credential.pdfUrl
+    ? `<p><a href="${credential.pdfUrl}" target="_blank" style="color: #0056b3; text-decoration: underline;">Download PDF Version</a></p>`
     : '';
 
-  // Open tracking pixel appended at the end (after all href rewrites are already done inline)
   const trackingPixel = `<img src="${backendUrl}/api/email/track/open/${emailLogId}" width="1" height="1" alt="" style="display:none;" />`;
 
   return `
@@ -223,42 +214,28 @@ function buildEmailHtml({ credential, replacements, verificationUrl, backendUrl,
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; margin: 0; padding: 40px 20px; background: #f8fafc; color: #1e293b; }
-        .email-container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .email-header { background: #1e3a8a; padding: 30px; text-align: center; color: #ffffff; }
-        .email-body { padding: 40px 30px; text-align: center; }
-        .cert-preview-card { margin: 30px 0; padding: 30px; border: 2px dashed #cbd5e1; border-radius: 8px; background: #f8fafc; text-align: center; }
-        .btn-view { display: inline-block; background-color: #3b82f6; color: #ffffff !important; text-decoration: none; padding: 14px 28px; font-weight: bold; border-radius: 6px; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(59,130,246,0.2); }
-        .verification-info { background: #f1f5f9; padding: 20px; border-radius: 8px; font-size: 13px; color: #64748b; text-align: left; }
-        .info-row { margin: 8px 0; display: flex; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-      </style>
     </head>
-    <body>
-      <div class="email-container">
-        <div class="email-header">
-          <h2 style="margin: 0; font-size: 20px; font-weight: 700; letter-spacing: 1px;">CERTIFICATE DELIVERED</h2>
-        </div>
-        <div class="email-body">
-          <p style="font-size: 16px; margin-top: 0; color: #475569;">Hello <strong>${credential.recipientName}</strong>,</p>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <p>Hi ${credential.recipientName},</p>
 
-          ${courseTitleBlock}
+      <p>We're writing to let you know that ${courseInfo} has been issued and is now ready for you to view.</p>
 
-          ${certImageBlock}
+      ${certImageBlock}
 
-          <div style="margin: 35px 0;">
-            <a class="btn-view" href="${trackedVerificationUrl}" target="_blank">View Certificate &amp; Credentials</a>
-            ${pdfDownloadBlock}
-          </div>
+      <p>To view your official, verifiable certificate, please click the link below:<br>
+      <a href="${trackedVerificationUrl}" target="_blank" style="color: #0056b3; font-weight: bold; text-decoration: underline;">View Your Certificate</a></p>
 
-          <div class="verification-info">
-            <h4 style="margin: 0 0 10px 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Verification Record</h4>
-            <div class="info-row"><strong>Code:</strong> <span style="font-family: monospace; color: #1e293b; font-weight: bold;">${credential.verificationCode}</span></div>
-            <div class="info-row"><strong>Issued On:</strong> <span style="color: #1e293b;">${replacements.issuedAt || new Date().toLocaleDateString()}</span></div>
-            <div class="info-row"><strong>Status:</strong> <span style="color: #16a34a; font-weight: bold;">VERIFIED</span></div>
-          </div>
-        </div>
+      ${pdfLink}
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666;">
+        <p style="margin: 0 0 10px 0;"><strong>Verification Details:</strong></p>
+        <p style="margin: 0;">Code: ${credential.verificationCode}<br>
+        Issued On: ${replacements.issuedAt || new Date().toLocaleDateString()}</p>
       </div>
+
+      <p style="margin-top: 30px;">Congratulations!<br>
+      The EswarLabs Team</p>
+
       ${trackingPixel}
     </body>
     </html>
