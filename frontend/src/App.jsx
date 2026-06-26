@@ -17,6 +17,7 @@ import EmailLogs from "./pages/EmailLogs";
 import Settings from "./pages/Settings";
 import VerifyCredential from "./pages/VerifyCredential";
 import Landing from "./pages/Landing";
+import OnboardingPage from "./pages/OnboardingPage";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -30,16 +31,25 @@ function App() {
     <OrgProvider>
       <WorkspaceProvider>
         <BrowserRouter>
-          <Toaster 
-            position="top-right" 
+          <Toaster
+            position="top-right"
             toastOptions={{
+              duration: 4000,
               style: {
-                background: 'var(--bg-secondary)',
+                background: 'var(--bg-card)',
                 color: 'var(--text-primary)',
                 border: '1px solid var(--border-color)',
                 fontSize: '13px',
-                borderRadius: '6px',
-                boxShadow: 'var(--shadow-md)',
+                borderRadius: '10px',
+                boxShadow: 'var(--shadow-lg)',
+                maxWidth: '380px',
+              },
+              success: {
+                iconTheme: { primary: '#10b981', secondary: '#fff' },
+              },
+              error: {
+                iconTheme: { primary: '#ef4444', secondary: '#fff' },
+                duration: 6000,
               },
             }}
           />
@@ -68,6 +78,16 @@ function App() {
             {/* Public Verification Route */}
             <Route path="/verify/:code?" element={<VerifyCredential />} />
 
+            {/* Onboarding — protected but outside AppLayout */}
+            <Route
+              path="/onboarding"
+              element={
+                <ProtectedRoute>
+                  <OnboardingPage />
+                </ProtectedRoute>
+              }
+            />
+
             {/* Protected SaaS App Layout & Sub-routes */}
             <Route
               element={
@@ -79,7 +99,7 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/organizations" element={<Organizations />} />
               <Route path="/workspaces" element={<Workspaces />} />
-              
+
               {/* Templates */}
               <Route path="/templates" element={<Templates />} />
               <Route path="/templates/create" element={<TemplateCreate />} />

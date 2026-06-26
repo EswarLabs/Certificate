@@ -29,6 +29,9 @@ export const verifyCredentialController = async (req, res, next) => {
             name: true,
             slug: true,
             logoUrl: true,
+            isVerified: true,
+            verifiedDomain: true,
+            verifiedAt: true,
           },
         },
       },
@@ -51,7 +54,10 @@ export const verifyCredentialController = async (req, res, next) => {
   }
 };
 
-const VALID_EVENT_TYPES = ["CREATED", "ISSUED", "EMAILED", "OPENED", "VERIFIED", "REVOKED", "EXPIRED"];
+// Only OPENED and VERIFIED events can be tracked from the public endpoint.
+// CREATED, ISSUED, EMAILED, REVOKED, EXPIRED are server-side only events
+// that must never be injectable from the public internet.
+const PUBLIC_EVENT_TYPES = ["OPENED", "VERIFIED"];
 
 export const trackEventController = async (req, res, next) => {
   try {
@@ -65,10 +71,10 @@ export const trackEventController = async (req, res, next) => {
       });
     }
 
-    if (!VALID_EVENT_TYPES.includes(eventType)) {
+    if (!PUBLIC_EVENT_TYPES.includes(eventType)) {
       return res.status(400).json({
         success: false,
-        message: `Invalid event type. Must be one of: ${VALID_EVENT_TYPES.join(", ")}`,
+        message: `Invalid event type. Public tracking only allows: ${PUBLIC_EVENT_TYPES.join(", ")}`,
       });
     }
 

@@ -67,15 +67,17 @@ const OrgProvider = ({ children }) => {
             const res = await deleteOrg(orgId);
             if (res.success) {
                 setSelectedOrg(null);
-                // save org in local storage
                 localStorage.removeItem("org");
-                // Refresh organization list after deletion
                 await listOrganization(1, 10);
+                return res;
             } else {
-                setError(res.message || "Organization deletion failed");
+                const msg = res.message || "Organization deletion failed";
+                setError(msg);
+                throw new Error(msg);
             }
         } catch (err) {
             setError(err.message || "Organization deletion failed");
+            throw err;
         } finally {
             setLoading(false);
         }

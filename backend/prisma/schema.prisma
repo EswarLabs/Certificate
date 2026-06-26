@@ -94,6 +94,14 @@ model User {
   @@index([email])
 }
 
+enum OrgVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+  SUSPENDED
+}
+
 model Organization {
   id              String   @id @default(cuid())
   name            String
@@ -102,6 +110,15 @@ model Organization {
   credentialLimit Int      @default(1000)
   credentialsUsed Int      @default(0)
   metadata        Json?
+
+  // Organization Verification fields
+  isVerified          Boolean               @default(false)
+  verificationStatus  OrgVerificationStatus @default(UNVERIFIED)
+  verifiedDomain      String?
+  verificationMethod  String?               // e.g. "DNS_TXT"
+  verificationToken   String?               @unique
+  verifiedAt          DateTime?
+  verificationExpiry  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,6 +150,10 @@ model Workspace {
   jobs        Job[]
   files       File[]
   memberships Membership[]
+
+  /// Storage quota tracking
+  storageUsedBytes  BigInt  @default(0)
+  storageLimitBytes BigInt  @default(104857600) // 100 MB default
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -216,6 +237,9 @@ model Credential {
   pdfUrl   String?
   imageUrl String?
 
+  /// SHA-256 hash of credential content at issuance (for integrity verification)
+  contentHash String?
+
   issuedAt  DateTime?
   expiresAt DateTime?
 
@@ -238,6 +262,7 @@ model Credential {
   @@index([verificationCode])
   @@index([workspaceId, status])
   @@index([createdById])
+  @@index([issuedAt])
 }
 
 model CredentialEvent {

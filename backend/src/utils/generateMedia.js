@@ -1,5 +1,6 @@
 import { createCanvas, loadImage } from 'canvas';
 import PDFDocument from 'pdfkit';
+import QRCode from 'qrcode';
 
 function injectVariables(template, variables = {}) {
     if (!template) return "";
@@ -78,8 +79,13 @@ export async function generateCanvasFromEditorData(editorData, variables = {}) {
                 }
             } else if (el.type === 'qrcode') {
                 const rawValue = injectVariables(properties.value || "", variables);
-                const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=${Math.round(elW)}x${Math.round(elH)}&data=${encodeURIComponent(rawValue)}`;
-                const img = await loadImage(qrSrc);
+                // Generate QR code locally — no external API call
+                const qrDataUrl = await QRCode.toDataURL(rawValue, {
+                    width: Math.round(elW),
+                    margin: 0,
+                    color: { dark: '#000000', light: '#ffffff' },
+                });
+                const img = await loadImage(qrDataUrl);
                 ctx.drawImage(img, x, y, elW, elH);
             } else if (el.type === 'shape') {
                 const shapeType = properties.shapeType || "rect";

@@ -66,3 +66,28 @@ export const deleteOrg = async (orgId) => {
     });
     return res.json();
 }
+
+export const requestVerification = async (orgId, domain) => {
+    const res = await fetch(`${API_URL}/api/organizations/${orgId}/verification/request`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            ...getAuthHeader(),
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ domain })
+    });
+    return res.json();
+}
+
+export const checkVerification = async (orgId) => {
+    const res = await fetch(`${API_URL}/api/organizations/${orgId}/verification/check`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+            ...getAuthHeader(),
+            "Content-Type": "application/json",
+        },
+    });
+    return res.json();
+}

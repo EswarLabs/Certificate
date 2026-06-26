@@ -3,8 +3,10 @@ import {
     listOrganizations,
     getOrganization,
     updateOrganization,
-    deleteOrganization
- } from './org.service.js';
+    deleteOrganization,
+    requestDomainVerification,
+    checkDomainVerification
+} from './org.service.js';
 
 export const createOrgController = async (req, res, next) => {
     try {
@@ -26,7 +28,7 @@ export const listOrgController = async (req, res, next) => {
         const userId = req.user.userId;
         const query = req.query;
         const result = await listOrganizations(query, userId);
-        if(!result){
+        if (!result) {
             return res.status(404).json({
                 success: false,
                 message: "Organizations not found",
@@ -45,9 +47,9 @@ export const listOrgController = async (req, res, next) => {
 export const getOrgController = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const {id} = req.params;
+        const { id } = req.params;
         const result = await getOrganization(id, userId);
-        if(!result){
+        if (!result) {
             return res.status(404).json({
                 success: false,
                 message: "Organization not found",
@@ -66,10 +68,10 @@ export const getOrgController = async (req, res, next) => {
 export const updateOrgController = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const {id} = req.params;
+        const { id } = req.params;
         const data = req.body;
         const result = await updateOrganization(id, userId, data);
-        if(!result){
+        if (!result) {
             return res.status(404).json({
                 success: false,
                 message: "Organization not found",
@@ -88,12 +90,42 @@ export const updateOrgController = async (req, res, next) => {
 export const deleteOrgController = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const {id} = req.params;
+        const { id } = req.params;
         await deleteOrganization(id, userId);
         res.status(200).json({
             success: true,
             message: "Organization deleted successfully",
         });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const requestVerificationController = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+        const { domain } = req.body;
+        if (!domain) {
+            return res.status(400).json({ success: false, message: "Domain is required" });
+        }
+        const result = await requestDomainVerification(id, userId, domain);
+        res.status(200).json({
+            success: true,
+            verification: result,
+            message: "Verification requested successfully",
+        });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const checkVerificationController = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+        const result = await checkDomainVerification(id, userId);
+        res.status(200).json(result);
     } catch (error) {
         next(error);
     }

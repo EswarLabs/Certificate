@@ -9,9 +9,12 @@ import {
     publishTemplateController,
     unpublishTemplateController,
 } from "./template.controller.js";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
 
 const router = express.Router({ mergeParams: true });
+
+// NOTE: authMiddleware, orgMiddleware, workspaceMiddleware are applied at
+// the app.js level for all workspace-scoped routes.
 
 /**
  * @openapi
@@ -56,23 +59,10 @@ const router = express.Router({ mergeParams: true });
  *                 default: LANDSCAPE
  *               editorData:
  *                 type: object
- *                 description: Konva canvas JSON (version, width, height, background, elements[])
  *               schemaDefinition:
  *                 type: array
  *                 items:
  *                   type: object
- *                   required: [key, label, type]
- *                   properties:
- *                     key:
- *                       type: string
- *                     label:
- *                       type: string
- *                     type:
- *                       type: string
- *                       enum: [text, date, number, email, url]
- *                     required:
- *                       type: boolean
- *                       default: false
  *     responses:
  *       201:
  *         description: Template created successfully
@@ -81,7 +71,7 @@ const router = express.Router({ mergeParams: true });
  *       403:
  *         description: Forbidden
  */
-router.post("/", authMiddleware, createTemplateController);
+router.post("/", roleGuard("OWNER", "ADMIN", "EDITOR"), createTemplateController);
 
 /**
  * @openapi
@@ -119,7 +109,7 @@ router.post("/", authMiddleware, createTemplateController);
  *       403:
  *         description: Forbidden
  */
-router.get("/", authMiddleware, getAllTemplatesController);
+router.get("/", getAllTemplatesController);
 
 /**
  * @openapi
@@ -130,34 +120,11 @@ router.get("/", authMiddleware, getAllTemplatesController);
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
  *     responses:
  *       200:
  *         description: List of user's templates
- *       403:
- *         description: Forbidden
  */
-router.get("/my-templates", authMiddleware, getMyTemplatesController);
+router.get("/my-templates", getMyTemplatesController);
 
 /**
  * @openapi
@@ -168,31 +135,13 @@ router.get("/my-templates", authMiddleware, getMyTemplatesController);
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Template details
- *       403:
- *         description: Forbidden
  *       404:
  *         description: Not found
  */
-router.get("/:id", authMiddleware, getTemplateByIdController);
+router.get("/:id", getTemplateByIdController);
 
 /**
  * @openapi
@@ -203,87 +152,32 @@ router.get("/:id", authMiddleware, getTemplateByIdController);
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               orientation:
- *                 type: string
- *                 enum: [LANDSCAPE, PORTRAIT]
- *               editorData:
- *                 type: object
- *               schemaDefinition:
- *                 type: array
- *                 items:
- *                   type: object
  *     responses:
  *       200:
  *         description: Template updated
- *       400:
- *         description: Validation failed
  *       403:
  *         description: Forbidden
  *       404:
  *         description: Not found
  */
-router.put("/:id", authMiddleware, updateTemplateController);
+router.put("/:id", roleGuard("OWNER", "ADMIN", "EDITOR"), updateTemplateController);
 
 /**
  * @openapi
  * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}/publish:
  *   post:
- *     summary: Publish a template (makes it available for credential issuance)
+ *     summary: Publish a template
  *     tags:
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Template published
  *       403:
  *         description: Forbidden
- *       404:
- *         description: Not found
  */
-router.post("/:id/publish", authMiddleware, publishTemplateController);
+router.post("/:id/publish", roleGuard("OWNER", "ADMIN"), publishTemplateController);
 
 /**
  * @openapi
@@ -294,65 +188,29 @@ router.post("/:id/publish", authMiddleware, publishTemplateController);
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       200:
  *         description: Template unpublished
  *       403:
  *         description: Forbidden
- *       404:
- *         description: Not found
  */
-router.post("/:id/unpublish", authMiddleware, unpublishTemplateController);
+router.post("/:id/unpublish", roleGuard("OWNER", "ADMIN"), unpublishTemplateController);
 
 /**
  * @openapi
  * /api/organizations/{organizationId}/workspaces/{workspaceId}/templates/{id}:
  *   delete:
- *     summary: Delete template by ID (only if no credentials exist)
+ *     summary: Delete template by ID
  *     tags:
  *       - Certificate Templates
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: organizationId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: workspaceId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
  *     responses:
  *       204:
  *         description: Template deleted
  *       403:
  *         description: Forbidden
- *       404:
- *         description: Not found
  */
-router.delete("/:id", authMiddleware, deleteTemplateController);
+router.delete("/:id", roleGuard("OWNER", "ADMIN"), deleteTemplateController);
 
 export default router;

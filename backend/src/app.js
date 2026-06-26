@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
 
 import authRoutes from "./modules/auth/auth.routes.js";
 import orgRoutes from "./modules/organization/org.routes.js";
@@ -12,12 +13,19 @@ import templateRoutes from "./modules/templates/template.routes.js";
 import credentialRoutes from "./modules/certificates/credential.routes.js";
 import verificationRoutes from "./modules/verification/verification.routes.js";
 import emailRoutes from "./modules/email/email.routes.js";
-import { swaggerUi, specs } from "./swagger.js";
 import userRoutes from "./modules/users/user.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import fileRoutes from "./modules/files/files.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
-import { loginLimiter, apiLimiter, bulkLimiter, emailLimiter, registerLimiter } from "./middlewares/rateLimit.middleware.js";
+import { authMiddleware } from "./middlewares/auth.middleware.js";
+import { orgMiddleware } from "./middlewares/org.middleware.js";
+import { workspaceMiddleware } from "./middlewares/workspace.middleware.js";
+import {
+  loginLimiter,
+  apiLimiter,
+  publicLimiter,
+  uploadLimiter,
+} from "./middlewares/rateLimit.middleware.js";
 
 dotenv.config();
 
@@ -31,6 +39,11 @@ const app = express();
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
   : ["http://localhost:5173", "http://localhost:5174", "http://localhost:8000"];
+
+// ---------- Global Middleware ----------
+
+// Security headers (X-Frame-Options, X-Content-Type-Options, CSP, HSTS, etc.)
+app.use(helmet());
 
 app.use(
   cors({
@@ -47,26 +60,66 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
-// Swagger documentation
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
-app.use(apiLimiter);
 app.set("trust proxy", 1);
-app.use("/api/auth", loginLimiter, authRoutes);
-app.use("/api/organizations", orgRoutes);
-app.use("/api/organizations/:organizationId/workspaces/:workspaceId/members", membershipRoutes);
-app.use("/api/organizations/:organizationId/workspaces", workspaceRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/organizations/:organizationId/workspaces/:workspaceId/templates", templateRoutes);
-app.use("/api/organizations/:organizationId/workspaces/:workspaceId/credentials", credentialRoutes);
-app.use("/api/organizations/:organizationId/workspaces/:workspaceId/jobs", jobRoutes);
-app.use("/api/organizations/:organizationId/workspaces/:workspaceId/files", fileRoutes);
-app.use("/api", verificationRoutes);
-app.use("/api", emailRoutes);
+
+// ---------- Swagger (dev/staging only) ----------
+if (process.env.NODE_ENV !== "production") {
+  const { swaggerUi, specs } = await import("./swagger.js");
+  app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+}
+
+// ---------- Health Check (no rate limit) ----------
 app.use("/api/health", (req, res) => {
   res.json({ message: "Health check" });
-})
+});
 
-// Centralized error handler
+// ---------- Public routes (IP-based rate limiting) ----------
+app.use("/api/auth", publicLimiter, loginLimiter, authRoutes);
+app.use("/api", publicLimiter, verificationRoutes);
+
+// ---------- Authenticated routes (user-based rate limiting) ----------
+// apiLimiter keys by userId — corporate networks with shared IPs won't be penalized
+app.use("/api/organizations", apiLimiter, authMiddleware, orgRoutes);
+app.use("/api/upload", apiLimiter, uploadLimiter, authMiddleware, uploadRoutes);
+app.use("/api/users", apiLimiter, authMiddleware, userRoutes);
+app.use("/api", apiLimiter, authMiddleware, emailRoutes);
+
+// ---------- Org-scoped routes (auth → org middleware) ----------
+app.use(
+  "/api/organizations/:organizationId/workspaces",
+  apiLimiter, authMiddleware, orgMiddleware,
+  workspaceRoutes,
+);
+
+// ---------- Workspace-scoped routes (auth → org → workspace middleware) ----------
+// Membership, templates, credentials, jobs, files all require full tenant context
+app.use(
+  "/api/organizations/:organizationId/workspaces/:workspaceId/members",
+  apiLimiter, authMiddleware, orgMiddleware, workspaceMiddleware,
+  membershipRoutes,
+);
+app.use(
+  "/api/organizations/:organizationId/workspaces/:workspaceId/templates",
+  apiLimiter, authMiddleware, orgMiddleware, workspaceMiddleware,
+  templateRoutes,
+);
+app.use(
+  "/api/organizations/:organizationId/workspaces/:workspaceId/credentials",
+  apiLimiter, authMiddleware, orgMiddleware, workspaceMiddleware,
+  credentialRoutes,
+);
+app.use(
+  "/api/organizations/:organizationId/workspaces/:workspaceId/jobs",
+  apiLimiter, authMiddleware, orgMiddleware, workspaceMiddleware,
+  jobRoutes,
+);
+app.use(
+  "/api/organizations/:organizationId/workspaces/:workspaceId/files",
+  apiLimiter, authMiddleware, orgMiddleware, workspaceMiddleware,
+  fileRoutes,
+);
+
+// ---------- Centralized error handler ----------
 app.use(errorHandler);
+
 export default app;

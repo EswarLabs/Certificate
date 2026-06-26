@@ -9,10 +9,12 @@ import {
     uploadFileController,
 } from "./workspace.controller.js";
 
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
 import { fileUploadMiddleware } from "../upload/upload.validation.js";
 
 const router = express.Router({ mergeParams: true });
+
+// NOTE: authMiddleware + orgMiddleware are applied at app.js level.
 
 /**
  * @openapi
@@ -85,7 +87,7 @@ const router = express.Router({ mergeParams: true });
  *       401:
  *         description: Unauthorized
  */
-router.post("/", authMiddleware, createWorkspaceController);
+router.post("/", roleGuard("OWNER", "ADMIN"), createWorkspaceController);
 
 /**
  * @openapi
@@ -164,7 +166,7 @@ router.post("/", authMiddleware, createWorkspaceController);
  *       401:
  *         description: Unauthorized
  */
-router.get("/", authMiddleware, listWorkspacesController);
+router.get("/", listWorkspacesController);
 
 /**
  * @openapi
@@ -224,7 +226,7 @@ router.get("/", authMiddleware, listWorkspacesController);
  *       404:
  *         description: Workspace not found
  */
-router.get("/:id", authMiddleware, listWorkspaceByIdController);
+router.get("/:id", listWorkspaceByIdController);
 
 /**
  * @openapi
@@ -304,7 +306,7 @@ router.get("/:id", authMiddleware, listWorkspaceByIdController);
  *       404:
  *         description: Workspace not found
  */
-router.put("/:id", authMiddleware, updateWorkspaceController);
+router.put("/:id", roleGuard("OWNER", "ADMIN"), updateWorkspaceController);
 
 /**
  * @openapi
@@ -334,7 +336,7 @@ router.put("/:id", authMiddleware, updateWorkspaceController);
  *       404:
  *         description: Workspace not found
  */
-router.delete("/:id", authMiddleware, deleteWorkspaceController);
+router.delete("/:id", roleGuard("OWNER"), deleteWorkspaceController);
 
 /**
  * @openapi
@@ -402,5 +404,5 @@ router.delete("/:id", authMiddleware, deleteWorkspaceController);
  *                   type: string
  *                   format: date-time
  */
-router.post("/:id/upload", authMiddleware, fileUploadMiddleware.single("file"), uploadFileController);
+router.post("/:id/upload", roleGuard("OWNER", "ADMIN", "EDITOR", "ISSUER"), fileUploadMiddleware.single("file"), uploadFileController);
 export default router;

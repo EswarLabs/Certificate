@@ -4,11 +4,11 @@ import {
   getFileDetailsController,
   deleteFileController,
 } from "./files.controller.js";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
 
 const router = express.Router({ mergeParams: true });
 
-router.use(authMiddleware);
+// NOTE: authMiddleware, orgMiddleware, workspaceMiddleware are applied at app.js level.
 
 /**
  * @openapi
@@ -226,6 +226,6 @@ router.get("/:fileId", getFileDetailsController);
  *       404:
  *         description: File not found
  */
-router.delete("/:fileId", deleteFileController);
+router.delete("/:fileId", roleGuard("OWNER", "ADMIN"), deleteFileController);
 
 export default router;

@@ -1,7 +1,11 @@
 import express from "express";
 import { verifyCredentialController, trackEventController } from "./verification.controller.js";
-import {authMiddleware} from '../../middlewares/auth.middleware.js';
+import { publicLimiter, eventTrackingLimiter } from "../../middlewares/rateLimit.middleware.js";
+
 const router = express.Router();
+
+// NOTE: These are PUBLIC routes — no authMiddleware.
+// Rate limiting is applied per-route.
 
 /**
  * @openapi
@@ -20,34 +24,20 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Credential verification successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 status:
- *                   type: string
- *                 credential:
- *                   type: object
  *       404:
  *         description: Credential not found
  *       400:
  *         description: Invalid verification code format
  */
-
-router.get("/verify/:verificationCode", verifyCredentialController);
+router.get("/verify/:verificationCode", publicLimiter, verifyCredentialController);
 
 /**
  * @openapi
  * /api/credentials/{credId}/events:
  *   post:
- *     summary: Track an event for a credential
+ *     summary: Track an event for a credential (rate-limited, restricted event types)
  *     tags:
  *       - Verification
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: credId
@@ -66,53 +56,18 @@ router.get("/verify/:verificationCode", verifyCredentialController);
  *             properties:
  *               eventType:
  *                 type: string
- *                 description: Type of the event (e.g., "viewed", "downloaded", "shared")
- *               ipAddress:
- *                 type: string
- *                 description: Optional IP address
- *               userAgent:
- *                 type: string
- *                 description: Optional user agent string
- *               metadata:
- *                 type: object
- *                 description: Optional key-value metadata object
+ *                 enum: [OPENED, VERIFIED]
+ *                 description: Only OPENED and VERIFIED events can be tracked from public
  *     responses:
  *       201:
  *         description: Event tracked successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 event:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     credentialId:
- *                       type: string
- *                     eventType:
- *                       type: string
- *                     ipAddress:
- *                       type: string
- *                       nullable: true
- *                     userAgent:
- *                       type: string
- *                       nullable: true
- *                     metadata:
- *                       type: object
- *                       nullable: true
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *       404:
- *         description: Credential not found
  *       400:
  *         description: Invalid event data
+ *       404:
+ *         description: Credential not found
+ *       429:
+ *         description: Rate limit exceeded
  */
-
-router.post("/credentials/:credId/events", trackEventController);
+router.post("/credentials/:credId/events", eventTrackingLimiter, trackEventController);
 
 export default router;

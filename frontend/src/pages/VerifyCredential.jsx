@@ -141,7 +141,20 @@ export default function VerifyCredential() {
               {[
                 ["Recipient", credential.recipientName],
                 ["Email", credential.recipientEmail || "—"],
-                ["Organization", credential.organization?.name || "—"],
+                ["Organization", credential.organization ? (
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{credential.organization.name}</span>
+                    {credential.organization.isVerified ? (
+                      <span title={`Verified Domain: ${credential.organization.verifiedDomain}`} style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, background: "#d1fae5", color: "#10b981", padding: "2px 6px", borderRadius: 10, flexShrink: 0 }}>
+                        <ShieldCheck size={10} /> Verified
+                      </span>
+                    ) : (
+                      <span title="Unverified Organization - exercise caution" style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 10, background: "#fef3c7", color: "#f59e0b", padding: "2px 6px", borderRadius: 10, flexShrink: 0 }}>
+                        <ShieldX size={10} /> Unverified
+                      </span>
+                    )}
+                  </div>
+                ) : "—"],
                 ["Workspace", credential.workspace?.name || "—"],
                 ["Issued", credential.issuedAt ? new Date(credential.issuedAt).toLocaleDateString() : "—"],
                 ["Expires", credential.expiresAt ? new Date(credential.expiresAt).toLocaleDateString() : "Never"],
@@ -193,6 +206,11 @@ export default function VerifyCredential() {
                     style={{ width: "100%", height: 600, border: "1px solid #e2e8f0", borderRadius: 10, display: "block" }}
                   />
                 )}
+                {/* Platform Trust Signal */}
+                <div style={{ marginTop: 16, fontSize: 12, color: "#64748b", textAlign: "center", padding: "12px", background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
+                  <ShieldCheck size={14} style={{ verticalAlign: "middle", marginRight: 4, color: "#10b981" }} />
+                  Issued via <strong>CertManager</strong>. This certificate's authenticity can be verified at {window.location.origin}/verify/{credential.verificationCode}.
+                </div>
               </div>
             )}
           </div>

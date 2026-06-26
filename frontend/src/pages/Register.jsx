@@ -10,7 +10,7 @@ export default function Register() {
   const handleRegister = async (e) => {
     e.preventDefault();
     await registerEmail(e.target.firstName.value, e.target.lastName.value, e.target.email.value, e.target.password.value);
-    navigate("/dashboard");
+    navigate("/onboarding");
   };
 
   const inputStyle = { background: "rgba(255,255,255,0.05)", borderColor: "rgba(255,255,255,0.1)", color: "#f1f5f9" };

@@ -33,6 +33,11 @@ export const addMemberToOrganization = async (
     );
   }
 
+  // OWNER role cannot be assigned via the API — it is set only at org creation.
+  if (role === "OWNER") {
+    throw new Error("Cannot assign OWNER role. The OWNER is set at organization creation and cannot be changed via member management.");
+  }
+
   // Check if workspace belongs to the organization
   const workspace = await prisma.workspace.findFirst({
     where: {
@@ -163,6 +168,11 @@ export const updateMemberRole = async (
 
   if (!requester) {
     throw new Error("Only organization owners can update member roles");
+  }
+
+  // OWNER role cannot be assigned via the API.
+  if (newRole === "OWNER") {
+    throw new Error("Cannot assign OWNER role via member management.");
   }
 
   // Check if membership exists

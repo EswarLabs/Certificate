@@ -50,22 +50,21 @@ export const validateCredentialData = (template, credentialData) => {
 export const createCredential = async (data, orgId, workspaceId, userId) => {
   const validated = createCredentialSchema.parse(data);
 
-  // Check workspace membership
-  const membership = await prisma.membership.findFirst({
-    where: { userId, workspaceId, organizationId: orgId },
-  });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
-  if (membership.role === "VIEWER") {
-    throw new Error("User does not have permission to create credentials");
-  }
-  const credentialLimit = await prisma.organization.findUnique({
-    where: { id: orgId },
-    select: { credentialsUsed: true, credentialLimit: true }
-  });
-  if (credentialLimit.credentialsUsed >= credentialLimit.credentialLimit) {
-    throw new Error("Credential limit reached");
+  // NOTE: Membership and role checks are now handled by middleware
+  // (orgMiddleware + workspaceMiddleware + roleGuard in app.js / routes).
+
+  // --- Atomic credential limit check + increment ---
+  // Uses a single conditional UPDATE to avoid race conditions.
+  // If credentialsUsed >= credentialLimit, zero rows are updated → limit reached.
+  const updateResult = await prisma.$executeRaw`
+    UPDATE "Organization"
+    SET "credentialsUsed" = "credentialsUsed" + 1,
+        "updatedAt" = NOW()
+    WHERE id = ${orgId}
+    AND "credentialsUsed" < "credentialLimit"
+  `;
+  if (updateResult === 0) {
+    throw new Error("Credential limit reached for this organization. Please upgrade your plan.");
   }
 
   // Get and check template
@@ -73,6 +72,11 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
     where: { id: validated.templateId, workspaceId },
   });
   if (!template) {
+    // Rollback the increment since we won't create the credential
+    await prisma.organization.update({
+      where: { id: orgId },
+      data: { credentialsUsed: { decrement: 1 } },
+    });
     throw new Error("Template not found");
   }
   // Validate credentialData against template schema
@@ -120,11 +124,6 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
     },
   });
 
-  await prisma.organization.update({
-    where: { id: orgId },
-    data: { credentialsUsed: { increment: 1 } }
-  });
-
   const activeJobs = await imageQueue.getJobCounts();
   if (activeJobs.waiting > 1000) {
     throw new Error("Queue is busy. Please try later.");
@@ -145,13 +144,7 @@ export const createCredential = async (data, orgId, workspaceId, userId) => {
 export const listCredentials = async (orgId, workspaceId, userId, filters = {}) => {
   const { page = 1, limit = 10, status, recipientEmail } = filters;
 
-  // Check workspace membership
-  const membership = await prisma.membership.findFirst({
-    where: { userId, workspaceId, organizationId: orgId },
-  });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
+  // NOTE: Membership checks are handled by middleware.
 
   const whereClause = {
     workspaceId,
@@ -178,13 +171,7 @@ export const listCredentials = async (orgId, workspaceId, userId, filters = {}) 
 
 // Get credential details
 export const getCredentialById = async (id, orgId, workspaceId, userId) => {
-  // Check workspace membership
-  const membership = await prisma.membership.findFirst({
-    where: { userId, workspaceId, organizationId: orgId },
-  });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
+  // NOTE: Membership checks are handled by middleware.
 
   const credential = await prisma.credential.findFirst({
     where: { id, workspaceId },
@@ -207,16 +194,7 @@ export const getCredentialById = async (id, orgId, workspaceId, userId) => {
 
 // Issue credential
 export const issueCredential = async (id, orgId, workspaceId, userId) => {
-  // Check workspace membership
-  const membership = await prisma.membership.findFirst({
-    where: { userId, workspaceId, organizationId: orgId },
-  });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
-  if (membership.role === "VIEWER") {
-    throw new Error("User does not have permission to issue credentials");
-  }
+  // NOTE: Membership and role checks are handled by middleware.
 
   const credential = await prisma.credential.findFirst({
     where: { id, workspaceId },
@@ -229,11 +207,29 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
     throw new Error("Credential is already issued");
   }
 
+  const issuedAt = new Date();
+
+  // --- Compute content hash for certificate integrity ---
+  const contentToHash = JSON.stringify({
+    credentialId: credential.id,
+    organizationId: orgId,
+    templateId: credential.templateId,
+    recipientName: credential.recipientName,
+    credentialData: credential.credentialData,
+    issuedAt: issuedAt.toISOString(),
+    verificationCode: credential.verificationCode,
+  });
+  const contentHash = crypto
+    .createHash("sha256")
+    .update(contentToHash)
+    .digest("hex");
+
   const updated = await prisma.credential.update({
     where: { id },
     data: {
       status: "ISSUED",
-      issuedAt: new Date(),
+      issuedAt,
+      contentHash,
       updatedAt: new Date(),
     },
     include: {
@@ -246,7 +242,7 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
     data: {
       credentialId: id,
       eventType: "ISSUED",
-      metadata: { issuedBy: userId },
+      metadata: { issuedBy: userId, contentHash },
     },
   });
 
@@ -267,16 +263,7 @@ export const issueCredential = async (id, orgId, workspaceId, userId) => {
 
 // Revoke credential
 export const revokeCredential = async (id, orgId, workspaceId, userId) => {
-  // Check workspace membership
-  const membership = await prisma.membership.findFirst({
-    where: { userId, workspaceId, organizationId: orgId },
-  });
-  if (!membership) {
-    throw new Error("User is not a member of the workspace");
-  }
-  if (membership.role === "VIEWER") {
-    throw new Error("User does not have permission to revoke credentials");
-  }
+  // NOTE: Membership and role checks are handled by middleware.
 
   const credential = await prisma.credential.findFirst({
     where: { id, workspaceId },

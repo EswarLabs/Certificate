@@ -4,36 +4,46 @@ import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { updateUser } from "../services/userServices";
-import { User, Mail, Palette, Save } from "lucide-react";
+import { User, Palette, Save, Building2, ShieldCheck, AlertTriangle, Globe, Mail, CheckCircle, RefreshCw, HardDrive } from "lucide-react";
 import toast from "react-hot-toast";
+import DomainVerificationWizard from "../components/ui/DomainVerificationWizard";
+import SmtpSetupWizard from "../components/ui/SmtpSetupWizard";
+import ConfirmDeleteModal from "../components/ui/ConfirmDeleteModal";
 
 export default function Settings() {
   const { user } = useAuth();
-  const { selectedOrg } = useOrg();
+  const { selectedOrg, deleteOrganization } = useOrg();
   const { selectedWorkspace, updateCurrentWorkspace } = useWorkspace();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState("profile");
+  const tabParam = searchParams.get("tab") || "profile";
+  const [activeTab, setActiveTab] = useState(tabParam);
 
+  /* Profile state */
   const [profile, setProfile] = useState({ firstName: "", lastName: "", avatarUrl: "" });
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileDirty, setProfileDirty] = useState(false);
 
-  const [wsForm, setWsForm] = useState({
-    name: "", customDomain: "", smtpEnabled: false,
-    resendApiKey: "", fromEmail: "",
-    brandingPrimaryColor: "", brandingLogo: "",
-  });
-  const [wsLoading, setWsLoading] = useState(false);
+  /* Workspace state */
+  const [wsForm, setWsForm] = useState({ name: "", customDomain: "", primaryColor: "#6366f1", logo: "" });
+  const [wsSaving, setWsSaving] = useState(false);
+  const [wsDirty, setWsDirty] = useState(false);
 
   useEffect(() => {
-    const tabParam = searchParams.get("tab");
-    if (tabParam === "workspace" && selectedWorkspace) {
-      setActiveTab("workspace");
+    if (tabParam && ["profile", "organization", "workspace"].includes(tabParam)) {
+      setActiveTab(tabParam);
     }
-  }, [searchParams, selectedWorkspace]);
+  }, [tabParam]);
 
   useEffect(() => {
-    if (user) setProfile({ firstName: user.firstName || "", lastName: user.lastName || "", avatarUrl: user.avatarUrl || "" });
+    if (user) {
+      setProfile({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        avatarUrl: user.avatarUrl || ""
+      });
+      setProfileDirty(false);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -41,194 +51,274 @@ export default function Settings() {
       setWsForm({
         name: selectedWorkspace.name || "",
         customDomain: selectedWorkspace.customDomain || "",
-        smtpEnabled: selectedWorkspace.smtpEnabled || false,
-        resendApiKey: selectedWorkspace.smtpSettings?.apiKey || "",
-        fromEmail: selectedWorkspace.smtpSettings?.fromEmail || "",
-        brandingPrimaryColor: selectedWorkspace.brandingSettings?.primaryColor || "",
-        brandingLogo: selectedWorkspace.brandingSettings?.logo || "",
+        primaryColor: selectedWorkspace.brandingSettings?.primaryColor || "#6366f1",
+        logo: selectedWorkspace.brandingSettings?.logo || ""
       });
+      setWsDirty(false);
     }
   }, [selectedWorkspace]);
 
-  const handleProfileUpdate = async (e) => {
+  /* ── Unsaved changes browser guard ── */
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (profileDirty || wsDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [profileDirty, wsDirty]);
+
+  const handleTabSwitch = (tab) => {
+    if ((profileDirty || wsDirty) && !window.confirm("You have unsaved changes. Discard changes and switch tabs?")) {
+      return;
+    }
+    setProfileDirty(false);
+    setWsDirty(false);
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
+
+  const handleSaveProfile = async (e) => {
     e.preventDefault();
-    if (!user?.id) return;
-    setProfileLoading(true);
+    if (!profile.firstName.trim()) {
+      toast.error("First name is required.");
+      return;
+    }
+    setProfileSaving(true);
     try {
-      await updateUser(user.id, profile);
-      toast.success("Profile updated");
+      await updateUser(profile.firstName, profile.lastName, profile.avatarUrl);
+      toast.success("Profile saved successfully");
+      setProfileDirty(false);
     } catch (err) {
-      toast.error("Failed to update profile");
+      toast.error(err.message || "Failed to update profile");
     } finally {
-      setProfileLoading(false);
+      setProfileSaving(false);
     }
   };
 
-  const handleWsUpdate = async (e) => {
+  const handleSaveWorkspace = async (e) => {
     e.preventDefault();
-    if (!selectedOrg?.id || !selectedWorkspace?.id) return;
-    setWsLoading(true);
+    if (!wsForm.name.trim()) {
+      toast.error("Workspace name is required.");
+      return;
+    }
+    setWsSaving(true);
     try {
-      const data = {
+      await updateCurrentWorkspace(selectedWorkspace.id, {
         name: wsForm.name,
         customDomain: wsForm.customDomain || null,
-        smtpEnabled: wsForm.smtpEnabled,
         brandingSettings: {
-          primaryColor: wsForm.brandingPrimaryColor || null,
-          logo: wsForm.brandingLogo || null,
-        },
-      };
-      if (wsForm.smtpEnabled) {
-        data.smtpSettings = {
-          apiKey: wsForm.resendApiKey,
-          fromEmail: wsForm.fromEmail,
-        };
-      }
-      await updateCurrentWorkspace(selectedOrg.id, selectedWorkspace.id, data);
-      toast.success("Workspace updated");
+          primaryColor: wsForm.primaryColor,
+          logo: wsForm.logo
+        }
+      });
+      toast.success("Workspace configuration updated");
+      setWsDirty(false);
     } catch (err) {
-      toast.error("Failed to update workspace");
+      toast.error(err.message || "Workspace save failed");
     } finally {
-      setWsLoading(false);
+      setWsSaving(false);
     }
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div className="page-container flex flex-col gap-6 max-w-5xl">
+      <div className="page-header mb-0">
         <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="page-subtitle">Manage your profile and workspace configuration</p>
+          <h1 className="page-title">Enterprise Settings</h1>
+          <p className="page-subtitle">Manage account security, DNS domain verification, and custom email delivery.</p>
         </div>
       </div>
 
-      <div className="tabs">
-        <button className={`tab-btn ${activeTab === "profile" ? "active" : ""}`} onClick={() => setActiveTab("profile")}>
-          <User size={13} style={{ marginRight: 5 }} />Profile
+      {/* Settings Navigation Tabs */}
+      <div className="flex border-b border-color gap-8">
+        <button
+          className={`pb-3 font-semibold text-sm flex items-center gap-2 border-b-2 transition-all ${activeTab === 'profile' ? 'border-brand text-brand' : 'border-transparent text-secondary hover:text-primary'}`}
+          onClick={() => handleTabSwitch('profile')}
+        >
+          <User size={16} />
+          <span>Personal Profile</span>
+          {profileDirty && <span className="w-2 h-2 rounded-full bg-warning inline-block ml-1" title="Unsaved changes" />}
         </button>
-        {selectedWorkspace && (
-          <button className={`tab-btn ${activeTab === "workspace" ? "active" : ""}`} onClick={() => setActiveTab("workspace")}>
-            <Palette size={13} style={{ marginRight: 5 }} />Workspace
-          </button>
-        )}
+
+        <button
+          className={`pb-3 font-semibold text-sm flex items-center gap-2 border-b-2 transition-all ${activeTab === 'organization' ? 'border-brand text-brand' : 'border-transparent text-secondary hover:text-primary'}`}
+          onClick={() => handleTabSwitch('organization')}
+        >
+          <Building2 size={16} />
+          <span>Organization & Domain</span>
+        </button>
+
+        <button
+          className={`pb-3 font-semibold text-sm flex items-center gap-2 border-b-2 transition-all ${activeTab === 'workspace' ? 'border-brand text-brand' : 'border-transparent text-secondary hover:text-primary'}`}
+          onClick={() => handleTabSwitch('workspace')}
+        >
+          <Mail size={16} />
+          <span>Workspace & SMTP</span>
+          {wsDirty && <span className="w-2 h-2 rounded-full bg-warning inline-block ml-1" title="Unsaved changes" />}
+        </button>
       </div>
 
-      {/* ── Profile Tab ── */}
+      {/* Tab 1: Personal Profile */}
       {activeTab === "profile" && (
-        <div style={{ maxWidth: 540, width: "100%" }}>
-          <div className="card">
-            {/* Avatar preview row */}
-            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, paddingBottom: 20, borderBottom: "1px solid var(--border-color)", flexWrap: "wrap" }}>
-              {profile.avatarUrl ? (
-                <img src={profile.avatarUrl} alt="" style={{ width: 56, height: 56, borderRadius: "50%", objectFit: "cover", border: "2px solid var(--border-color)", flexShrink: 0 }} />
-              ) : (
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, var(--brand-primary), var(--brand-secondary))", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: 20, flexShrink: 0 }}>
-                  {profile.firstName?.charAt(0) || user?.email?.charAt(0) || "U"}
-                </div>
-              )}
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, wordBreak: "break-word" }}>{profile.firstName} {profile.lastName}</div>
-                <div style={{ fontSize: 13, color: "var(--text-tertiary)", wordBreak: "break-all" }}>{user?.email}</div>
-              </div>
+        <form onSubmit={handleSaveProfile} className="card flat-card p-6 flex flex-col gap-6 max-w-2xl">
+          <div className="border-b pb-4">
+            <h3 className="font-bold text-base text-primary">Personal Account Profile</h3>
+            <p className="text-xs text-secondary mt-1">Your identity displayed across workspace audit trails and notifications.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-primary">First Name <span className="text-danger">*</span></label>
+              <input
+                type="text"
+                className="st-select h-10 w-full"
+                value={profile.firstName}
+                onChange={e => { setProfile({ ...profile, firstName: e.target.value }); setProfileDirty(true); }}
+                required
+              />
+              <span className="text-xs text-tertiary">Used in executive welcome banners.</span>
             </div>
 
-            <form onSubmit={handleProfileUpdate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <div className="form-group">
-                <label className="label">Email</label>
-                <input className="input" value={user?.email || ""} disabled />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-primary">Last Name</label>
+              <input
+                type="text"
+                className="st-select h-10 w-full"
+                value={profile.lastName}
+                onChange={e => { setProfile({ ...profile, lastName: e.target.value }); setProfileDirty(true); }}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-primary">Avatar URL</label>
+            <input
+              type="url"
+              className="st-select h-10 w-full font-mono text-xs"
+              placeholder="https://example.com/avatar.png"
+              value={profile.avatarUrl}
+              onChange={e => { setProfile({ ...profile, avatarUrl: e.target.value }); setProfileDirty(true); }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between border-t pt-4 mt-2">
+            {profileDirty ? (
+              <span className="text-xs text-warning flex items-center gap-1 font-medium"><AlertTriangle size={13} /> Unsaved profile edits</span>
+            ) : <span />}
+
+            <button type="submit" className="btn btn-primary" disabled={profileSaving || !profileDirty}>
+              <Save size={14} />
+              <span>{profileSaving ? "Saving..." : "Save Profile"}</span>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Tab 2: Organization & Domain Verification */}
+      {activeTab === "organization" && (
+        <div className="flex flex-col gap-6">
+          <div className="card flat-card p-6">
+            <div className="flex items-center justify-between border-b pb-4 mb-6">
+              <div>
+                <h3 className="font-bold text-base text-primary">Organization DNS Verification</h3>
+                <p className="text-xs text-secondary mt-1">Configure TXT records to issue certificates under a verified company badge.</p>
               </div>
-              <div className="form-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                <div className="form-group">
-                  <label className="label">First Name</label>
-                  <input className="input" value={profile.firstName} onChange={e => setProfile({ ...profile, firstName: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="label">Last Name</label>
-                  <input className="input" value={profile.lastName} onChange={e => setProfile({ ...profile, lastName: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="label">Avatar URL</label>
-                <input className="input" type="url" value={profile.avatarUrl} onChange={e => setProfile({ ...profile, avatarUrl: e.target.value })} placeholder="https://..." />
-              </div>
-              <button type="submit" disabled={profileLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
-                <Save size={14} /> {profileLoading ? "Saving…" : "Save Profile"}
-              </button>
-            </form>
+              <span className={`badge ${selectedOrg?.isVerified ? 'badge-success' : 'badge-warning'}`}>
+                {selectedOrg?.isVerified ? "Verified Active" : "DNS Unverified"}
+              </span>
+            </div>
+
+            {selectedOrg ? (
+              <DomainVerificationWizard org={selectedOrg} />
+            ) : (
+              <div className="p-8 text-center text-secondary text-sm">No organization selected.</div>
+            )}
           </div>
         </div>
       )}
 
-      {/* ── Workspace Tab ── */}
-      {activeTab === "workspace" && selectedWorkspace && (
-        <div style={{ maxWidth: 680, width: "100%" }}>
-          <div className="card">
-            <form onSubmit={handleWsUpdate} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-
-              {/* General */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>General</h3>
-                <div className="form-group">
-                  <label className="label">Workspace Name</label>
-                  <input className="input" value={wsForm.name} onChange={e => setWsForm({ ...wsForm, name: e.target.value })} />
+      {/* Tab 3: Workspace & SMTP Branding */}
+      {activeTab === "workspace" && (
+        <div className="flex flex-col gap-6">
+          {selectedWorkspace ? (
+            <>
+              {/* Workspace General Form */}
+              <form onSubmit={handleSaveWorkspace} className="card flat-card p-6 flex flex-col gap-6 max-w-2xl">
+                <div className="border-b pb-4">
+                  <h3 className="font-bold text-base text-primary">Workspace Branding & Settings</h3>
+                  <p className="text-xs text-secondary mt-1">Configure custom certificate portals and brand color accents.</p>
                 </div>
-                <div className="form-group">
-                  <label className="label">Custom Domain</label>
-                  <input className="input" value={wsForm.customDomain} onChange={e => setWsForm({ ...wsForm, customDomain: e.target.value })} placeholder="certs.yourdomain.com" />
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-primary">Workspace Project Name <span className="text-danger">*</span></label>
+                  <input
+                    type="text"
+                    className="st-select h-10 w-full"
+                    value={wsForm.name}
+                    onChange={e => { setWsForm({ ...wsForm, name: e.target.value }); setWsDirty(true); }}
+                    required
+                  />
                 </div>
-              </div>
 
-              <div className="divider" />
-
-              {/* Branding */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>Branding</h3>
-                <div style={{ display: "flex", gap: 16, alignItems: "flex-end", flexWrap: "wrap" }}>
-                  <div className="form-group" style={{ flex: "0 0 auto" }}>
-                    <label className="label">Primary Color</label>
-                    <input type="color" value={wsForm.brandingPrimaryColor || "#6366f1"} onChange={e => setWsForm({ ...wsForm, brandingPrimaryColor: e.target.value })}
-                      style={{ height: 36, width: 72, padding: "2px 4px", cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius-md)" }} />
-                  </div>
-                  <div className="form-group" style={{ flex: "1 1 180px" }}>
-                    <label className="label">Logo URL</label>
-                    <input className="input" type="url" value={wsForm.brandingLogo} onChange={e => setWsForm({ ...wsForm, brandingLogo: e.target.value })} placeholder="https://..." />
-                  </div>
-                </div>
-              </div>
-
-              <div className="divider" />
-
-              {/* SMTP */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                <h3 style={{ fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 7 }}>
-                  <Mail size={13} /> Custom Email (Resend API)
-                </h3>
-                <label style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, cursor: "pointer", userSelect: "none" }}>
-                  <input type="checkbox" checked={wsForm.smtpEnabled} onChange={e => setWsForm({ ...wsForm, smtpEnabled: e.target.checked })}
-                    style={{ width: 16, height: 16, cursor: "pointer", accentColor: "var(--brand-primary)" }} />
-                  Enable custom emails via Resend
-                </label>
-                {wsForm.smtpEnabled && (
-                  <div className="form-row" style={{ gridTemplateColumns: "1fr" }}>
-                    <div className="form-group">
-                      <label className="label">Resend API Key</label>
-                      <input className="input" type="password" value={wsForm.resendApiKey} placeholder="re_..."
-                        onChange={e => setWsForm({ ...wsForm, resendApiKey: e.target.value })} />
-                    </div>
-                    <div className="form-group">
-                      <label className="label">From Email Address</label>
-                      <input className="input" type="email" value={wsForm.fromEmail} placeholder="hello@yourdomain.com"
-                        onChange={e => setWsForm({ ...wsForm, fromEmail: e.target.value })} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-primary">Brand Primary Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        className="h-10 w-12 rounded cursor-pointer border-0 p-0"
+                        value={wsForm.primaryColor}
+                        onChange={e => { setWsForm({ ...wsForm, primaryColor: e.target.value }); setWsDirty(true); }}
+                      />
+                      <input
+                        type="text"
+                        className="st-select h-10 flex-1 font-mono uppercase text-xs"
+                        value={wsForm.primaryColor}
+                        onChange={e => { setWsForm({ ...wsForm, primaryColor: e.target.value }); setWsDirty(true); }}
+                      />
                     </div>
                   </div>
-                )}
-              </div>
 
-              <button type="submit" disabled={wsLoading} className="btn btn-primary" style={{ alignSelf: "flex-start" }}>
-                <Save size={14} /> {wsLoading ? "Saving…" : "Save Configuration"}
-              </button>
-            </form>
-          </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-primary">Custom Verification Domain</label>
+                    <input
+                      type="text"
+                      className="st-select h-10 w-full font-mono text-xs"
+                      placeholder="certs.company.com"
+                      value={wsForm.customDomain}
+                      onChange={e => { setWsForm({ ...wsForm, customDomain: e.target.value }); setWsDirty(true); }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4 mt-2">
+                  {wsDirty ? (
+                    <span className="text-xs text-warning flex items-center gap-1 font-medium"><AlertTriangle size={13} /> Unsaved workspace edits</span>
+                  ) : <span />}
+
+                  <button type="submit" className="btn btn-primary" disabled={wsSaving || !wsDirty}>
+                    <Save size={14} />
+                    <span>{wsSaving ? "Saving..." : "Save Workspace Configuration"}</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Dedicated SMTP Wizard Card */}
+              <div className="card flat-card p-6 max-w-2xl">
+                <div className="border-b pb-4 mb-6">
+                  <h3 className="font-bold text-base text-primary">Custom SMTP Mail Server</h3>
+                  <p className="text-xs text-secondary mt-1">Deliver credential verification emails directly from your own mail host.</p>
+                </div>
+
+                <SmtpSetupWizard workspace={selectedWorkspace} />
+              </div>
+            </>
+          ) : (
+            <div className="p-8 text-center text-secondary text-sm">No workspace selected.</div>
+          )}
         </div>
       )}
     </div>

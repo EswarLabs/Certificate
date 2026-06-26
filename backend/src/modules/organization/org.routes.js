@@ -5,12 +5,17 @@ import {
      listOrgController, 
      getOrgController, 
      updateOrgController, 
-     deleteOrgController 
+     deleteOrgController,
+     requestVerificationController,
+     checkVerificationController
     } from './org.controller.js';
 
 import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { orgCreationLimiter } from '../../middlewares/rateLimit.middleware.js';
 
 const router = express.Router();
+
+// NOTE: authMiddleware is applied at app.js level for /api/organizations.
 
 /**
  * @openapi
@@ -100,7 +105,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  */
-router.post('/', authMiddleware, createOrgController);
+router.post('/', orgCreationLimiter, createOrgController);
 
 /**
  * @openapi
@@ -174,7 +179,7 @@ router.post('/', authMiddleware, createOrgController);
  *       401:
  *         description: Unauthorized
  */
-router.get('/', authMiddleware, listOrgController);
+router.get('/', listOrgController);
 
 /**
  * @openapi
@@ -231,7 +236,7 @@ router.get('/', authMiddleware, listOrgController);
  *       401:
  *         description: Unauthorized
  */
-router.get('/:id', authMiddleware, getOrgController);
+router.get('/:id', getOrgController);
 
 /**
  * @openapi
@@ -299,7 +304,7 @@ router.get('/:id', authMiddleware, getOrgController);
  *       401:
  *         description: Unauthorized
  */
-router.put('/:id', authMiddleware, updateOrgController);
+router.put('/:id', updateOrgController);
 
 /**
  * @openapi
@@ -334,6 +339,71 @@ router.put('/:id', authMiddleware, updateOrgController);
  *       401:
  *         description: Unauthorized
  */
-router.delete('/:id', authMiddleware, deleteOrgController);
+router.delete('/:id', deleteOrgController);
+
+/**
+ * @openapi
+ * /api/organizations/{id}/verification/request:
+ *   post:
+ *     summary: Request domain verification
+ *     tags:
+ *       - Organization
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - domain
+ *             properties:
+ *               domain:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Verification requested
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.post('/:id/verification/request', requestVerificationController);
+
+/**
+ * @openapi
+ * /api/organizations/{id}/verification/check:
+ *   post:
+ *     summary: Check domain verification
+ *     tags:
+ *       - Organization
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Domain verified
+ *       400:
+ *         description: Verification failed
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ */
+router.post('/:id/verification/check', checkVerificationController);
 
 export default router;

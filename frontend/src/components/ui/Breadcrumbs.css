@@ -1,0 +1,63 @@
+/* ============================================================
+   BREADCRUMBS STYLES
+   ============================================================ */
+.bc-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.bc-home-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bc-back-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  margin-right: 6px;
+  transition: all 0.1s ease;
+}
+
+.bc-back-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.bc-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bc-sep {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.bc-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.1s ease;
+}
+
+.bc-link:hover {
+  color: var(--text-primary);
+}
+
+.bc-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}

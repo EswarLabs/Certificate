@@ -4,112 +4,142 @@ import { Link } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { listTemplates, deleteTemplate } from "../services/templateServices";
-import { Plus, Trash2, FileText, Pencil } from "lucide-react";
+import SearchToolbar from "../components/ui/SearchToolbar";
+import EmptyState from "../components/ui/EmptyState";
+import { Plus, Trash2, FileText, Pencil, ExternalLink } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Templates() {
   const { selectedOrg } = useOrg();
   const { selectedWorkspace } = useWorkspace();
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const limit = 12;
 
   const { data, isLoading, mutate } = useSWR(
     selectedOrg?.id && selectedWorkspace?.id
-      ? ['templates', selectedOrg.id, selectedWorkspace.id, page]
+      ? ['templates-list', selectedOrg.id, selectedWorkspace.id, page, searchQuery]
       : null,
-    ([_, orgId, wsId, p]) => listTemplates(orgId, wsId, p, limit)
+    ([_, orgId, wsId, p, q]) => listTemplates(orgId, wsId, p, limit, q || undefined)
   );
 
   const templates = data?.templates || [];
   const total = data?.total || 0;
   const loading = isLoading && !data;
 
-  const fetchTemplates = () => { mutate(); };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this template?")) return;
+  const handleDelete = async (id, name) => {
+    const confirmed = await new Promise(resolve => {
+      toast(
+        (t) => (
+          <div>
+            <div className="font-semibold mb-1">Delete "{name}"?</div>
+            <div className="text-xs text-secondary mb-3">This will permanently remove the template and cannot be recovered.</div>
+            <div className="flex gap-2">
+              <button className="btn btn-danger btn-sm" onClick={() => { toast.dismiss(t.id); resolve(true); }}>Delete Permanently</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => { toast.dismiss(t.id); resolve(false); }}>Cancel</button>
+            </div>
+          </div>
+        ),
+        { duration: 8000 }
+      );
+    });
+    if (!confirmed) return;
     try {
       await deleteTemplate(selectedOrg.id, selectedWorkspace.id, id);
-      toast.success("Template deleted");
-      fetchTemplates();
-    } catch (err) { toast.error(err.message); }
+      toast.success("Template deleted successfully");
+      mutate();
+    } catch (err) {
+      toast.error(err.message || 'Template deletion failed');
+    }
   };
 
   if (!selectedOrg || !selectedWorkspace) {
     return (
       <div className="page-container">
-        <div className="empty-state card"><FileText size={36} /><h3>No workspace selected</h3><p>Select an org and workspace to view templates.</p></div>
+        <EmptyState
+          icon={FileText}
+          title="No Active Workspace"
+          description="Choose an active workspace to view certificate visual templates."
+          actionLabel="Go to Organizations"
+          actionPath="/organizations"
+        />
       </div>
     );
   }
 
   return (
-    <div className="page-container">
-      <div className="page-header">
+    <div className="page-container flex flex-col gap-6">
+      <div className="page-header mb-0">
         <div>
-          <h1 className="page-title">Templates</h1>
-          <p className="page-subtitle">{total} total · {selectedWorkspace.name}</p>
+          <h1 className="page-title">Certificate Design Templates</h1>
+          <p className="page-subtitle">{total} design layouts across {selectedWorkspace.name}</p>
         </div>
         <Link to="/templates/create" className="btn btn-primary">
-          <Plus size={14} /> New Template
+          <Plus size={14} /> Create Template
         </Link>
       </div>
 
+      <SearchToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        placeholder="Search templates by name..."
+        totalCount={total}
+      />
+
       {loading ? (
-        <div style={{ textAlign: "center", padding: 48 }}><span className="spinner" /></div>
-      ) : templates.length === 0 ? (
-        <div className="card">
-          <div className="empty-state">
-            <FileText size={40} />
-            <h3>No templates yet</h3>
-            <p>Create a certificate template to get started.</p>
-            <Link to="/templates/create" className="btn btn-primary" style={{ marginTop: 8 }}>
-              <Plus size={14} /> Create Template
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-          {templates.map(t => (
-            <div key={t.id} className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              {/* Thumbnail */}
-              <div style={{ aspectRatio: "4/3", background: "var(--bg-secondary)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid var(--border-color)", overflow: "hidden" }}>
-                {t.thumbnail ? (
-                  <img src={t.thumbnail} alt={t.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                ) : (
-                  <FileText size={32} style={{ color: "var(--text-muted)" }} />
-                )}
-              </div>
-              {/* Info */}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4 }}>{t.name}</div>
-                {t.description && <div style={{ fontSize: 12, color: "var(--text-tertiary)", marginBottom: 6 }}>{t.description}</div>}
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  <span className="badge badge-neutral">{t.orientation || "landscape"}</span>
-                  <span style={{ fontSize: 11, color: "var(--text-tertiary)", alignSelf: "center" }}>
-                    {new Date(t.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-              {/* Actions */}
-              <div style={{ display: "flex", gap: 8 }}>
-                <Link to={`/templates/${t.id}`} className="btn btn-secondary btn-sm" style={{ flex: 1, justifyContent: "center" }}>
-                  <Pencil size={12} /> Edit
-                </Link>
-                <button onClick={() => handleDelete(t.id)} className="btn-icon" style={{ color: "var(--danger)" }}>
-                  <Trash2 size={14} />
-                </button>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="card flat-card p-4">
+              <div className="skeleton-shimmer h-36 rounded mb-3" />
+              <div className="skeleton-shimmer h-4 w-3/4 mb-2" />
+              <div className="skeleton-shimmer h-3 w-1/2" />
             </div>
           ))}
         </div>
-      )}
+      ) : templates.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No Templates Yet"
+          description={searchQuery ? "No templates match your search query." : "Create your first certificate layout template to define background designs and text positions."}
+          actionLabel={!searchQuery ? "Create Template" : undefined}
+          actionPath={!searchQuery ? "/templates/create" : undefined}
+        />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {templates.map(temp => (
+            <div key={temp.id} className="card flat-card p-4 flex flex-col transition-all hover:border-brand relative group">
+              <Link to={`/templates/${temp.id}`} className="block aspect-video bg-tertiary rounded flex items-center justify-center mb-3 relative overflow-hidden">
+                {temp.backgroundImageUrl ? (
+                  <img src={temp.backgroundImageUrl} alt={temp.name} className="w-full h-full object-cover" />
+                ) : (
+                  <FileText size={32} className="text-tertiary" />
+                )}
+                <div className="absolute inset-0 bg-overlay opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium gap-1">
+                  <span>Edit Layout</span>
+                  <ExternalLink size={12} />
+                </div>
+              </Link>
 
-      {total > limit && (
-        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginTop: 24 }}>
-          <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-          <span style={{ fontSize: 13, color: "var(--text-secondary)", alignSelf: "center" }}>Page {page} of {Math.ceil(total / limit)}</span>
-          <button className="btn btn-secondary btn-sm" disabled={page * limit >= total} onClick={() => setPage(p => p + 1)}>Next</button>
+              <div className="flex-1 min-w-0 mb-3">
+                <Link to={`/templates/${temp.id}`} className="font-semibold text-primary hover:text-brand truncate block">
+                  {temp.name}
+                </Link>
+                <p className="text-xs text-tertiary truncate mt-0.5">{temp.description || "Certificate layout"}</p>
+              </div>
+
+              <div className="flex items-center justify-between border-t pt-3 mt-auto">
+                <span className="text-xs text-tertiary font-mono">{temp.width}×{temp.height}px</span>
+                <div className="flex items-center gap-1">
+                  <Link to={`/templates/${temp.id}`} className="btn-icon p-1 text-secondary hover:text-primary" title="Edit">
+                    <Pencil size={14} />
+                  </Link>
+                  <button onClick={() => handleDelete(temp.id, temp.name)} className="btn-icon p-1 text-secondary hover:text-danger" title="Delete">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

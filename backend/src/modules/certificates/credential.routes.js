@@ -8,9 +8,14 @@ import {
   revokeCredentialController,
   issueBatchCredentialsController,
 } from "./credential.controller.js";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
 import { bulkLimiter } from "../../middlewares/rateLimit.middleware.js";
+
 const router = express.Router({ mergeParams: true });
+
+// NOTE: authMiddleware, orgMiddleware, workspaceMiddleware are applied at
+// the app.js level for all /api/organizations/:orgId/workspaces/:wsId/credentials routes.
+// Only roleGuard and operation-specific limiters are needed here.
 
 /**
  * @openapi
@@ -64,60 +69,16 @@ const router = express.Router({ mergeParams: true });
  *     responses:
  *       201:
  *         description: Credential created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 workspaceId:
- *                   type: string
- *                 organizationId:
- *                   type: string
- *                 templateId:
- *                   type: string
- *                 recipientName:
- *                   type: string
- *                 recipientEmail:
- *                   type: string
- *                 credentialData:
- *                   type: object
- *                 verificationCode:
- *                   type: string
- *                 status:
- *                   type: string
- *                 expiresAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 issuedAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                 template:
- *                   type: object
- *                 createdBy:
- *                   type: object
  *       400:
  *         description: Invalid request or validation failed
  *       401:
  *         description: Unauthorized
  *       403:
- *         description: Forbidden - User is not a member of the workspace or limit reached
+ *         description: Forbidden - insufficient role or limit reached
  *       404:
  *         description: Template not found
  */
-
-router.post("/", authMiddleware, createCredentialController);
+router.post("/", roleGuard("OWNER", "ADMIN", "EDITOR", "ISSUER"), createCredentialController);
 
 /**
  * @openapi
@@ -156,61 +117,25 @@ router.post("/", authMiddleware, createCredentialController);
  *             properties:
  *               templateId:
  *                 type: string
- *                 description: ID of template to use
  *               fileId:
  *                 type: string
- *                 description: ID of uploaded file containing CSV
  *               recipientNameColumn:
  *                 type: string
- *                 description: Column name for recipient name in CSV
  *               recipientEmailColumn:
  *                 type: string
- *                 description: Column name for recipient email in CSV
  *               dataMapping:
  *                 type: object
- *                 description: Key-value map mapping template fields to CSV columns
  *     responses:
  *       202:
  *         description: Batch processing started
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 job:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     workspaceId:
- *                       type: string
- *                     type:
- *                       type: string
- *                     status:
- *                       type: string
- *                     progress:
- *                       type: integer
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
  *       400:
  *         description: Invalid request
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
- *       500:
- *         description: Internal server error
  */
-
-router.post("/batch", authMiddleware, bulkLimiter, createBatchCredentialsController);
+router.post("/batch", roleGuard("OWNER", "ADMIN", "EDITOR"), bulkLimiter, createBatchCredentialsController);
 
 /**
  * @openapi
@@ -227,103 +152,39 @@ router.post("/batch", authMiddleware, bulkLimiter, createBatchCredentialsControl
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of credentials to return per page
  *       - in: query
  *         name: page
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number
  *       - in: query
  *         name: status
  *         schema:
  *           type: string
  *           enum: [draft, issued, revoked]
- *         description: Credential status
  *       - in: query
  *         name: recipientEmail
  *         schema:
  *           type: string
- *         description: Filter by recipient email
  *     responses:
  *       200:
- *         description: List of credentials retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 page:
- *                   type: integer
- *                 limit:
- *                   type: integer
- *                 total:
- *                   type: integer
- *                 credentials:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       workspaceId:
- *                         type: string
- *                       organizationId:
- *                         type: string
- *                       templateId:
- *                         type: string
- *                       recipientName:
- *                         type: string
- *                       recipientEmail:
- *                         type: string
- *                       credentialData:
- *                         type: object
- *                       verificationCode:
- *                         type: string
- *                       status:
- *                         type: string
- *                       expiresAt:
- *                         type: string
- *                         format: date-time
- *                         nullable: true
- *                       issuedAt:
- *                         type: string
- *                         format: date-time
- *                         nullable: true
- *                       createdById:
- *                         type: string
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                       updatedAt:
- *                         type: string
- *                         format: date-time
- *                       template:
- *                         type: object
- *                         properties:
- *                           name:
- *                             type: string
+ *         description: List of credentials
  *       401:
  *         description: Unauthorized
  *       403:
  *         description: Forbidden
  */
-
-router.get("/", authMiddleware, listCredentialsController);
+router.get("/", listCredentialsController);
 
 /**
  * @openapi
@@ -340,82 +201,23 @@ router.get("/", authMiddleware, listCredentialsController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Credential ID
  *     responses:
  *       200:
- *         description: Credential retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 workspaceId:
- *                   type: string
- *                 organizationId:
- *                   type: string
- *                 templateId:
- *                   type: string
- *                 recipientName:
- *                   type: string
- *                 recipientEmail:
- *                   type: string
- *                 credentialData:
- *                   type: object
- *                 verificationCode:
- *                   type: string
- *                 status:
- *                   type: string
- *                 expiresAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 issuedAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                 template:
- *                   type: object
- *                 createdBy:
- *                   type: object
- *                 events:
- *                   type: array
- *                   items:
- *                     type: object
- *                 emailLogs:
- *                   type: array
- *                   items:
- *                     type: object
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
+ *         description: Credential retrieved
  *       404:
- *         description: Credential not found
+ *         description: Not found
  */
-
-router.get("/:id", authMiddleware, getCredentialByIdController);
+router.get("/:id", getCredentialByIdController);
 
 /**
  * @openapi
@@ -432,73 +234,27 @@ router.get("/:id", authMiddleware, getCredentialByIdController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Credential ID
  *     responses:
  *       200:
- *         description: Credential issued successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 workspaceId:
- *                   type: string
- *                 organizationId:
- *                   type: string
- *                 templateId:
- *                   type: string
- *                 recipientName:
- *                   type: string
- *                 recipientEmail:
- *                   type: string
- *                 credentialData:
- *                   type: object
- *                 verificationCode:
- *                   type: string
- *                 status:
- *                   type: string
- *                 expiresAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 issuedAt:
- *                   type: string
- *                   format: date-time
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
- *                 template:
- *                   type: object
+ *         description: Credential issued
  *       400:
- *         description: Invalid request or already issued
- *       401:
- *         description: Unauthorized
+ *         description: Already issued
  *       403:
  *         description: Forbidden
  *       404:
- *         description: Credential not found
+ *         description: Not found
  */
-
-router.patch("/:id/issue", authMiddleware, issueCredentialController);
+router.patch("/:id/issue", roleGuard("OWNER", "ADMIN", "ISSUER"), issueCredentialController);
 
 /**
  * @openapi
@@ -515,72 +271,27 @@ router.patch("/:id/issue", authMiddleware, issueCredentialController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
- *         description: Credential ID
  *     responses:
  *       200:
- *         description: Credential revoked successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: string
- *                 workspaceId:
- *                   type: string
- *                 organizationId:
- *                   type: string
- *                 templateId:
- *                   type: string
- *                 recipientName:
- *                   type: string
- *                 recipientEmail:
- *                   type: string
- *                 credentialData:
- *                   type: object
- *                 verificationCode:
- *                   type: string
- *                 status:
- *                   type: string
- *                 expiresAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 issuedAt:
- *                   type: string
- *                   format: date-time
- *                   nullable: true
- *                 createdById:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                   format: date-time
- *                 updatedAt:
- *                   type: string
- *                   format: date-time
+ *         description: Credential revoked
  *       400:
- *         description: Invalid request or already revoked
- *       401:
- *         description: Unauthorized
+ *         description: Already revoked
  *       403:
  *         description: Forbidden
  *       404:
- *         description: Credential not found
+ *         description: Not found
  */
-
-router.patch("/:id/revoke", authMiddleware, revokeCredentialController);
+router.patch("/:id/revoke", roleGuard("OWNER", "ADMIN"), revokeCredentialController);
 
 /**
  * @openapi
@@ -597,13 +308,11 @@ router.patch("/:id/revoke", authMiddleware, revokeCredentialController);
  *         required: true
  *         schema:
  *           type: string
- *         description: Organization ID
  *       - in: path
  *         name: workspaceId
  *         required: true
  *         schema:
  *           type: string
- *         description: Workspace ID
  *     requestBody:
  *       required: true
  *       content:
@@ -617,45 +326,12 @@ router.patch("/:id/revoke", authMiddleware, revokeCredentialController);
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: List of credential IDs to issue
  *     responses:
  *       202:
- *         description: Bulk issuance job started successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 job:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     workspaceId:
- *                       type: string
- *                     type:
- *                       type: string
- *                     status:
- *                       type: string
- *                     progress:
- *                       type: integer
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
- *       400:
- *         description: Invalid request
- *       401:
- *         description: Unauthorized
+ *         description: Bulk issuance started
  *       403:
  *         description: Forbidden
  */
-router.post("/issue-batch", authMiddleware, bulkLimiter, issueBatchCredentialsController);
+router.post("/issue-batch", roleGuard("OWNER", "ADMIN", "ISSUER"), bulkLimiter, issueBatchCredentialsController);
 
 export default router;

@@ -6,9 +6,11 @@ import {
   updateMemberRoleController,
   removeMemberController,
 } from "./membership.controller.js";
-import { authMiddleware } from "../../middlewares/auth.middleware.js";
+import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
 
 const router = express.Router({ mergeParams: true });
+
+// NOTE: authMiddleware, orgMiddleware, workspaceMiddleware are applied at app.js level.
 
 /**
  * @openapi
@@ -95,7 +97,7 @@ const router = express.Router({ mergeParams: true });
  *       404:
  *         description: Workspace not found
  */
-router.post("/", authMiddleware, addMemberController);
+router.post("/", roleGuard("OWNER"), addMemberController);
 
 /**
  * @openapi
@@ -178,7 +180,7 @@ router.post("/", authMiddleware, addMemberController);
  *       403:
  *         description: Access denied
  */
-router.get("/", authMiddleware, listMembersController);
+router.get("/", listMembersController);
 
 /**
  * @openapi
@@ -247,7 +249,7 @@ router.get("/", authMiddleware, listMembersController);
  *       404:
  *         description: Member not found
  */
-router.get("/:memberId", authMiddleware, getMemberController);
+router.get("/:memberId", getMemberController);
 
 /**
  * @openapi
@@ -329,7 +331,7 @@ router.get("/:memberId", authMiddleware, getMemberController);
  *       404:
  *         description: Member not found
  */
-router.patch("/:memberId", authMiddleware, updateMemberRoleController);
+router.patch("/:memberId", roleGuard("OWNER"), updateMemberRoleController);
 
 /**
  * @openapi
@@ -370,6 +372,6 @@ router.patch("/:memberId", authMiddleware, updateMemberRoleController);
  *       404:
  *         description: Member not found
  */
-router.delete("/:memberId", authMiddleware, removeMemberController);
+router.delete("/:memberId", roleGuard("OWNER"), removeMemberController);
 
 export default router;
