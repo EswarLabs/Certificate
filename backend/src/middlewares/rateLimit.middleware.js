@@ -50,10 +50,15 @@ const compositeKey = (req) => {
  */
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 500,
+    max: 2500, // Generous limit for SPA architecture with background polling
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: userKey,
+    skip: (req) => req.method === "GET" && (
+        req.path.endsWith("/jobs") || 
+        req.path.endsWith("/queue-stats") || 
+        req.path.endsWith("/health")
+    ),
     message: {
         success: false,
         message: "Too many requests. Please try again later.",

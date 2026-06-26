@@ -28,7 +28,7 @@ export default function NotificationDrawer() {
   const { data: jobData } = useSWR(
     selectedOrg?.id && selectedWorkspace?.id ? ['drawer-jobs', selectedOrg.id, selectedWorkspace.id] : null,
     ([_, orgId, wsId]) => listJobs(orgId, wsId, 1, 5),
-    { refreshInterval: 4000 }
+    { refreshInterval: 15000, revalidateOnFocus: false }
   );
 
   const recentJobs = jobData?.jobs || [];
