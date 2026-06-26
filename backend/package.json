@@ -9,7 +9,7 @@
     "test:coverage": "cross-env NODE_ENV=test NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "build": "prisma generate && prisma db push --accept-data-loss",
     "postinstall": "prisma generate",
-    "start": "prisma db push --accept-data-loss && cross-env NODE_ENV=production node src/server.js",
+    "start": "cross-env NODE_ENV=production node src/server.js ",
     "worker": "cross-env NODE_ENV=production node src/worker.js",
     "dev:server": "cross-env NODE_ENV=development nodemon src/server.js",
     "dev:worker": "cross-env NODE_ENV=development nodemon src/worker.js",

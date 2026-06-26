@@ -16,7 +16,7 @@ export const emailWorker = new Worker(
       throw error;
     }
   },
-  { connection: redis, concurrency: 15 }
+  { connection: redis, concurrency: 15, drainDelay: 60000, stalledInterval: 300000 }
 );
 
 emailWorker.on("completed", (job) => {
