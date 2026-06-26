@@ -76,6 +76,9 @@ export const AuthProvider = ({ children }) => {
                 setUser(null);
                 localStorage.removeItem("user");
                 localStorage.removeItem("accessToken");
+                localStorage.removeItem("cert_dismissed_notifs");
+                localStorage.removeItem("selectedOrg");
+                localStorage.removeItem("selectedWorkspace");
             } else {
                 setError(res.message || "Logout failed");
             }
