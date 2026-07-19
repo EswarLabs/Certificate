@@ -18,6 +18,10 @@ import Settings from "./pages/Settings";
 import VerifyCredential from "./pages/VerifyCredential";
 import Landing from "./pages/Landing";
 import OnboardingPage from "./pages/OnboardingPage";
+import Marketplace from "./pages/Marketplace";
+import MarketplaceDetail from "./pages/MarketplaceDetail";
+import useAuth from "./hooks/useAuth";
+import { Outlet as RouterOutlet } from "react-router-dom";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
@@ -25,6 +29,12 @@ import AppLayout from "./components/layout/AppLayout";
 import OrgProvider from "./context/OrgContext";
 import WorkspaceProvider from "./context/WorkspaceContext";
 import { Toaster } from "react-hot-toast";
+
+function MarketplaceLayout() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  return user ? <AppLayout /> : <RouterOutlet />;
+}
 
 function App() {
   return (
@@ -77,6 +87,12 @@ function App() {
 
             {/* Public Verification Route */}
             <Route path="/verify/:code?" element={<VerifyCredential />} />
+
+            {/* Hybrid Community Marketplace Routes (Sidebar if logged in, standalone if public) */}
+            <Route element={<MarketplaceLayout />}>
+              <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/marketplace/:id" element={<MarketplaceDetail />} />
+            </Route>
 
             {/* Onboarding — protected but outside AppLayout */}
             <Route

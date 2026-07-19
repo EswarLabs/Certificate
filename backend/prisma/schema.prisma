@@ -86,10 +86,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships   Membership[]
-  templates     CertificateTemplate[]
-  credentials   Credential[]
-  uploadedFiles File[]
+  memberships    Membership[]
+  templates      CertificateTemplate[]
+  credentials    Credential[]
+  uploadedFiles  File[]
+  creatorProfile CreatorProfile?
 
   @@index([email])
 }
@@ -204,6 +205,9 @@ model CertificateTemplate {
 
   /// Zod-validated field schema for credential data injection
   schemaDefinition Json
+
+  /// Optional ID of the public marketplace template this was cloned from
+  copiedFromPublicId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -342,4 +346,195 @@ model File {
   @@index([workspaceId])
   @@index([uploadedById])
   @@index([mimeType])
+}
+
+// ============================================================
+// MARKETPLACE ENUMS & MODELS
+// ============================================================
+
+enum MarketplaceVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  HIDDEN
+  SUSPENDED
+}
+
+model CreatorProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio             String?
+  websiteUrl      String?
+  organization    String?
+  isVerified      Boolean  @default(false)
+  totalViews      Int      @default(0)
+  totalDownloads  Int      @default(0)
+  totalCopies     Int      @default(0)
+  averageRating   Float    @default(0.0)
+  achievements    Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  templates       PublicTemplate[]
+}
+
+model PublicTemplate {
+  id              String                @id @default(cuid())
+  originalId      String?
+  creatorId       String
+  creator         CreatorProfile        @relation(fields: [creatorId], references: [id])
+  title           String
+  description     String
+  coverImageUrl   String?
+  thumbnailUrl    String?
+  previewPages    Json?
+  visibility      MarketplaceVisibility @default(PUBLIC)
+  moderation      ModerationStatus      @default(APPROVED)
+  difficulty      DifficultyLevel       @default(BEGINNER)
+  industry        String                @default("General")
+  language        String                @default("en")
+  themeColors     Json?
+  fontInfo        Json?
+  editorData      Json
+  schemaDefinition Json
+  version         Int                   @default(1)
+  license         String                @default("CC-BY-4.0")
+  
+  viewsCount       Int                  @default(0)
+  uniqueViewsCount Int                  @default(0)
+  copiesCount      Int                  @default(0)
+  downloadsCount   Int                  @default(0)
+  likesCount       Int                  @default(0)
+  favoritesCount   Int                  @default(0)
+  popularityScore  Float                @default(0.0)
+  trendingScore    Float                @default(0.0)
+  ratingScore      Float                @default(0.0)
+  reviewsCount     Int                  @default(0)
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  versions         PublicTemplateVersion[]
+  categories       TemplateCategory[]      @relation("TemplateToCategory")
+  tags             PublicTemplateTag[]     @relation("TemplateToTag")
+  likes            PublicTemplateLike[]
+  favorites        PublicTemplateFavorite[]
+  usages           PublicTemplateUsage[]
+  reports          PublicTemplateReport[]
+  views            PublicTemplateView[]
+  featured         FeaturedTemplates?
+
+  @@index([visibility, moderation])
+  @@index([trendingScore(sort: Desc)])
+  @@index([popularityScore(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([industry])
+}
+
+model PublicTemplateVersion {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  versionNumber    Int
+  changelog        String?
+  editorData       Json
+  schemaDefinition Json
+  createdAt        DateTime       @default(now())
+
+  @@unique([publicTemplateId, versionNumber])
+}
+
+model TemplateCategory {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  slug        String           @unique
+  description String?
+  iconUrl     String?
+  templates   PublicTemplate[] @relation("TemplateToCategory")
+}
+
+model PublicTemplateTag {
+  id        String           @id @default(cuid())
+  name      String           @unique
+  slug      String           @unique
+  templates PublicTemplate[] @relation("TemplateToTag")
+}
+
+model PublicTemplateLike {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  userId           String
+  createdAt        DateTime       @default(now())
+
+  @@unique([publicTemplateId, userId])
+}
+
+model PublicTemplateFavorite {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  userId           String
+  createdAt        DateTime       @default(now())
+
+  @@unique([publicTemplateId, userId])
+}
+
+model PublicTemplateUsage {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id])
+  organizationId   String
+  workspaceId      String
+  copiedTemplateId String
+  userId           String
+  createdAt        DateTime       @default(now())
+
+  @@index([publicTemplateId])
+  @@index([organizationId])
+}
+
+model PublicTemplateReport {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  reporterUserId   String
+  reason           String
+  details          String?
+  status           String         @default("OPEN")
+  createdAt        DateTime       @default(now())
+}
+
+model PublicTemplateView {
+  id               String         @id @default(cuid())
+  publicTemplateId String
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  viewerIpHash     String
+  userId           String?
+  createdAt        DateTime       @default(now())
+
+  @@index([publicTemplateId, viewerIpHash])
+  @@index([createdAt])
+}
+
+model FeaturedTemplates {
+  id               String         @id @default(cuid())
+  publicTemplateId String         @unique
+  publicTemplate   PublicTemplate @relation(fields: [publicTemplateId], references: [id], onDelete: Cascade)
+  section          String
+  displayOrder     Int            @default(0)
+  createdAt        DateTime       @default(now())
 }

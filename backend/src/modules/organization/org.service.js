@@ -1,4 +1,4 @@
-import {prisma} from "../../lib/prisma.js";
+import { prisma } from "../../lib/prisma.js";
 import { slugify } from "../../utils/slugify.js";
 import { createOrganizationSchema } from "./org.validation.js";
 import stringSimilarity from "string-similarity";
@@ -288,10 +288,10 @@ export const checkDomainVerification = async (orgId, userId) => {
   try {
     // Resolve TXT records using public DNS (avoids system resolver ECONNREFUSED on restricted networks)
     const records = await resolveTxt(org.verifiedDomain);
-    
+
     // dns.resolveTxt returns an array of arrays (each TXT record is an array of chunked strings)
     const txtStrings = records.map(record => record.join(''));
-    
+
     const isTokenFound = txtStrings.includes(org.verificationToken);
 
     if (isTokenFound) {

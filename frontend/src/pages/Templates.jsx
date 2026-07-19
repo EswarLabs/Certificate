@@ -109,8 +109,8 @@ export default function Templates() {
           {templates.map(temp => (
             <div key={temp.id} className="card flat-card p-4 flex flex-col transition-all hover:border-brand relative group">
               <Link to={`/templates/${temp.id}`} className="block aspect-video bg-tertiary rounded flex items-center justify-center mb-3 relative overflow-hidden">
-                {temp.backgroundImageUrl ? (
-                  <img src={temp.backgroundImageUrl} alt={temp.name} className="w-full h-full object-cover" />
+                {temp.thumbnailUrl || temp.backgroundImageUrl ? (
+                  <img src={temp.thumbnailUrl || temp.backgroundImageUrl} alt={temp.name} className="w-full h-full object-cover" />
                 ) : (
                   <FileText size={32} className="text-tertiary" />
                 )}

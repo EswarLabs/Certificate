@@ -4,7 +4,8 @@ import useAuth from "../hooks/useAuth";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
 import { updateUser } from "../services/userServices";
-import { User, Palette, Save, Building2, ShieldCheck, AlertTriangle, Globe, Mail, CheckCircle, RefreshCw, HardDrive } from "lucide-react";
+import { getCreatorProfile, updateCreatorProfile } from "../services/marketplaceServices";
+import { User, Palette, Save, Building2, ShieldCheck, AlertTriangle, Globe, Mail, CheckCircle, RefreshCw, HardDrive, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 import DomainVerificationWizard from "../components/ui/DomainVerificationWizard";
 import SmtpSetupWizard from "../components/ui/SmtpSetupWizard";
@@ -29,11 +30,52 @@ export default function Settings() {
   const [wsSaving, setWsSaving] = useState(false);
   const [wsDirty, setWsDirty] = useState(false);
 
+  /* Marketplace Creator state */
+  const [creatorForm, setCreatorForm] = useState({ bio: "", websiteUrl: "", organization: "" });
+  const [creatorStats, setCreatorStats] = useState({ totalViews: 0, totalDownloads: 0, totalCopies: 0 });
+  const [creatorLoading, setCreatorLoading] = useState(false);
+  const [creatorSaving, setCreatorSaving] = useState(false);
+
   useEffect(() => {
-    if (tabParam && ["profile", "organization", "workspace"].includes(tabParam)) {
+    if (tabParam && ["profile", "organization", "workspace", "marketplace"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
+
+  useEffect(() => {
+    if (activeTab === "marketplace" && user) {
+      setCreatorLoading(true);
+      getCreatorProfile()
+        .then((res) => {
+          if (res.success && res.profile) {
+            setCreatorForm({
+              bio: res.profile.bio || "",
+              websiteUrl: res.profile.websiteUrl || "",
+              organization: res.profile.organization || "",
+            });
+            setCreatorStats({
+              totalViews: res.profile.totalViews || 0,
+              totalDownloads: res.profile.totalDownloads || 0,
+              totalCopies: res.profile.totalCopies || 0,
+            });
+          }
+        })
+        .finally(() => setCreatorLoading(false));
+    }
+  }, [activeTab, user]);
+
+  const handleSaveCreator = async (e) => {
+    e.preventDefault();
+    setCreatorSaving(true);
+    try {
+      await updateCreatorProfile(creatorForm);
+      toast.success("Creator Marketplace Profile updated! ✨");
+    } catch (err) {
+      toast.error("Failed to update creator profile");
+    } finally {
+      setCreatorSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -158,6 +200,14 @@ export default function Settings() {
           <Mail size={16} />
           <span>Workspace & SMTP</span>
           {wsDirty && <span className="w-2 h-2 rounded-full bg-warning inline-block ml-1" title="Unsaved changes" />}
+        </button>
+
+        <button
+          className={`pb-3 font-semibold text-sm flex items-center gap-2 border-b-2 transition-all ${activeTab === 'marketplace' ? 'border-brand text-brand' : 'border-transparent text-secondary hover:text-primary'}`}
+          onClick={() => handleTabSwitch('marketplace')}
+        >
+          <Sparkles size={16} className="text-brand" />
+          <span>Community Publisher</span>
         </button>
       </div>
 
@@ -319,6 +369,102 @@ export default function Settings() {
           ) : (
             <div className="p-8 text-center text-secondary text-sm">No workspace selected.</div>
           )}
+        </div>
+      )}
+
+      {/* Tab 4: Creator Marketplace Profile */}
+      {activeTab === "marketplace" && (
+        <div className="flex flex-col gap-8" style={{ maxWidth: 768 }}>
+          {/* Creator Stats Card */}
+          <div className="card" style={{ padding: 24 }}>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="dash-trending-icon">
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>Creator Community Impact</h2>
+                <p className="text-xs text-secondary mt-1">Live analytics across all your published marketplace certificate designs</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 border-t pt-4">
+              <div className="stat-card">
+                <span className="stat-label">Total Views</span>
+                <span className="stat-value">{creatorStats.totalViews}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Template Copies</span>
+                <span className="stat-value">{creatorStats.totalCopies}</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-label">Downloads</span>
+                <span className="stat-value">{creatorStats.totalDownloads}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Card */}
+          <form onSubmit={handleSaveCreator} className="card flat-card p-6 flex flex-col gap-6">
+            <div className="border-b pb-4">
+              <h3 className="font-bold text-base text-primary flex items-center gap-2">
+                <Globe size={16} className="text-brand" /> Public Publisher Identity
+              </h3>
+              <p className="text-xs text-secondary mt-1">
+                Customize how your name, biography, and studio appear to the global community on template preview pages.
+              </p>
+            </div>
+
+            {creatorLoading ? (
+              <div className="py-12 text-center text-secondary">Loading creator profile...</div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="label">Studio / Organization Display Name</label>
+                  <input
+                    type="text"
+                    value={creatorForm.organization}
+                    onChange={(e) => setCreatorForm({ ...creatorForm, organization: e.target.value })}
+                    placeholder="e.g. Acme Design Studio or Open Source Credentials"
+                    className="input"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="label">Creator Biography</label>
+                  <textarea
+                    rows={3}
+                    value={creatorForm.bio}
+                    onChange={(e) => setCreatorForm({ ...creatorForm, bio: e.target.value })}
+                    placeholder="Tell the community about your design background, typography style, or credentialing focus..."
+                    className="input"
+                    style={{ minHeight: 80 }}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="label">Portfolio / Website URL</label>
+                  <input
+                    type="url"
+                    value={creatorForm.websiteUrl}
+                    onChange={(e) => setCreatorForm({ ...creatorForm, websiteUrl: e.target.value })}
+                    placeholder="https://yourdesignstudio.com"
+                    className="input"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="border-t pt-4 flex justify-end">
+              <button
+                type="submit"
+                disabled={creatorSaving || creatorLoading}
+                className="btn btn-primary"
+              >
+                <Save size={14} />
+                <span>{creatorSaving ? "Saving Profile..." : "Save Publisher Profile"}</span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

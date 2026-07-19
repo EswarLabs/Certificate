@@ -16,6 +16,7 @@ import emailRoutes from "./modules/email/email.routes.js";
 import userRoutes from "./modules/users/user.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import fileRoutes from "./modules/files/files.routes.js";
+import marketplaceRoutes from "./modules/marketplace/marketplace.routes.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import { authMiddleware } from "./middlewares/auth.middleware.js";
 import { orgMiddleware } from "./middlewares/org.middleware.js";
@@ -76,6 +77,7 @@ app.use("/api/health", (req, res) => {
 // ---------- Public routes (IP-based rate limiting) ----------
 app.use("/api/auth", publicLimiter, loginLimiter, authRoutes);
 app.use("/api", publicLimiter, verificationRoutes);
+app.use("/api/v1/marketplace", marketplaceRoutes);
 
 // ---------- Authenticated routes (user-based rate limiting) ----------
 // apiLimiter keys by userId — corporate networks with shared IPs won't be penalized

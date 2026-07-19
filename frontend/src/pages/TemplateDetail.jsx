@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useOrg from "../hooks/useOrg";
 import useWorkspace from "../hooks/useWorkspace";
@@ -26,6 +26,7 @@ export default function TemplateDetail() {
   const [editedName, setEditedName] = useState("");
   const [editedDescription, setEditedDescription] = useState("");
   const [editedOrientation, setEditedOrientation] = useState("LANDSCAPE");
+  const stageRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -92,12 +93,30 @@ export default function TemplateDetail() {
         finalEditorData = { ...editedData, elements: updatedElements };
       }
 
+      let thumbUrl = template.thumbnailUrl || null;
+      if (stageRef.current) {
+        try {
+          const transformers = stageRef.current.find("Transformer") || [];
+          transformers.forEach((t) => t.hide());
+          const dataUrl = stageRef.current.toDataURL({ pixelRatio: 0.5 });
+          transformers.forEach((t) => t.show());
+
+          const blob = await fetch(dataUrl).then((r) => r.blob());
+          const file = new File([blob], "thumbnail.png", { type: "image/png" });
+          const uploadRes = await uploadImage(file, selectedWorkspace.id);
+          thumbUrl = uploadRes.secure_url || uploadRes.url || thumbUrl;
+        } catch (thumbErr) {
+          console.warn("Could not generate thumbnail:", thumbErr);
+        }
+      }
+
       // 2. Submit template update to backend
       const res = await updateTemplate(selectedOrg.id, selectedWorkspace.id, id, {
         name: editedName,
         description: editedDescription,
         orientation: editedOrientation,
         editorData: finalEditorData,
+        thumbnailUrl: thumbUrl,
       });
       if (res.id) {
         try {
@@ -125,6 +144,34 @@ export default function TemplateDetail() {
     } catch (err) {
       alert(err.message);
     }
+  };
+
+  const handleOrientationChange = (o) => {
+    if (o === editedOrientation) return;
+    const oldW = editedOrientation === "LANDSCAPE" ? 1200 : 900;
+    const oldH = editedOrientation === "LANDSCAPE" ? 900 : 1200;
+    const newW = o === "LANDSCAPE" ? 1200 : 900;
+    const newH = o === "LANDSCAPE" ? 900 : 1200;
+
+    setEditedOrientation(o);
+    setEditedData(prev => {
+      if (!prev || !prev.elements) return prev;
+      const xScale = newW / oldW;
+      const yScale = newH / oldH;
+      const updatedElements = prev.elements.map(el => {
+        if (el.type === "shape" && el.x <= 60 && el.y <= 60 && el.width >= oldW - 120 && el.height >= oldH - 120) {
+          return { ...el, x: 40, y: 40, width: newW - 80, height: newH - 80 };
+        }
+        return {
+          ...el,
+          x: Math.round(el.x * xScale),
+          y: Math.round(el.y * yScale),
+          width: Math.round(el.width * xScale),
+          height: el.type === "line" ? el.height : Math.round(el.height * yScale),
+        };
+      });
+      return { ...prev, width: newW, height: newH, elements: updatedElements };
+    });
   };
 
   if (loading) return <div className="page-container" style={{ color: "var(--text-secondary)", textAlign: "center" }}>Loading…</div>;
@@ -157,7 +204,7 @@ export default function TemplateDetail() {
               {["LANDSCAPE", "PORTRAIT"].map((o) => (
                 <button
                   key={o}
-                  onClick={() => setEditedOrientation(o)}
+                  onClick={() => handleOrientationChange(o)}
                   style={{
                     backgroundColor: editedOrientation === o ? "var(--bg-hover)" : "transparent",
                     border: "none",
@@ -223,6 +270,7 @@ export default function TemplateDetail() {
             {editedData ? (
               <CanvasEditor
                 key={editedOrientation}
+                stageRef={stageRef}
                 initialData={editedData}
                 orientation={editedOrientation}
                 variables={testValues}

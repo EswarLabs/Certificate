@@ -7,12 +7,13 @@ import useWorkspace from "../hooks/useWorkspace";
 import { listCredentials } from "../services/credentialServices";
 import { listTemplates } from "../services/templateServices";
 import { listJobs } from "../services/jobServices";
+import { listPublicTemplates } from "../services/marketplaceServices";
 import EmptyState from "../components/ui/EmptyState";
 import {
   FileText, GraduationCap, Settings2, ArrowRight, PlusCircle,
   Activity, Globe, Mail, CheckCircle, Circle, Sparkles,
   Building2, Folder, ChevronRight, AlertTriangle, ShieldCheck,
-  HardDrive, Users, Clock, ExternalLink, RefreshCw
+  HardDrive, Users, Clock, ExternalLink, RefreshCw, Heart, Download, Eye, Layers
 } from "lucide-react";
 import "./Dashboard.css";
 
@@ -26,12 +27,13 @@ export default function Dashboard() {
       ? ['dashboard-home', selectedOrg.id, selectedWorkspace.id]
       : null,
     async ([_, orgId, wsId]) => {
-      const [credRes, tempRes, jobRes] = await Promise.all([
+      const [credRes, tempRes, jobRes, trendingRes] = await Promise.all([
         listCredentials(orgId, wsId, 1, 6),
         listTemplates(orgId, wsId, 1, 4),
         listJobs(orgId, wsId, 1, 3),
+        listPublicTemplates({ sort: "trending", limit: 3 }).catch(() => ({ templates: [] })),
       ]);
-      return { credRes, tempRes, jobRes };
+      return { credRes, tempRes, jobRes, trendingRes };
     }
   );
 
@@ -39,6 +41,7 @@ export default function Dashboard() {
   const recentCreds = data?.credRes?.credentials || [];
   const recentTemps = data?.tempRes?.templates || [];
   const recentJobs = data?.jobRes?.jobs || [];
+  const trendingTemplates = data?.trendingRes?.templates || [];
 
   const totalCreds = data?.credRes?.total || 14;
   const totalTemps = data?.tempRes?.total || 2;
@@ -243,8 +246,12 @@ export default function Dashboard() {
             ) : (
               recentTemps.map(temp => (
                 <Link key={temp.id} to={`/templates/${temp.id}`} className="dash-temp-item">
-                  <div className="dash-temp-preview">
-                    <FileText size={24} className="text-tertiary" />
+                  <div className="dash-temp-preview" style={{ overflow: "hidden" }}>
+                    {temp.thumbnailUrl ? (
+                      <img src={temp.thumbnailUrl} alt={temp.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "4px" }} />
+                    ) : (
+                      <FileText size={24} className="text-tertiary" />
+                    )}
                   </div>
                   <div className="dash-temp-body">
                     <div className="dash-temp-name">{temp.name}</div>
@@ -302,6 +309,67 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Trending in Community Marketplace */}
+      <div className="dash-trending-section">
+        <div className="dash-trending-header">
+          <div className="dash-trending-title-wrap">
+            <div className="dash-trending-icon">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h2 className="dash-trending-title">Trending in Marketplace</h2>
+              <p className="dash-trending-sub">Discover top-performing certificate layouts created by global designers</p>
+            </div>
+          </div>
+          <Link to="/marketplace" className="dash-trending-cta">
+            Explore Marketplace <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {trendingTemplates.length === 0 ? (
+          <div className="dash-trending-empty">
+            No trending community templates yet. Be the first to publish one!
+          </div>
+        ) : (
+          <div className="dash-trending-grid">
+            {trendingTemplates.map((item) => (
+              <Link
+                key={item.id}
+                to={`/marketplace/${item.id}`}
+                className="dash-trending-card"
+              >
+                <div>
+                  <div className="dash-trending-thumb">
+                    {item.thumbnailUrl ? (
+                      <img src={item.thumbnailUrl} alt={item.title} />
+                    ) : (
+                      <Layers size={32} className="text-tertiary" />
+                    )}
+                    <span className="dash-trending-industry">
+                      {item.industry || "General"}
+                    </span>
+                  </div>
+                  <h3 className="dash-trending-card-title">{item.title}</h3>
+                  <p className="dash-trending-card-desc">
+                    {item.description || "Professional credential template"}
+                  </p>
+                </div>
+
+                <div className="dash-trending-card-footer">
+                  <span className="dash-trending-card-creator">
+                    {item.creator?.organization || item.creator?.user?.firstName || "Community Creator"}
+                  </span>
+                  <div className="dash-trending-card-stats">
+                    <span className="dash-trending-stat"><Download size={12} className="text-brand" /> {item.copiesCount || 0}</span>
+                    <span className="dash-trending-stat"><Heart size={12} className="text-danger" /> {item.likesCount || 0}</span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import {
   LayoutDashboard, GraduationCap, FileText, Building2,
   Folder, Files, Activity, Mail, Settings, Sun, Moon,
   Menu, LogOut, ShieldCheck, X, Search, CheckCircle,
-  AlertTriangle, Users, Monitor
+  AlertTriangle, Users, Monitor, Sparkles
 } from "lucide-react";
 import "./AppLayout.css";
 
@@ -29,6 +29,7 @@ const NAV_GROUPS = [
     links: [
       { to: "/credentials", label: "Credentials", icon: GraduationCap, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] },
       { to: "/templates", label: "Templates", icon: FileText, roles: ["OWNER", "ADMIN", "EDITOR", "VIEWER", "MEMBER"] },
+      { to: "/marketplace", label: "Marketplace", icon: Sparkles, roles: ["OWNER", "ADMIN", "EDITOR", "VIEWER", "MEMBER"] },
       { to: "/jobs", label: "Batch Jobs", icon: Activity, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER"] }
     ]
   },
@@ -260,10 +261,35 @@ export default function AppLayout() {
         </header>
 
         {/* Main Page Canvas */}
-        <main className="main-content" id="main-content" tabIndex={-1}>
+        <main className="main-content app-main" id="main-content" tabIndex={-1}>
           <Outlet />
         </main>
       </div>
+
+      {/* ── Mobile Bottom Tab Bar ── */}
+      <nav className="mobile-bottom-nav" role="navigation" aria-label="Mobile navigation">
+        <NavLink to="/dashboard" className={({ isActive }) => `mobile-nav-item${isActive ? " active" : ""}`}>
+          <LayoutDashboard size={20} />
+          <span>Overview</span>
+        </NavLink>
+        <NavLink to="/credentials" className={({ isActive }) => `mobile-nav-item${isActive ? " active" : ""}`}>
+          <GraduationCap size={20} />
+          <span>Certs</span>
+        </NavLink>
+        {/* FAB — center button */}
+        <NavLink to="/credentials/create" className="mobile-nav-fab" aria-label="Issue credential">
+          <GraduationCap size={22} />
+        </NavLink>
+        <NavLink to="/templates" className={({ isActive }) => `mobile-nav-item${isActive ? " active" : ""}`}>
+          <FileText size={20} />
+          <span>Templates</span>
+        </NavLink>
+        <NavLink to="/settings" className={({ isActive }) => `mobile-nav-item${isActive ? " active" : ""}`}>
+          <Settings size={20} />
+          <span>Settings</span>
+        </NavLink>
+      </nav>
     </div>
   );
 }
+

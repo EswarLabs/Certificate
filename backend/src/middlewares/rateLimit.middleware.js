@@ -46,17 +46,17 @@ const compositeKey = (req) => {
 /**
  * Global API limiter for AUTHENTICATED routes.
  * Keyed by userId so corporate networks aren't penalized.
- * 300 requests per 15 minutes per user = 20/sec sustained, generous for normal usage.
+ * 300 requests per 15 minutes per user = 200/sec sustained, generous for normal usage.
  */
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 2500, // Generous limit for SPA architecture with background polling
+    max: 2500, // Generous limit for SPA architecture with background polling - development so 25000
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: userKey,
     skip: (req) => req.method === "GET" && (
-        req.path.endsWith("/jobs") || 
-        req.path.endsWith("/queue-stats") || 
+        req.path.endsWith("/jobs") ||
+        req.path.endsWith("/queue-stats") ||
         req.path.endsWith("/health")
     ),
     message: {
@@ -72,7 +72,7 @@ export const apiLimiter = rateLimit({
  */
 export const publicLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 60,
+    max: 100,
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: ipKey,
