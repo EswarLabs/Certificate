@@ -111,9 +111,11 @@ export default function OrgWorkspaceSwitcher() {
 
   const handleSelectOrg = (org) => {
     selectOrganization(org);
-    // Reset workspace when switching orgs
+    // Reset workspace when switching orgs (auto-selected by WorkspaceContext later)
     selectWorkspace(null);
     setQuery("");
+    setOpen(false);
+    toast.success(`Switched to ${org.name}`);
   };
 
   const handleSelectWs = (ws) => {

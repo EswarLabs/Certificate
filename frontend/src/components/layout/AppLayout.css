@@ -416,6 +416,7 @@
 .main-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   outline: none;
   background-color: var(--bg-primary);
   scroll-behavior: smooth;

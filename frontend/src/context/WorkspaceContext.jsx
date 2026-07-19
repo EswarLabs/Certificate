@@ -42,7 +42,21 @@ const WorkspaceProvider = ({ children }) => {
             const res = await listWorkspaces(organizationId, page, limit);
             if (res.success) {
                 // Backend: { success, workspaces: [...] }
-                setWorkspaces(res.workspaces || []);
+                const fetchedWorkspaces = res.workspaces || [];
+                setWorkspaces(fetchedWorkspaces);
+                
+                // Auto-select logic
+                if (fetchedWorkspaces.length > 0) {
+                    const currentWsStr = localStorage.getItem("workspace");
+                    const currentWs = currentWsStr ? JSON.parse(currentWsStr) : null;
+                    if (!currentWs || currentWs.organizationId !== organizationId) {
+                        setSelectedWorkspace(fetchedWorkspaces[0]);
+                        localStorage.setItem("workspace", JSON.stringify(fetchedWorkspaces[0]));
+                    }
+                } else {
+                    setSelectedWorkspace(null);
+                    localStorage.removeItem("workspace");
+                }
             } else {
                 setError(res.message || "Failed to fetch workspaces");
             }
