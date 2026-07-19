@@ -5,6 +5,7 @@ import {
   Info, AlertCircle
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { sendTestEmail } from "../../services/workspaceServices";
 import "./SmtpSetupWizard.css";
 
 const PROVIDERS = [
@@ -173,16 +174,26 @@ export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave 
 
   const handleTest = async () => {
     if (!testEmail) return toast.error("Please enter a test email address");
+    if (!fields.apiKey || !fields.fromEmail || !selectedProvider) {
+      return toast.error("Please fill in your email provider settings first");
+    }
+    if (!workspaceId || !orgId) {
+      return toast.error("Workspace context is missing — try refreshing the page");
+    }
     setTesting(true);
     setTestResult(null);
-    // Simulate test (backend would need a test endpoint)
     try {
-      await new Promise(r => setTimeout(r, 1500)); // Simulate API call
+      await sendTestEmail(orgId, workspaceId, {
+        to: testEmail,
+        provider: selectedProvider,
+        apiKey: fields.apiKey,
+        fromEmail: fields.fromEmail,
+      });
       setTestResult("success");
       toast.success(`Test email sent to ${testEmail}!`);
-    } catch {
+    } catch (err) {
       setTestResult("failed");
-      toast.error("Test failed — check your credentials");
+      toast.error(err.message || "Test failed — check your credentials");
     } finally {
       setTesting(false);
     }

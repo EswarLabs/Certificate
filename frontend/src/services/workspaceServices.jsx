@@ -148,3 +148,24 @@ export const updateMemberRole = async (organizationId, workspaceId, memberId, ro
     );
     return res.json();
 };
+
+// Send a test email to verify SMTP/email provider settings
+export const sendTestEmail = async (organizationId, workspaceId, { to, provider, apiKey, fromEmail }) => {
+    const res = await fetch(
+        `${API_URL}/api/organizations/${organizationId}/workspaces/${workspaceId}/test-email`,
+        {
+            method: "POST",
+            credentials: "include",
+            headers: {
+                ...getAuthHeader(),
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ to, provider, apiKey, fromEmail }),
+        }
+    );
+    const data = await res.json();
+    if (!res.ok) {
+        throw new Error(data.message || data.error || "Failed to send test email");
+    }
+    return data;
+};

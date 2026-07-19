@@ -1,4 +1,5 @@
 import {createWorkspace, deleteWorkspace, listWorkspaces, listWorkspaceById, updateWorkspace, uploadFile} from "./workspace.service.js";
+import { sendTestEmail } from "../email/email.service.js";
 
 export const createWorkspaceController = async (req, res, next) => {
     try {
@@ -74,6 +75,19 @@ export const uploadFileController = async (req, res, next) => {
         const {id} = req.params;
         const file = req.file;
         const result = await uploadFile(id, userId, file);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
+export const testEmailController = async (req, res, next) => {
+    try {
+        const userId = req.user.userId;
+        const { id } = req.params;
+        const { to, provider, apiKey, fromEmail } = req.body;
+        const result = await sendTestEmail(id, userId, { to, provider, apiKey, fromEmail });
         res.status(200).json(result);
     }
     catch (error) {

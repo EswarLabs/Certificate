@@ -1,8 +1,121 @@
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import dns from "dns";
 import { prisma } from "../../lib/prisma.js";
 import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
 import { emailQueue } from "../../queues/email.queue.js";
+
+// ─── Send Test Email ─────────────────────────────────────────────────────────
+
+export const sendTestEmail = async (workspaceId, userId, { to, provider, apiKey, fromEmail }) => {
+  // Auth check
+  const membership = await prisma.membership.findFirst({
+    where: { workspaceId, userId },
+  });
+  if (!membership) throw new Error("Access denied");
+  if (membership.role === "VIEWER") throw new Error("Viewers cannot send test emails");
+
+  if (!to || !apiKey || !fromEmail || !provider) {
+    throw new Error("Missing required fields: to, provider, apiKey, fromEmail");
+  }
+
+  const subject = "✅ Test Email from EswarLabs Certificates";
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 500px; margin: 0 auto; padding: 32px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-block; background: #10b981; color: white; width: 48px; height: 48px; border-radius: 50%; line-height: 48px; font-size: 24px;">✓</div>
+      </div>
+      <h2 style="text-align: center; color: #111; margin: 0 0 8px;">Email Configuration Working!</h2>
+      <p style="text-align: center; color: #666; font-size: 14px; margin: 0 0 24px;">
+        Your <strong>${provider}</strong> email setup is correctly configured.
+      </p>
+      <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; font-size: 13px; color: #555;">
+        <p style="margin: 0 0 6px;"><strong>From:</strong> ${fromEmail}</p>
+        <p style="margin: 0 0 6px;"><strong>Provider:</strong> ${provider}</p>
+        <p style="margin: 0;"><strong>Sent at:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+      <p style="text-align: center; color: #999; font-size: 12px; margin-top: 24px;">
+        This is a test email from EswarLabs Certificates.
+      </p>
+    </div>
+  `;
+
+  try {
+    if (provider === "resend") {
+      const resend = new Resend(apiKey);
+      const { data, error } = await resend.emails.send({
+        from: `"EswarLabs Certificates" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+      if (error) throw new Error(error.message || "Resend API error");
+      return { success: true, messageId: data.id };
+    }
+
+    // Gmail, Zoho, Outlook — use nodemailer SMTP
+    if (["gmail", "zoho", "outlook"].includes(provider)) {
+      const smtpConfigs = {
+        gmail:   { host: "smtp.gmail.com",      port: 587, secure: false },
+        zoho:    { host: "smtp.zoho.com",        port: 587, secure: false },
+        outlook: { host: "smtp.office365.com",   port: 587, secure: false },
+      };
+      const cfg = smtpConfigs[provider];
+      const transporter = nodemailer.createTransport({
+        host: cfg.host,
+        port: cfg.port,
+        secure: cfg.secure,
+        auth: { user: fromEmail, pass: apiKey },
+      });
+      const info = await transporter.sendMail({
+        from: `"EswarLabs Certificates" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+      return { success: true, messageId: info.messageId };
+    }
+
+    // SendGrid — use nodemailer with SendGrid SMTP relay
+    if (provider === "sendgrid") {
+      const transporter = nodemailer.createTransport({
+        host: "smtp.sendgrid.net",
+        port: 587,
+        secure: false,
+        auth: { user: "apikey", pass: apiKey },
+      });
+      const info = await transporter.sendMail({
+        from: `"EswarLabs Certificates" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+      return { success: true, messageId: info.messageId };
+    }
+
+    // Amazon SES — use nodemailer with SES SMTP
+    if (provider === "ses") {
+      const transporter = nodemailer.createTransport({
+        host: "email-smtp.us-east-1.amazonaws.com",
+        port: 587,
+        secure: false,
+        auth: { user: "AKIAIOSFODNN7EXAMPLE", pass: apiKey },
+      });
+      const info = await transporter.sendMail({
+        from: `"EswarLabs Certificates" <${fromEmail}>`,
+        to,
+        subject,
+        html,
+      });
+      return { success: true, messageId: info.messageId };
+    }
+
+    throw new Error(`Unsupported provider: ${provider}`);
+  } catch (error) {
+    console.error(`[TEST EMAIL] Failed for provider=${provider}:`, error.message);
+    throw error;
+  }
+};
 
 // ─── Factory: get Resend Client ──────────────────────────────────────────────
 

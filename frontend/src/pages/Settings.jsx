@@ -282,7 +282,7 @@ export default function Settings() {
             </div>
 
             {selectedOrg ? (
-              <DomainVerificationWizard org={selectedOrg} />
+              <DomainVerificationWizard orgId={selectedOrg?.id} orgData={selectedOrg} />
             ) : (
               <div className="p-8 text-center text-secondary text-sm">No organization selected.</div>
             )}
@@ -363,7 +363,11 @@ export default function Settings() {
                   <p className="text-xs text-secondary mt-1">Deliver credential verification emails directly from your own mail host.</p>
                 </div>
 
-                <SmtpSetupWizard workspace={selectedWorkspace} />
+                <SmtpSetupWizard
+                  workspace={selectedWorkspace}
+                  workspaceId={selectedWorkspace?.id}
+                  orgId={selectedOrg?.id}
+                />
               </div>
             </>
           ) : (

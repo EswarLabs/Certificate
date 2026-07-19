@@ -7,6 +7,7 @@ import {
     listWorkspacesController,
     updateWorkspaceController,
     uploadFileController,
+    testEmailController,
 } from "./workspace.controller.js";
 
 import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
@@ -404,5 +405,56 @@ router.delete("/:id", roleGuard("OWNER"), deleteWorkspaceController);
  *                   type: string
  *                   format: date-time
  */
+/**
+ * @openapi
+ * /api/organizations/{organizationId}/workspaces/{id}/test-email:
+ *   post:
+ *     summary: Send a test email using the workspace email configuration
+ *     tags:
+ *       - Workspaces
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: organizationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - to
+ *               - provider
+ *               - apiKey
+ *               - fromEmail
+ *             properties:
+ *               to:
+ *                 type: string
+ *                 format: email
+ *               provider:
+ *                 type: string
+ *                 enum: [resend, gmail, sendgrid, ses, zoho, outlook]
+ *               apiKey:
+ *                 type: string
+ *               fromEmail:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Test email sent successfully
+ *       400:
+ *         description: Invalid configuration or send failure
+ */
+router.post("/:id/test-email", roleGuard("OWNER", "ADMIN"), testEmailController);
+
 router.post("/:id/upload", roleGuard("OWNER", "ADMIN", "EDITOR", "ISSUER"), fileUploadMiddleware.single("file"), uploadFileController);
 export default router;
