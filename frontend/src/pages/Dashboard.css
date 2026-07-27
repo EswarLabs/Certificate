@@ -180,11 +180,17 @@
   color: var(--text-tertiary);
 }
 
-/* ── Metrics Grid ── */
+/* ── Metrics Grid — mobile-first explicit columns ── */
 .dash-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+@media (min-width: 1024px) {
+  .dash-metrics-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .dash-metric-card {
@@ -632,45 +638,47 @@
   gap: 4px;
 }
 
-/* ── Responsive ── */
-@media (max-width: 768px) {
+/* ── Responsive — Mobile-first breakpoints ── */
+@media (max-width: 640px) {
+  .dash-welcome-title {
+    font-size: 20px;
+  }
+
   .dash-hero {
-    flex-direction: column;
-    align-items: flex-start;
+    padding: 4px 0 16px;
   }
 
-  .dash-quick-cta {
-    width: 100%;
+  .dash-onboarding-card {
+    padding: 16px;
   }
 
-  .dash-quick-cta .btn {
-    flex: 1;
-    justify-content: center;
+  .dash-onb-steps-grid {
+    grid-template-columns: 1fr;
   }
 
   .dash-metrics-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr 1fr;
   }
 
   .dash-split-layout {
     grid-template-columns: 1fr;
   }
 
-  .dash-onb-steps-grid {
-    grid-template-columns: 1fr 1fr;
+  .dash-quick-cta {
+    width: 100%;
+  }
+  .dash-quick-cta .btn {
+    flex: 1;
+    justify-content: center;
   }
 }
 
-@media (max-width: 480px) {
+/* Very small mobile (320px) */
+@media (max-width: 380px) {
   .dash-metrics-grid {
     grid-template-columns: 1fr;
   }
-
-  .dash-onb-steps-grid {
-    grid-template-columns: 1fr;
-  }
-
   .dash-welcome-title {
-    font-size: 20px;
+    font-size: 18px;
   }
 }

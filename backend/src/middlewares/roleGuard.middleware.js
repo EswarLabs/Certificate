@@ -12,12 +12,12 @@
  */
 export const roleGuard = (...allowedRoles) => {
   return (req, res, next) => {
-    const role = req.membership?.role;
+    const role = req.membership?.role || req.orgMembership?.role;
 
     if (!role) {
       return res.status(403).json({
         success: false,
-        message: "Membership context is missing — ensure workspace middleware runs first",
+        message: "Membership context is missing — ensure org or workspace middleware runs first",
       });
     }
 

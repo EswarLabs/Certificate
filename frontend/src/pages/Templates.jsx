@@ -108,13 +108,13 @@ export default function Templates() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {templates.map(temp => (
             <div key={temp.id} className="card flat-card p-4 flex flex-col transition-all hover:border-brand relative group">
-              <Link to={`/templates/${temp.id}`} className="block aspect-video bg-tertiary rounded flex items-center justify-center mb-3 relative overflow-hidden">
+              <Link to={`/templates/${temp.id}`} className="block aspect-video bg-tertiary rounded flex items-center justify-center mb-3 relative overflow-hidden template-card-thumb">
                 {temp.thumbnailUrl || temp.backgroundImageUrl ? (
                   <img src={temp.thumbnailUrl || temp.backgroundImageUrl} alt={temp.name} className="w-full h-full object-cover" />
                 ) : (
                   <FileText size={32} className="text-tertiary" />
                 )}
-                <div className="absolute inset-0 bg-overlay opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-medium gap-1">
+                <div className="template-card-overlay">
                   <span>Edit Layout</span>
                   <ExternalLink size={12} />
                 </div>

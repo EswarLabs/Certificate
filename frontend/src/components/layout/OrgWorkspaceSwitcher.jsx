@@ -41,22 +41,26 @@ export default function OrgWorkspaceSwitcher() {
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const dropdownWidth = Math.min(Math.max(rect.width, 280), viewportWidth - 24);
+    const leftPos = Math.max(12, Math.min(rect.left, viewportWidth - dropdownWidth - 12));
+
     const spaceBelow = viewportHeight - rect.bottom;
     const spaceAbove = rect.top;
 
     if (spaceBelow < 300 && spaceAbove > spaceBelow) {
       // Open upward
       setDropdownStyle({
-        left: rect.left,
+        left: leftPos,
         bottom: viewportHeight - rect.top + 4,
         top: "auto",
-        width: Math.max(rect.width, 280),
+        width: dropdownWidth,
       });
     } else {
       setDropdownStyle({
-        left: rect.left,
+        left: leftPos,
         top: rect.bottom + 4,
-        width: Math.max(rect.width, 280),
+        width: dropdownWidth,
       });
     }
   }, []);

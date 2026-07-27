@@ -1,32 +1,171 @@
-/* SmtpSetupWizard.css */
+/* ==========================================================================
+   SMTP Setup Wizard — Mobile First & Responsive Design
+   ========================================================================== */
 
+/* Main Container */
 .smtp-wizard {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  --brand-color: var(--workspace-brand, #6366f1);
 }
 
-.smtp-config-panel {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  padding: 20px;
+/* ─── Active Summary Card ─── */
+.smtp-active-card {
+  background: var(--bg-secondary, #f9fafb);
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  transition: all 0.2s ease-in-out;
+}
+
+.smtp-active-header {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
+  width: 100%;
+}
+
+.smtp-active-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.smtp-active-icon {
+  font-size: 24px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.smtp-active-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary, #111827);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.smtp-active-email {
+  font-size: 12px;
+  color: var(--text-secondary, #6b7280);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.smtp-active-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.smtp-active-actions .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 40px;
+}
+
+/* ─── Provider Selector Grid (Mobile First: 2 cols) ─── */
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  width: 100%;
+}
+
+.provider-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 12px 8px;
+  min-height: 90px;
+  background: var(--bg-card, #ffffff);
+  border: 1.5px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.provider-card:hover {
+  border-color: var(--brand-color);
+  background: var(--bg-hover, #f3f4f6);
+  transform: translateY(-1px);
+}
+
+.provider-card.selected {
+  border-color: var(--brand-color);
+  background: color-mix(in srgb, var(--brand-color) 8%, var(--bg-card, #ffffff));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-color) 20%, transparent);
+}
+
+.provider-card-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+  margin-top: 6px;
+  line-height: 1.2;
+}
+
+.provider-card .badge-recommended {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--brand-color);
+  background: color-mix(in srgb, var(--brand-color) 12%, transparent);
+  padding: 2px 6px;
+  border-radius: 99px;
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Config Panel ─── */
+.smtp-config-panel {
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .smtp-config-header {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+}
+
+.smtp-config-header .btn {
+  align-self: flex-start;
 }
 
 .smtp-guide {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
   overflow: hidden;
+  background: var(--bg-card, #ffffff);
 }
 
 .smtp-guide-toggle {
@@ -34,21 +173,20 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
-  background: var(--bg-card);
+  padding: 12px 14px;
+  background: var(--bg-card, #ffffff);
   border: none;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 500;
-  font-family: var(--font-sans);
-  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--text-primary, #111827);
   text-align: left;
-  transition: background var(--transition-fast);
+  transition: background 0.15s ease;
 }
 
 .smtp-guide-toggle:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--bg-hover, #f3f4f6);
 }
 
 .smtp-guide-toggle svg:last-child {
@@ -61,7 +199,9 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border-top: 1px solid var(--border-color);
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--border-color, #e5e7eb);
 }
 
 .smtp-guide-steps li {
@@ -70,9 +210,10 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px 14px;
-  font-size: 13px;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #4b5563);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .smtp-guide-steps li:last-child {
@@ -81,12 +222,12 @@
 
 .smtp-guide-steps li::before {
   content: counter(step);
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: var(--brand-primary);
-  color: #fff;
-  font-size: 11px;
+  background: var(--brand-color);
+  color: #ffffff;
+  font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -95,15 +236,134 @@
   margin-top: 1px;
 }
 
+/* ─── Test Email Section ─── */
 .smtp-test-section {
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-@media (max-width: 480px) {
+.smtp-test-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.smtp-test-row .btn {
+  width: 100%;
+  min-height: 40px;
+  justify-content: center;
+}
+
+/* ─── Action Buttons Row ─── */
+.smtp-actions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.smtp-actions-row .btn {
+  width: 100%;
+  justify-content: center;
+  min-height: 42px;
+}
+
+/* Custom styled Brand Primary Button when brand color is set */
+.btn-brand-primary {
+  background: var(--brand-color) !important;
+  color: #ffffff !important;
+  border: none !important;
+  transition: filter 0.2s ease, transform 0.1s ease;
+}
+
+.btn-brand-primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-brand-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Responsive Breakpoints (Desktop & Tablet Enhancements)
+   ========================================================================== */
+
+@media (min-width: 640px) {
+  .smtp-wizard {
+    gap: 20px;
+  }
+
+  .smtp-active-card {
+    padding: 20px;
+  }
+
+  .smtp-active-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .smtp-active-actions {
+    flex-direction: row;
+    width: auto;
+    margin-left: auto;
+  }
+
+  .smtp-active-actions .btn {
+    width: auto;
+  }
+
+  .provider-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .provider-card {
+    min-height: 96px;
+    padding: 14px 10px;
+  }
+
+  .provider-card-name {
+    font-size: 13px;
+  }
+
+  .smtp-config-panel {
+    padding: 20px;
+    gap: 18px;
+  }
+
   .smtp-config-header {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+
+  .smtp-test-row {
+    flex-direction: row;
+  }
+
+  .smtp-test-row .btn {
+    width: auto;
+  }
+
+  .smtp-actions-row {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .smtp-actions-row .btn {
+    width: auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .provider-grid {
+    grid-template-columns: repeat(6, 1fr);
   }
 }

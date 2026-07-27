@@ -11,6 +11,7 @@ import {
 } from "./workspace.controller.js";
 
 import { roleGuard } from "../../middlewares/roleGuard.middleware.js";
+import { workspaceMiddleware } from "../../middlewares/workspace.middleware.js";
 import { fileUploadMiddleware } from "../upload/upload.validation.js";
 
 const router = express.Router({ mergeParams: true });
@@ -307,7 +308,7 @@ router.get("/:id", listWorkspaceByIdController);
  *       404:
  *         description: Workspace not found
  */
-router.put("/:id", roleGuard("OWNER", "ADMIN"), updateWorkspaceController);
+router.put("/:id", workspaceMiddleware, roleGuard("OWNER", "ADMIN"), updateWorkspaceController);
 
 /**
  * @openapi
@@ -337,7 +338,7 @@ router.put("/:id", roleGuard("OWNER", "ADMIN"), updateWorkspaceController);
  *       404:
  *         description: Workspace not found
  */
-router.delete("/:id", roleGuard("OWNER"), deleteWorkspaceController);
+router.delete("/:id", workspaceMiddleware, roleGuard("OWNER"), deleteWorkspaceController);
 
 /**
  * @openapi
@@ -454,7 +455,7 @@ router.delete("/:id", roleGuard("OWNER"), deleteWorkspaceController);
  *       400:
  *         description: Invalid configuration or send failure
  */
-router.post("/:id/test-email", roleGuard("OWNER", "ADMIN"), testEmailController);
+router.post("/:id/test-email", workspaceMiddleware, roleGuard("OWNER", "ADMIN"), testEmailController);
 
-router.post("/:id/upload", roleGuard("OWNER", "ADMIN", "EDITOR", "ISSUER"), fileUploadMiddleware.single("file"), uploadFileController);
+router.post("/:id/upload", workspaceMiddleware, roleGuard("OWNER", "ADMIN", "EDITOR", "ISSUER"), fileUploadMiddleware.single("file"), uploadFileController);
 export default router;

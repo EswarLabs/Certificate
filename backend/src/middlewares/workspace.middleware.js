@@ -14,8 +14,8 @@ import { prisma } from "../lib/prisma.js";
  */
 export const workspaceMiddleware = async (req, res, next) => {
   try {
-    const { workspaceId } = req.params;
-    const orgId = req.org?.id;
+    const workspaceId = req.params.workspaceId || req.params.id;
+    const orgId = req.org?.id || req.params.organizationId;
     const userId = req.user?.userId;
 
     if (!workspaceId) {
@@ -45,9 +45,14 @@ export const workspaceMiddleware = async (req, res, next) => {
     }
 
     // Verify the user has a membership scoped to this workspace
-    const membership = await prisma.membership.findFirst({
+    let membership = await prisma.membership.findFirst({
       where: { userId, workspaceId, organizationId: orgId },
     });
+
+    // Fallback to org-level membership if available
+    if (!membership && req.orgMembership) {
+      membership = req.orgMembership;
+    }
 
     if (!membership) {
       return res.status(403).json({
@@ -58,7 +63,7 @@ export const workspaceMiddleware = async (req, res, next) => {
 
     // Attach workspace context and workspace-scoped role to the request
     req.workspace = workspace;
-    req.membership = membership; // This has the role for this specific workspace
+    req.membership = membership;
 
     next();
   } catch (error) {

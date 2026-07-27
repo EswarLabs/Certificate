@@ -1,3 +1,4 @@
+import { tryCatch } from "bullmq";
 import { prisma } from "../../lib/prisma.js";
 
 export const verifyCredentialController = async (req, res, next) => {
@@ -108,3 +109,39 @@ export const trackEventController = async (req, res, next) => {
     next(error);
   }
 };
+
+export const getPublicCredentialsController = async (req, res, next) => {
+  try {
+    const recipientEmail = req.query.email;
+    const status = req.query.status;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    if (!recipientEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Recipient email is required",
+      })
+    }
+
+    const credentials = await prisma.credential.findMany({
+      where: { recipientEmail, status },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" }
+    })
+
+    return res.status(200).json({
+      success: true,
+      credentials,
+      meta: {
+        page,
+        limit,
+        total: credentials.length,
+      },
+    })
+  } catch (error) {
+    next(error);
+  }
+}

@@ -1,15 +1,21 @@
 /* ============================================================
-   DATA TABLE STYLES (Flat Enterprise SaaS)
+   DATA TABLE STYLES
+   Desktop: standard sticky-header table
+   Mobile (<640px): card list rendered by DataTable.jsx
    ============================================================ */
+
 .dt-wrapper {
   background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
+/* ── Desktop Table ── */
 .dt-table-scroll {
   overflow-x: auto;
   outline: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dt-table {
@@ -24,7 +30,7 @@
   position: sticky;
   top: 0;
   background-color: var(--bg-secondary);
-  padding: 12px 16px;
+  padding: 11px 16px;
   font-weight: 600;
   font-size: 11px;
   text-transform: uppercase;
@@ -74,8 +80,12 @@
   background-color: var(--brand-primary-light);
 }
 
+.dt-tr-skeleton {
+  opacity: 0.7;
+}
+
 .dt-td {
-  padding: 14px 16px;
+  padding: 13px 16px;
   border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
@@ -91,6 +101,12 @@
   text-align: center;
 }
 
+.dt-th-actions,
+.dt-td-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .dt-checkbox {
   width: 16px;
   height: 16px;
@@ -99,28 +115,142 @@
   background-color: var(--bg-primary);
   accent-color: var(--brand-primary);
   cursor: pointer;
+  vertical-align: middle;
 }
 
-.dt-th-actions,
-.dt-td-actions {
-  text-align: right;
-  white-space: nowrap;
-}
-
-.dt-td-empty {
-  padding: 48px 24px;
-  text-align: center;
-}
-
-.dt-default-empty {
-  color: var(--text-tertiary);
+.dt-skel-line {
+  height: 13px;
+  border-radius: 4px;
+  display: block;
 }
 
 .dt-skel-box {
   width: 16px;
   height: 16px;
+  border-radius: 4px;
+  margin: 0 auto;
 }
 
-.dt-skel-line {
-  height: 14px;
+.dt-td-empty {
+  padding: 0;
+  border-bottom: none;
+}
+
+.dt-default-empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+/* ── Mobile Card List (rendered at <640px) ── */
+.dt-mobile-select-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  gap: 12px;
+}
+
+.dt-mobile-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.dt-mobile-selected-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  background: var(--brand-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.dt-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.dt-card-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast);
+  position: relative;
+}
+
+.dt-card-item:last-child {
+  border-bottom: none;
+}
+
+.dt-card-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.dt-card-selected {
+  background-color: var(--brand-primary-light);
+}
+
+.dt-card-selected:hover {
+  background-color: var(--brand-primary-light);
+}
+
+.dt-card-check {
+  padding-top: 2px;
+  flex-shrink: 0;
+}
+
+.dt-card-fields {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dt-card-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.dt-card-row-primary {
+  margin-bottom: 2px;
+}
+
+.dt-card-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.dt-card-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.dt-card-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }

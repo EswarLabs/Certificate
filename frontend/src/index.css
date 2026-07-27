@@ -88,6 +88,7 @@
   --sidebar-width: 248px;
   --sidebar-collapsed-width: 64px;
   --header-height: 52px;
+  --bottom-nav-height: 64px;
 }
 
 /* ── Dark Theme (Linear/Vercel inspired) ── */
@@ -249,23 +250,74 @@ input, select, textarea { font-family: var(--font-sans); }
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ─── Scrollbar Utility ─── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ─── Glassmorphism Utility ─── */
+.glass-card {
+  background: color-mix(in srgb, var(--bg-card) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+}
+
 /* ============================================================
    LAYOUT UTILITIES
    ============================================================ */
 .page-container {
-  padding: 28px 32px;
+  padding: 16px;
   max-width: 1440px;
   width: 100%;
+  box-sizing: border-box;
   animation: fadeInUp 0.3s ease both;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding: 24px 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 28px 32px;
+  }
 }
 
 .page-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .page-header .btn-group {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+  .page-header .btn-group .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  /* Single CTA button also gets full width */
+  .page-header > .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 .btn-group {
@@ -544,7 +596,11 @@ input, select, textarea { font-family: var(--font-sans); }
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px;
+  padding: 16px;
+}
+
+@media (min-width: 640px) {
+  .form-section { padding: 24px; }
 }
 
 .form-section-header {
@@ -973,6 +1029,30 @@ input, select, textarea { font-family: var(--font-sans); }
   .lg\:grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* ── Template card hover overlay (replaces broken Tailwind group-hover) ── */
+.template-card-thumb { display: block; }
+.template-card-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+}
+.card:hover .template-card-overlay,
+.template-card-thumb:hover .template-card-overlay {
+  opacity: 1;
+}
+
+/* ── Card hover border-brand ── */
+.hover\:border-brand:hover { border-color: var(--brand-primary); }
+
 /* ============================================================
    EMPTY STATES
    ============================================================ */
@@ -1132,8 +1212,12 @@ input, select, textarea { font-family: var(--font-sans); }
   display: flex;
   gap: 0;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
+.tabs::-webkit-scrollbar { display: none; }
 
 .tab-btn {
   padding: 10px 16px;
@@ -1146,10 +1230,11 @@ input, select, textarea { font-family: var(--font-sans); }
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   transition: all var(--transition-base);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab-btn:hover { color: var(--text-primary); }
 .tab-btn.active {

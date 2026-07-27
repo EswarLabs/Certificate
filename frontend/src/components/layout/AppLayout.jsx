@@ -7,7 +7,6 @@ import { ThemeContext } from "../../context/ThemeContext";
 import OrgWorkspaceSwitcher from "./OrgWorkspaceSwitcher";
 import CommandPalette from "../ui/CommandPalette";
 import NotificationDrawer from "../ui/NotificationDrawer";
-import QuickCreateDropdown from "../ui/QuickCreateDropdown";
 import Breadcrumbs from "../ui/Breadcrumbs";
 import {
   LayoutDashboard, GraduationCap, FileText, Building2,
@@ -19,41 +18,41 @@ import "./AppLayout.css";
 
 const NAV_GROUPS = [
   {
-    group: "Overview",
+    group: "Main",
     links: [
-      { to: "/dashboard", label: "Overview", icon: LayoutDashboard, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] }
+      { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] }
     ]
   },
   {
     group: "Certificates",
     links: [
-      { to: "/credentials", label: "Credentials", icon: GraduationCap, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] },
+      { to: "/credentials", label: "Issued Certificates", icon: GraduationCap, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] },
       { to: "/templates", label: "Templates", icon: FileText, roles: ["OWNER", "ADMIN", "EDITOR", "VIEWER", "MEMBER"] },
       { to: "/marketplace", label: "Marketplace", icon: Sparkles, roles: ["OWNER", "ADMIN", "EDITOR", "VIEWER", "MEMBER"] },
-      { to: "/jobs", label: "Batch Jobs", icon: Activity, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER"] }
+      { to: "/jobs", label: "Bulk Jobs", icon: Activity, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER"] }
     ]
   },
   {
-    group: "Communication",
+    group: "Emails",
     links: [
-      { to: "/email-logs", label: "Deliveries", icon: Mail, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] }
+      { to: "/email-logs", label: "Email Logs", icon: Mail, roles: ["OWNER", "ADMIN", "EDITOR", "ISSUER", "VIEWER", "MEMBER"] }
     ]
   },
   {
-    group: "Storage",
+    group: "Files",
     links: [
-      { to: "/files", label: "Assets", icon: Files, roles: ["OWNER", "ADMIN", "EDITOR", "MEMBER"] }
+      { to: "/files", label: "File Storage", icon: Files, roles: ["OWNER", "ADMIN", "EDITOR", "MEMBER"] }
     ]
   },
   {
-    group: "Administration",
+    group: "Workspace",
     links: [
-      { to: "/workspaces", label: "Team", icon: Users, roles: ["OWNER", "ADMIN", "VIEWER"] },
+      { to: "/workspaces", label: "Members", icon: Users, roles: ["OWNER", "ADMIN", "VIEWER"] },
       { to: "/organizations", label: "Organizations", icon: Building2, roles: ["OWNER", "ADMIN"] }
     ]
   },
   {
-    group: "Settings",
+    group: "Account",
     links: [
       { to: "/settings", label: "Settings", icon: Settings, roles: ["OWNER", "ADMIN", "EDITOR", "VIEWER", "MEMBER"] }
     ]
@@ -245,7 +244,6 @@ export default function AppLayout() {
               </div>
             )}
 
-            <QuickCreateDropdown />
             <NotificationDrawer />
 
             {/* Theme Selector Button */}

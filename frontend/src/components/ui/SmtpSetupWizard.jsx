@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Mail, CheckCircle, XCircle, Eye, EyeOff,
-  ExternalLink, Send, Loader2, ChevronDown, ChevronUp,
+  ExternalLink, Send, Loader2, ChevronDown, ChevronUp, Settings,
   Info, AlertCircle
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -118,9 +118,12 @@ const PROVIDERS = [
 ];
 
 export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave }) {
-  const [selectedProvider, setSelectedProvider] = useState(
-    workspace?.smtpEnabled ? "resend" : null
-  );
+  const savedProviderId = workspace?.smtpSettings?.provider || "resend";
+  const brandColor = workspace?.brandingSettings?.primaryColor || "#6366f1";
+
+  const [selectedProvider, setSelectedProvider] = useState(savedProviderId);
+  const [isEditing, setIsEditing] = useState(!workspace?.smtpEnabled);
+
   const [fields, setFields] = useState({
     apiKey: workspace?.smtpSettings?.apiKey || "",
     fromEmail: workspace?.smtpSettings?.fromEmail || "",
@@ -132,6 +135,21 @@ export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave 
   const [showGuide, setShowGuide] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Keep state synchronized when workspace updates
+  useEffect(() => {
+    if (workspace?.smtpSettings) {
+      setSelectedProvider(workspace.smtpSettings.provider || "resend");
+      setFields({
+        apiKey: workspace.smtpSettings.apiKey || "",
+        fromEmail: workspace.smtpSettings.fromEmail || "",
+      });
+    }
+    if (!workspace?.smtpEnabled) {
+      setIsEditing(true);
+    }
+  }, [workspace]);
+
+  const activeProvider = PROVIDERS.find(p => p.id === (workspace?.smtpSettings?.provider || "resend")) || PROVIDERS[0];
   const provider = PROVIDERS.find(p => p.id === selectedProvider);
 
   const handleSave = async () => {
@@ -149,8 +167,9 @@ export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave 
           provider: selectedProvider,
         },
       });
-      toast.success("Email settings saved successfully!");
+      toast.success("Email settings updated successfully!");
       setTestResult(null);
+      setIsEditing(false);
     } catch (err) {
       toast.error(err.message || "Failed to save settings");
     } finally {
@@ -163,8 +182,7 @@ export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave 
     try {
       await onSave({ smtpEnabled: false });
       toast.success("Custom email disabled. System emails will be used.");
-      setSelectedProvider(null);
-      setFields({ apiKey: "", fromEmail: "" });
+      setIsEditing(true);
     } catch (err) {
       toast.error(err.message || "Failed to disable email");
     } finally {
@@ -200,179 +218,232 @@ export default function SmtpSetupWizard({ workspaceId, orgId, workspace, onSave 
   };
 
   return (
-    <div className="smtp-wizard">
-      {/* Current status */}
-      {workspace?.smtpEnabled && (
-        <div className="alert alert-success" style={{ marginBottom: 4 }}>
-          <CheckCircle size={14} />
-          <span>Custom email is <strong>enabled</strong> — using <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{workspace.smtpSettings?.fromEmail}</code></span>
-        </div>
-      )}
-
-      {/* Provider selection */}
-      <div>
-        <div className="label" style={{ marginBottom: 10 }}>Select your email provider</div>
-        <div className="provider-grid">
-          {PROVIDERS.map(p => (
-            <button
-              key={p.id}
-              className={`provider-card ${selectedProvider === p.id ? "selected" : ""}`}
-              onClick={() => { setSelectedProvider(p.id); setTestResult(null); }}
-              type="button"
-            >
-              <span style={{ fontSize: 22 }}>{p.emoji}</span>
-              <div className="provider-card-name">
-                {p.name}
-                {p.recommended && <span style={{ display: "block", fontSize: 10, fontWeight: 600, color: "var(--brand-primary)", marginTop: 2 }}>Recommended</span>}
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Provider config */}
-      {provider && (
-        <div className="smtp-config-panel">
-          <div className="smtp-config-header">
-            <div>
-              <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text-primary)" }}>
-                {provider.emoji} Configure {provider.name}
-              </div>
-              <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
-                {provider.description}
-              </div>
-            </div>
-            <a
-              href={provider.docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-ghost btn-sm"
-            >
-              Docs <ExternalLink size={12} />
-            </a>
-          </div>
-
-          {/* Note if any */}
-          {provider.note && (
-            <div className="alert alert-warning">
-              <AlertCircle size={14} style={{ flexShrink: 0 }} />
-              {provider.note}
-            </div>
-          )}
-
-          {/* Fields */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {provider.fields.map(f => (
-              <div key={f.key} className="form-group">
-                <label className="label">{f.label}</label>
-                <div style={{ position: "relative" }}>
-                  <input
-                    className="input"
-                    type={f.type === "password" && !showKey ? "password" : f.type === "password" ? "text" : f.type}
-                    value={fields[f.key]}
-                    onChange={e => setFields(prev => ({ ...prev, [f.key]: e.target.value }))}
-                    placeholder={f.placeholder}
-                    style={f.type === "password" ? { paddingRight: 40 } : undefined}
-                  />
-                  {f.type === "password" && (
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(p => !p)}
-                      style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", padding: 2 }}
-                    >
-                      {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  )}
+    <div className="smtp-wizard" style={{ "--workspace-brand": brandColor }}>
+      {/* ── Active Configuration Summary View ── */}
+      {workspace?.smtpEnabled && !isEditing && (
+        <div className="smtp-active-card">
+          <div className="smtp-active-header">
+            <div className="smtp-active-info">
+              <span className="smtp-active-icon">{activeProvider.emoji}</span>
+              <div>
+                <div className="smtp-active-title">
+                  {activeProvider.name} Integration <span className="badge badge-success" style={{ marginLeft: 6 }}>Active</span>
                 </div>
-                {f.hint && <span className="form-hint">{f.hint}</span>}
+                <div className="smtp-active-email">
+                  Sender Address: <code style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>{workspace.smtpSettings?.fromEmail}</code>
+                </div>
               </div>
-            ))}
-          </div>
-
-          {/* Setup Guide (collapsible) */}
-          <div className="smtp-guide">
-            <button
-              type="button"
-              className="smtp-guide-toggle"
-              onClick={() => setShowGuide(p => !p)}
-            >
-              <Info size={14} />
-              Setup guide for {provider.name}
-              {showGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-            {showGuide && (
-              <ol className="smtp-guide-steps">
-                {provider.guide.map((step, i) => (
-                  <li key={i}>{step}</li>
-                ))}
-              </ol>
-            )}
-          </div>
-
-          {/* Test email */}
-          <div className="smtp-test-section">
-            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 8, display: "flex", alignItems: "center", gap: 6 }}>
-              <Send size={13} /> Send Test Email
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <input
-                className="input"
-                type="email"
-                value={testEmail}
-                onChange={e => setTestEmail(e.target.value)}
-                placeholder="recipient@example.com"
-                style={{ flex: 1 }}
-              />
+            <div className="smtp-active-actions">
               <button
                 type="button"
-                className="btn btn-secondary"
-                onClick={handleTest}
-                disabled={testing || !testEmail}
-                style={{ flexShrink: 0 }}
+                className="btn btn-secondary btn-sm"
+                onClick={() => setIsEditing(true)}
               >
-                {testing ? <><Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> Sending…</> : "Send Test"}
+                <Settings size={14} /> View / Update Configuration
               </button>
-            </div>
-            {testResult === "success" && (
-              <div className="alert alert-success" style={{ marginTop: 8 }}>
-                <CheckCircle size={14} /> Test email sent! Check your inbox.
-              </div>
-            )}
-            {testResult === "failed" && (
-              <div className="alert alert-error" style={{ marginTop: 8 }}>
-                <XCircle size={14} /> Test failed. Check your credentials and try again.
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={saving || !fields.apiKey || !fields.fromEmail}
-            >
-              {saving ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle size={14} /> Save Email Settings</>}
-            </button>
-            {workspace?.smtpEnabled && (
               <button
                 type="button"
-                className="btn btn-danger"
+                className="btn btn-ghost btn-sm text-danger"
                 onClick={handleDisable}
                 disabled={saving}
               >
                 Disable Custom Email
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
 
-      {!selectedProvider && (
-        <div style={{ textAlign: "center", padding: "24px", color: "var(--text-tertiary)", fontSize: 13 }}>
-          Select a provider above to get started
-        </div>
+      {/* ── Edit / Configuration Form ── */}
+      {isEditing && (
+        <>
+          {workspace?.smtpEnabled && (
+            <div className="alert alert-success" style={{ marginBottom: 4, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={14} />
+                <span>Custom email is currently <strong>active</strong> using {activeProvider.emoji} {activeProvider.name} (<code>{workspace.smtpSettings?.fromEmail}</code>).</span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setIsEditing(false)}
+                style={{ fontSize: 12 }}
+              >
+                Cancel Editing
+              </button>
+            </div>
+          )}
+
+          {/* Provider selection */}
+          <div>
+            <div className="label" style={{ marginBottom: 10 }}>Select your email provider</div>
+            <div className="provider-grid">
+              {PROVIDERS.map(p => (
+                <button
+                  key={p.id}
+                  className={`provider-card ${selectedProvider === p.id ? "selected" : ""}`}
+                  onClick={() => { setSelectedProvider(p.id); setTestResult(null); }}
+                  type="button"
+                >
+                  <span style={{ fontSize: 22 }}>{p.emoji}</span>
+                  <div className="provider-card-name">
+                    {p.name}
+                  </div>
+                  {p.recommended && <span className="badge-recommended">Recommended</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Provider config */}
+          {provider && (
+            <div className="smtp-config-panel">
+              <div className="smtp-config-header">
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 15, color: "var(--text-primary)" }}>
+                    {provider.emoji} Configure {provider.name}
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
+                    {provider.description}
+                  </div>
+                </div>
+                <a
+                  href={provider.docsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-ghost btn-sm"
+                >
+                  Docs <ExternalLink size={12} />
+                </a>
+              </div>
+
+              {/* Note if any */}
+              {provider.note && (
+                <div className="alert alert-warning">
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  {provider.note}
+                </div>
+              )}
+
+              {/* Fields */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {provider.fields.map(f => (
+                  <div key={f.key} className="form-group">
+                    <label className="label">{f.label}</label>
+                    <div style={{ position: "relative" }}>
+                      <input
+                        className="input"
+                        type={f.type === "password" && !showKey ? "password" : f.type === "password" ? "text" : f.type}
+                        value={fields[f.key]}
+                        onChange={e => setFields(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder={f.placeholder}
+                        style={f.type === "password" ? { paddingRight: 40 } : undefined}
+                      />
+                      {f.type === "password" && (
+                        <button
+                          type="button"
+                          onClick={() => setShowKey(p => !p)}
+                          style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--text-tertiary)", padding: 2 }}
+                        >
+                          {showKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      )}
+                    </div>
+                    {f.hint && <span className="form-hint">{f.hint}</span>}
+                  </div>
+                ))}
+              </div>
+
+              {/* Setup Guide (collapsible) */}
+              <div className="smtp-guide">
+                <button
+                  type="button"
+                  className="smtp-guide-toggle"
+                  onClick={() => setShowGuide(p => !p)}
+                >
+                  <Info size={14} />
+                  Setup guide for {provider.name}
+                  {showGuide ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
+                {showGuide && (
+                  <ol className="smtp-guide-steps">
+                    {provider.guide.map((step, i) => (
+                      <li key={i}>{step}</li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+
+              {/* Test email */}
+              <div className="smtp-test-section">
+                <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-primary)", marginBottom: 4, display: "flex", alignItems: "center", gap: 6 }}>
+                  <Send size={13} style={{ color: "var(--brand-color)" }} /> Send Test Email
+                </div>
+                <div className="smtp-test-row">
+                  <input
+                    className="input"
+                    type="email"
+                    value={testEmail}
+                    onChange={e => setTestEmail(e.target.value)}
+                    placeholder="recipient@example.com"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleTest}
+                    disabled={testing || !testEmail}
+                  >
+                    {testing ? <><Loader2 size={13} style={{ animation: "spin 0.7s linear infinite" }} /> Sending…</> : "Send Test"}
+                  </button>
+                </div>
+                {testResult === "success" && (
+                  <div className="alert alert-success" style={{ marginTop: 6 }}>
+                    <CheckCircle size={14} /> Test email sent! Check your inbox.
+                  </div>
+                )}
+                {testResult === "failed" && (
+                  <div className="alert alert-error" style={{ marginTop: 6 }}>
+                    <XCircle size={14} /> Test failed. Check your credentials and try again.
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="smtp-actions-row">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-brand-primary"
+                  onClick={handleSave}
+                  disabled={saving || !fields.apiKey || !fields.fromEmail}
+                >
+                  {saving ? <><Loader2 size={14} style={{ animation: "spin 0.7s linear infinite" }} /> Saving…</> : <><CheckCircle size={14} /> Save Email Settings</>}
+                </button>
+                {workspace?.smtpEnabled && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => setIsEditing(false)}
+                      disabled={saving}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleDisable}
+                      disabled={saving}
+                    >
+                      Disable Custom Email
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

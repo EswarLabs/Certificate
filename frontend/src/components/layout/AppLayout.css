@@ -1,5 +1,6 @@
 /* ============================================================
-   APP LAYOUT — Premium Enterprise SaaS Shell
+   APP LAYOUT — Clean Enterprise SaaS Shell
+   Mobile-first, Vercel/Linear inspired
    ============================================================ */
 
 .app-layout {
@@ -9,7 +10,7 @@
   background-color: var(--bg-primary);
 }
 
-/* ────────── SIDEBAR ────────── */
+/* ─────────── SIDEBAR ─────────── */
 .sidebar {
   width: var(--sidebar-width);
   background-color: var(--bg-secondary);
@@ -17,7 +18,7 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 40;
   overflow: hidden;
 }
@@ -71,8 +72,12 @@
   border: none;
   color: var(--text-tertiary);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: var(--radius-sm);
+  min-width: 32px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
 }
 
 .mobile-close-btn:hover {
@@ -82,7 +87,7 @@
 
 /* Context Switcher Area */
 .sidebar-switcher-wrap {
-  padding: 10px 10px;
+  padding: 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -94,6 +99,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sidebar-nav::-webkit-scrollbar {
@@ -126,6 +132,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
+  min-height: 36px;
   border-radius: var(--radius-md);
   color: var(--text-secondary);
   font-size: 13px;
@@ -171,7 +178,7 @@
 /* ── Sidebar Footer User Card ── */
 .sidebar-footer {
   border-top: 1px solid var(--border-color);
-  padding: 10px 10px;
+  padding: 10px;
   flex-shrink: 0;
 }
 
@@ -179,7 +186,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 8px;
+  padding: 8px;
   border-radius: var(--radius-md);
   transition: background-color var(--transition-fast);
 }
@@ -242,6 +249,11 @@
   padding: 6px;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
+  min-width: 32px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .sidebar-logout-btn:hover {
@@ -249,7 +261,7 @@
   background-color: var(--danger-light);
 }
 
-/* ────────── MAIN WRAPPER & TOP NAVBAR ────────── */
+/* ─────────── MAIN WRAPPER & TOP NAVBAR ─────────── */
 .main-wrapper {
   flex: 1;
   display: flex;
@@ -266,8 +278,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  gap: 16px;
+  padding: 0 16px;
+  gap: 12px;
   flex-shrink: 0;
   z-index: 30;
 }
@@ -275,7 +287,7 @@
 .navbar-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
@@ -287,6 +299,11 @@
   cursor: pointer;
   padding: 6px;
   border-radius: var(--radius-sm);
+  min-width: 36px;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .mobile-menu-btn:hover {
@@ -298,12 +315,13 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  overflow: hidden;
 }
 
 /* Search Bar */
 .navbar-center {
   flex: 1;
-  max-width: 480px;
+  max-width: 440px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -325,6 +343,7 @@
   font-size: 13px;
   color: var(--text-tertiary);
   text-align: left;
+  font-family: var(--font-sans);
 }
 
 .navbar-search-bar:hover {
@@ -349,12 +368,14 @@
   border-radius: 4px;
   color: var(--text-tertiary);
   line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .navbar-right {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 /* Workspace Status Bar */
@@ -405,6 +426,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
 }
 
 .theme-toggle-btn:hover {
@@ -412,7 +435,7 @@
   color: var(--text-primary);
 }
 
-/* ────────── MAIN CONTENT CANVAS ────────── */
+/* ─────────── MAIN CONTENT CANVAS ─────────── */
 .main-content {
   flex: 1;
   overflow-y: auto;
@@ -420,30 +443,103 @@
   outline: none;
   background-color: var(--bg-primary);
   scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-/* ────────── MOBILE OVERLAY ────────── */
+/* ─────────── MOBILE OVERLAY ─────────── */
 .mobile-overlay {
   display: none;
   position: fixed;
   inset: 0;
   background-color: var(--bg-overlay);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 35;
   opacity: 0;
   transition: opacity 0.25s ease;
 }
 
-/* ────────── RESPONSIVE: TABLET ────────── */
+/* ─────────── MOBILE BOTTOM NAV ─────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  z-index: 40;
+  padding: 0 8px;
+  align-items: center;
+  justify-content: space-around;
+  /* Safe area inset for iPhone X+ notch */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  font-size: 10px;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+  min-width: 44px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.mobile-nav-item:hover,
+.mobile-nav-item.active {
+  color: var(--brand-primary);
+}
+
+.mobile-nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* Floating Action Button — center of bottom nav */
+.mobile-nav-fab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  margin-bottom: 8px;
+}
+
+.mobile-nav-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+}
+
+/* ─────────── RESPONSIVE: TABLET ─────────── */
 @media (max-width: 1024px) {
   .navbar-center { max-width: 280px; }
   .ws-status-bar { display: none; }
+  .top-navbar { padding: 0 16px; }
 }
 
-/* ────────── RESPONSIVE: MOBILE ────────── */
+/* ─────────── RESPONSIVE: MOBILE ─────────── */
 @media (max-width: 768px) {
   .mobile-menu-btn { display: inline-flex; }
   .mobile-close-btn { display: inline-flex; }
+  .mobile-bottom-nav { display: flex; }
 
   .sidebar {
     position: fixed;
@@ -453,6 +549,8 @@
     width: 280px;
     transform: translateX(-100%);
     box-shadow: var(--shadow-xl);
+    /* Push sidebar content above the bottom nav so footer is never hidden */
+    padding-bottom: var(--bottom-nav-height);
   }
 
   .sidebar.open {
@@ -469,10 +567,19 @@
     pointer-events: auto;
   }
 
+  /* Hide search bar on mobile — Cmd+K triggered via menu */
   .navbar-center { display: none; }
-  .navbar-breadcrumbs { max-width: 200px; overflow: hidden; }
-  
+  .navbar-breadcrumbs {
+    max-width: 180px;
+    overflow: hidden;
+  }
+
+  /* Push content up above bottom nav */
+  .main-content {
+    padding-bottom: var(--bottom-nav-height);
+  }
+
   .top-navbar {
-    padding: 0 14px;
+    padding: 0 12px;
   }
 }

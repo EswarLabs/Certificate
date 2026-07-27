@@ -1,5 +1,5 @@
 import express from "express";
-import { verifyCredentialController, trackEventController } from "./verification.controller.js";
+import { verifyCredentialController, trackEventController, getPublicCredentialsController } from "./verification.controller.js";
 import { publicLimiter, eventTrackingLimiter } from "../../middlewares/rateLimit.middleware.js";
 
 const router = express.Router();
@@ -69,5 +69,6 @@ router.get("/verify/:verificationCode", publicLimiter, verifyCredentialControlle
  *         description: Rate limit exceeded
  */
 router.post("/credentials/:credId/events", eventTrackingLimiter, trackEventController);
+router.get("/public/certificates", publicLimiter, getPublicCredentialsController)
 
 export default router;

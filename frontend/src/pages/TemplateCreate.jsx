@@ -17,6 +17,9 @@ export default function TemplateCreate() {
   const [description, setDescription] = useState("");
   const [orientation, setOrientation] = useState("LANDSCAPE");
   const stageRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const [namePromptOpen, setNamePromptOpen] = useState(false);
+  const [namePromptValue, setNamePromptValue] = useState("");
   const [schemaFields, setSchemaFields] = useState([
     { key: "courseTitle", label: "Course Title", type: "text", required: true },
   ]);
@@ -191,8 +194,27 @@ export default function TemplateCreate() {
     }
   };
 
+  const handleSaveClick = () => {
+    if (!name.trim()) {
+      // Open the name prompt modal instead of silently failing
+      setNamePromptValue("");
+      setNamePromptOpen(true);
+      return;
+    }
+    handleSubmit(new Event("submit"));
+  };
+
+  const handleNamePromptConfirm = () => {
+    const trimmed = namePromptValue.trim();
+    if (!trimmed) return;
+    setName(trimmed);
+    setNamePromptOpen(false);
+    // Slight delay so state flushes before submit
+    setTimeout(() => handleSubmit(new Event("submit")), 50);
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!selectedOrg?.id || !selectedWorkspace?.id) return;
     setLoading(true);
     setError(null);
@@ -233,8 +255,9 @@ export default function TemplateCreate() {
         }
       }
 
+      const currentName = name.trim() || namePromptValue.trim();
       const data = {
-        name,
+        name: currentName,
         description,
         orientation,
         editorData: finalEditorData,
@@ -298,22 +321,23 @@ export default function TemplateCreate() {
             <div style={{ fontSize: "10px", color: "var(--text-tertiary)", marginBottom: "2px", fontWeight: 700, letterSpacing: "0.5px", textTransform: "uppercase" }}>
               NEW TEMPLATE
             </div>
-            <input
+          <input
+              ref={nameInputRef}
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Template name…"
-              required
               style={{
                 background: "transparent",
                 border: "none",
-                borderBottom: "1px solid var(--border-color)",
+                borderBottom: `1px solid ${name ? "var(--border-strong)" : "var(--border-color)"}`,
                 color: "var(--text-primary)",
-                fontSize: "15px",
+                fontSize: "14px",
                 fontWeight: 600,
                 outline: "none",
                 width: "100%",
-                maxWidth: 280,
-                padding: "3px 0",
+                padding: "4px 0",
+                fontFamily: "var(--font-sans)",
+                minWidth: 0,
               }}
             />
           </div>
@@ -360,8 +384,8 @@ export default function TemplateCreate() {
           </button>
 
           <button
-            onClick={handleSubmit}
-            disabled={loading || !name || !editorData}
+            onClick={handleSaveClick}
+            disabled={loading || !editorData}
             className="btn btn-primary"
           >
             {loading ? "Saving…" : "Save"}
@@ -531,7 +555,7 @@ export default function TemplateCreate() {
           </div>
         </div>
 
-        {/* Canvas editor */}
+      {/* Canvas editor */}
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
           {editorData ? (
             <CanvasEditor
@@ -549,6 +573,72 @@ export default function TemplateCreate() {
           )}
         </div>
       </div>
+
+      {/* ── Name Prompt Modal ── */}
+      {namePromptOpen && (
+        <div
+          onClick={(e) => { if (e.target === e.currentTarget) setNamePromptOpen(false); }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "var(--bg-overlay)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "16px",
+          }}
+        >
+          <div style={{
+            background: "var(--bg-card)",
+            border: "1px solid var(--border-color)",
+            borderRadius: "14px",
+            padding: "24px",
+            width: "100%",
+            maxWidth: "380px",
+            boxShadow: "var(--shadow-xl)",
+            animation: "fadeInUp 0.2s ease both",
+          }}>
+            <h2 style={{ fontSize: "16px", fontWeight: 700, color: "var(--text-primary)", marginBottom: "6px" }}>
+              Name your template
+            </h2>
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "20px", lineHeight: 1.5 }}>
+              Give this template a recognisable name before saving.
+            </p>
+            <input
+              autoFocus
+              className="input"
+              placeholder="e.g. Course Completion Certificate"
+              value={namePromptValue}
+              onChange={(e) => setNamePromptValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleNamePromptConfirm();
+                if (e.key === "Escape") setNamePromptOpen(false);
+              }}
+              style={{ marginBottom: "16px", fontSize: "14px" }}
+            />
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                className="btn btn-primary"
+                onClick={handleNamePromptConfirm}
+                disabled={!namePromptValue.trim() || loading}
+                style={{ flex: 1 }}
+              >
+                {loading ? "Saving…" : "Save Template"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setNamePromptOpen(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

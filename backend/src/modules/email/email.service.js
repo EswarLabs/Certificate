@@ -5,6 +5,87 @@ import { prisma } from "../../lib/prisma.js";
 import { renderEditorDataToHtml } from "../../utils/renderEditorData.js";
 import { emailQueue } from "../../queues/email.queue.js";
 
+// ─── Shared Helper: Send Email with Selected Provider ─────────────────────────
+
+export const sendMailWithProvider = async ({ provider = "resend", apiKey, fromEmail, to, subject, html }) => {
+  if (!to || !apiKey || !fromEmail) {
+    throw new Error("Missing required email configuration fields (apiKey, fromEmail, or recipient)");
+  }
+
+  const fromString = `"EswarLabs Certificates" <${fromEmail}>`;
+
+  if (provider === "resend") {
+    const resend = new Resend(apiKey);
+    const { data, error } = await resend.emails.send({
+      from: fromString,
+      to,
+      subject,
+      html,
+    });
+    if (error) throw new Error(error.message || "Resend API error");
+    return { providerMessageId: data?.id || "resend-msg-id" };
+  }
+
+  // Gmail, Zoho, Outlook — use nodemailer SMTP
+  if (["gmail", "zoho", "outlook"].includes(provider)) {
+    const smtpConfigs = {
+      gmail:   { host: "smtp.gmail.com",      port: 587, secure: false },
+      zoho:    { host: "smtp.zoho.com",       port: 587, secure: false },
+      outlook: { host: "smtp.office365.com",  port: 587, secure: false },
+    };
+    const cfg = smtpConfigs[provider];
+    const transporter = nodemailer.createTransport({
+      host: cfg.host,
+      port: cfg.port,
+      secure: cfg.secure,
+      auth: { user: fromEmail, pass: apiKey },
+    });
+    const info = await transporter.sendMail({
+      from: fromString,
+      to,
+      subject,
+      html,
+    });
+    return { providerMessageId: info.messageId || "smtp-msg-id" };
+  }
+
+  // SendGrid — use nodemailer with SendGrid SMTP relay
+  if (provider === "sendgrid") {
+    const transporter = nodemailer.createTransport({
+      host: "smtp.sendgrid.net",
+      port: 587,
+      secure: false,
+      auth: { user: "apikey", pass: apiKey },
+    });
+    const info = await transporter.sendMail({
+      from: fromString,
+      to,
+      subject,
+      html,
+    });
+    return { providerMessageId: info.messageId || "sendgrid-msg-id" };
+  }
+
+  // Amazon SES — use nodemailer with SES SMTP
+  if (provider === "ses") {
+    const transporter = nodemailer.createTransport({
+      host: "email-smtp.us-east-1.amazonaws.com",
+      port: 587,
+      secure: false,
+      auth: { user: fromEmail, pass: apiKey },
+    });
+    const info = await transporter.sendMail({
+      from: fromString,
+      to,
+      subject,
+      html,
+    });
+    return { providerMessageId: info.messageId || "ses-msg-id" };
+  }
+
+  throw new Error(`Unsupported provider: ${provider}`);
+};
+
 // ─── Send Test Email ─────────────────────────────────────────────────────────
 
 export const sendTestEmail = async (workspaceId, userId, { to, provider, apiKey, fromEmail }) => {
@@ -41,83 +122,22 @@ export const sendTestEmail = async (workspaceId, userId, { to, provider, apiKey,
   `;
 
   try {
-    if (provider === "resend") {
-      const resend = new Resend(apiKey);
-      const { data, error } = await resend.emails.send({
-        from: `"EswarLabs Certificates" <${fromEmail}>`,
-        to,
-        subject,
-        html,
-      });
-      if (error) throw new Error(error.message || "Resend API error");
-      return { success: true, messageId: data.id };
-    }
-
-    // Gmail, Zoho, Outlook — use nodemailer SMTP
-    if (["gmail", "zoho", "outlook"].includes(provider)) {
-      const smtpConfigs = {
-        gmail:   { host: "smtp.gmail.com",      port: 587, secure: false },
-        zoho:    { host: "smtp.zoho.com",        port: 587, secure: false },
-        outlook: { host: "smtp.office365.com",   port: 587, secure: false },
-      };
-      const cfg = smtpConfigs[provider];
-      const transporter = nodemailer.createTransport({
-        host: cfg.host,
-        port: cfg.port,
-        secure: cfg.secure,
-        auth: { user: fromEmail, pass: apiKey },
-      });
-      const info = await transporter.sendMail({
-        from: `"EswarLabs Certificates" <${fromEmail}>`,
-        to,
-        subject,
-        html,
-      });
-      return { success: true, messageId: info.messageId };
-    }
-
-    // SendGrid — use nodemailer with SendGrid SMTP relay
-    if (provider === "sendgrid") {
-      const transporter = nodemailer.createTransport({
-        host: "smtp.sendgrid.net",
-        port: 587,
-        secure: false,
-        auth: { user: "apikey", pass: apiKey },
-      });
-      const info = await transporter.sendMail({
-        from: `"EswarLabs Certificates" <${fromEmail}>`,
-        to,
-        subject,
-        html,
-      });
-      return { success: true, messageId: info.messageId };
-    }
-
-    // Amazon SES — use nodemailer with SES SMTP
-    if (provider === "ses") {
-      const transporter = nodemailer.createTransport({
-        host: "email-smtp.us-east-1.amazonaws.com",
-        port: 587,
-        secure: false,
-        auth: { user: "AKIAIOSFODNN7EXAMPLE", pass: apiKey },
-      });
-      const info = await transporter.sendMail({
-        from: `"EswarLabs Certificates" <${fromEmail}>`,
-        to,
-        subject,
-        html,
-      });
-      return { success: true, messageId: info.messageId };
-    }
-
-    throw new Error(`Unsupported provider: ${provider}`);
+    const { providerMessageId } = await sendMailWithProvider({
+      provider,
+      apiKey,
+      fromEmail,
+      to,
+      subject,
+      html,
+    });
+    return { success: true, messageId: providerMessageId };
   } catch (error) {
     console.error(`[TEST EMAIL] Failed for provider=${provider}:`, error.message);
     throw error;
   }
 };
 
-// ─── Factory: get Resend Client ──────────────────────────────────────────────
+// ─── Factory: get Resend Client (Backwards compatibility) ─────────────────────
 
 export const getResendClient = async (workspaceId) => {
   if (process.env.NODE_ENV === "test") {
@@ -126,35 +146,29 @@ export const getResendClient = async (workspaceId) => {
 
   const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId } });
 
-  // Workspace-level custom SMTP (now Resend API)
   if (workspace?.smtpEnabled && workspace?.smtpSettings) {
     const s = workspace.smtpSettings;
     const apiKey = s.apiKey;
     
     if (!apiKey) {
-      const err = new Error("Resend API Key is missing in Workspace Settings. Please configure your Resend API key in Workspace Settings before sending emails.");
+      const err = new Error("Email Key is missing in Workspace Settings.");
       err.code = "SMTP_NOT_CONFIGURED";
       throw err;
     }
 
     const resend = new Resend(apiKey);
-
-    // Resolve fromEmail from workspace settings
     let fromEmail = s.fromEmail || "no-reply@eswarlabs.com";
-
     return { resend, fromEmail };
   }
 
   if (process.env.NODE_ENV !== "test") {
     const err = new Error(
-      "Workspace Email settings are not configured. You must configure Resend API settings in your Workspace Settings before sending emails."
+      "Workspace Email settings are not configured."
     );
     err.code = "SMTP_NOT_CONFIGURED";
     throw err;
   }
 
-  // Mock fallback for tests
-  console.warn("No Email settings configured (TEST MODE)");
   return {
     resend: null,
     fromEmail: "no-reply@eswarlabs.com",
@@ -253,27 +267,49 @@ export const sendCredentialEmail = async (credentialId, userId) => {
   });
 
   try {
-    const { resend, fromEmail } = await getResendClient(credential.workspaceId);
-
-    const subjectTitle = courseTitle ? `your certificate for ${courseTitle}` : "your certificate";
-
-    const mailOptions = {
-      from: `"EswarLabs Certificates" <${fromEmail}>`,
-      to: credential.recipientEmail,
-      subject: `${credential.recipientName}, ${subjectTitle} is ready`,
-      html: fullHtml,
-    };
-
-    console.log(`[RESEND] Attempting to send email via Resend API to ${credential.recipientEmail}`);
+    const workspace = await prisma.workspace.findUnique({
+      where: { id: credential.workspaceId },
+    });
 
     let providerMessageId = "mock-msg-id";
 
-    if (resend) {
-      const { data, error } = await resend.emails.send(mailOptions);
-      if (error) {
-        throw new Error(error.message || "Failed to send email via Resend API");
+    if (!workspace?.smtpEnabled || !workspace?.smtpSettings) {
+      if (process.env.NODE_ENV === "test") {
+        console.warn("No Email settings configured (TEST MODE)");
+      } else {
+        const err = new Error(
+          "Workspace Email settings are not configured. You must configure Email settings in Workspace Settings before sending emails."
+        );
+        err.code = "SMTP_NOT_CONFIGURED";
+        throw err;
       }
-      providerMessageId = data.id;
+    } else {
+      const s = workspace.smtpSettings;
+      const apiKey = s.apiKey;
+      const fromEmail = s.fromEmail;
+      const provider = s.provider || "resend";
+
+      if (!apiKey || !fromEmail) {
+        const err = new Error("Email configuration is incomplete (missing API Key / Password or From Email).");
+        err.code = "SMTP_NOT_CONFIGURED";
+        throw err;
+      }
+
+      const subjectTitle = courseTitle ? `your certificate for ${courseTitle}` : "your certificate";
+      const subject = `${credential.recipientName}, ${subjectTitle} is ready`;
+
+      console.log(`[EMAIL] Sending credential email via provider=${provider} to ${credential.recipientEmail}`);
+
+      const sendRes = await sendMailWithProvider({
+        provider,
+        apiKey,
+        fromEmail,
+        to: credential.recipientEmail,
+        subject,
+        html: fullHtml,
+      });
+
+      providerMessageId = sendRes.providerMessageId;
     }
 
     await prisma.emailLog.update({
